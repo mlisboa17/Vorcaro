@@ -1,0 +1,85 @@
+import type { InboxStatus, PrismaClient } from "@prisma/client";
+import { parseFinancialExtraction } from "@/modules/financial-inbox/domain/schemas/financial-extraction.schema";
+import { resolveInboxReviewStatus } from "@/modules/financial-inbox/domain/utils/resolve-inbox-review-status";
+import type { TransactionRepositoryPort } from "../../domain/ports/transaction-repository.port";
+
+export class ReverseTransactionError extends Error {
+  constructor(
+    message: string,
+    readonly code: "NOT_FOUND" | "FORBIDDEN",
+  ) {
+    super(message);
+    this.name = "ReverseTransactionError";
+  }
+}
+
+export interface ReverseTransactionInput {
+  transactionId: string;
+  userId: string;
+}
+
+export interface ReverseTransactionOutput {
+  transactionId: string;
+  inboxItemId: string | null;
+  restoredInboxStatus: InboxStatus | null;
+}
+
+export class ReverseTransactionUseCase {
+  constructor(
+    private readonly transactionRepository: TransactionRepositoryPort,
+    private readonly db: PrismaClient,
+  ) {}
+
+  async execute(input: ReverseTransactionInput): Promise<ReverseTransactionOutput> {
+    const transaction = await this.transactionRepository.findByIdForUser(
+      input.transactionId,
+      input.userId,
+    );
+
+    if (!transaction) {
+      throw new ReverseTransactionError("Transaction not found", "NOT_FOUND");
+    }
+
+    const inboxItemId = transaction.inboxItemId;
+
+    await this.db.$transaction(async (tx) => {
+      await tx.transaction.delete({ where: { id: transaction.id } });
+
+      if (!inboxItemId) {
+        return;
+      }
+
+      const extraction = await tx.extractionResult.findFirst({
+        where: { inboxItemId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const restoredStatus: InboxStatus = extraction
+        ? resolveInboxReviewStatus(parseFinancialExtraction(extraction.extractedData))
+        : "READY";
+
+      await tx.financialInbox.update({
+        where: { id: inboxItemId },
+        data: {
+          status: restoredStatus,
+          errorMessage: null,
+        },
+      });
+    });
+
+    const restoredInboxStatus = inboxItemId
+      ? (
+          await this.db.financialInbox.findUnique({
+            where: { id: inboxItemId },
+            select: { status: true },
+          })
+        )?.status ?? null
+      : null;
+
+    return {
+      transactionId: transaction.id,
+      inboxItemId,
+      restoredInboxStatus,
+    };
+  }
+}

@@ -1,0 +1,428 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth.js (NextAuth) ───────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  authAccounts     Account[]
+  sessions         Session[]
+  financialAccounts FinancialAccount[]
+  cards            Card[]
+  transactions     Transaction[]
+  categories       Category[]
+  paymentMethods   PaymentMethod[]
+  inboxItems       FinancialInbox[]
+  userRules        UserRule[]
+  learningPatterns UserLearningPattern[]
+  lancamentosRecorrentes LancamentoRecorrente[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─── Domínio Financeiro ───────────────────────────────────────────────────────
+
+model FinancialAccount {
+  id              String      @id @default(cuid())
+  userId          String
+  name            String
+  institutionName String?
+  type            AccountType
+  currency        String      @default("BRL")
+  balance         Decimal     @default(0) @db.Decimal(15, 2)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards        Card[]
+  transactions Transaction[]
+  lancamentosRecorrentes LancamentoRecorrente[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  CASH
+  INVESTMENT
+  OTHER
+  CORRENTE
+  CONTA_CORRENTE
+  POUPANCA
+  INVESTIMENTO
+  CARTEIRA_DIGITAL
+  CARTEIRA_DINHEIRO
+  INTERNACIONAL
+  PJ
+}
+
+model Card {
+  id                 String     @id @default(cuid())
+  userId             String
+  financialAccountId String?
+  name               String
+  institutionName    String?
+  brand              CardBrand
+  type               CardType
+  lastFourDigits     String?
+  creditLimit        Decimal?   @db.Decimal(15, 2)
+  closingDay         Int?
+  dueDay             Int?
+  isActive           Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  financialAccount FinancialAccount? @relation(fields: [financialAccountId], references: [id], onDelete: SetNull)
+  transactions     Transaction[]
+  lancamentosRecorrentes LancamentoRecorrente[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([financialAccountId])
+}
+
+enum CardBrand {
+  VISA
+  MASTERCARD
+  ELO
+  AMEX
+  HIPERCARD
+  OTHER
+}
+
+enum CardType {
+  CREDITO
+  DEBITO
+  MULTIPLO
+}
+
+enum CategoryType {
+  RECEITA
+  DESPESA
+}
+
+model Category {
+  id               String       @id @default(cuid())
+  userId           String
+  name             String
+  type             CategoryType
+  icon             String?
+  color            String?
+  isSystem         Boolean      @default(false)
+  isActive         Boolean      @default(true)
+  parentCategoryId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentCategory Category?    @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: Restrict)
+  subcategories Category[]    @relation("CategoryHierarchy")
+  transactions  Transaction[]
+  lancamentosRecorrentes LancamentoRecorrente[]
+
+  @@unique([userId, name, parentCategoryId])
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([parentCategoryId])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model PaymentMethod {
+  id        String            @id @default(cuid())
+  userId    String
+  name      String
+  type      PaymentMethodType
+  isDefault Boolean           @default(false)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  lancamentosRecorrentes LancamentoRecorrente[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+enum PaymentMethodType {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+  BANK_TRANSFER
+  BOLETO
+  OTHER
+  DINHEIRO
+  CARTAO
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  TRANSFERENCIA
+  TRANSFERENCIA_BANCARIA
+  CARTEIRA_DIGITAL
+  DEBITO_AUTOMATICO
+}
+
+model Transaction {
+  id                 String          @id @default(cuid())
+  userId             String
+  accountId          String?
+  categoryId         String?
+  paymentMethodId    String?
+  cardId             String?
+  inboxItemId        String?         @unique
+  type               TransactionType
+  amount             Decimal         @db.Decimal(15, 2)
+  description        String
+  date               DateTime
+  dataCompra         DateTime?
+  dataCaixa          DateTime?
+  dataVencimentoFatura DateTime?
+  notes              String?
+  metadata           Json?
+  installments       Int             @default(1)
+  installmentGroup   String?
+  currentInstallment Int?
+  totalInstallments  Int?
+  numeroParcela      Int?
+  totalParcelas      Int?
+  idGrupoParcelamento String?
+  observacoesInternas String?
+  lancamentoRecorrenteId String?
+  dataRecorrencia        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account       FinancialAccount? @relation(fields: [accountId], references: [id])
+  category      Category?         @relation(fields: [categoryId], references: [id])
+  paymentMethod PaymentMethod?    @relation(fields: [paymentMethodId], references: [id])
+  card          Card?             @relation(fields: [cardId], references: [id])
+  inboxItem     FinancialInbox?   @relation(fields: [inboxItemId], references: [id])
+  lancamentoRecorrente LancamentoRecorrente? @relation(fields: [lancamentoRecorrenteId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([accountId])
+  @@index([cardId])
+  @@index([installmentGroup])
+  @@index([lancamentoRecorrenteId, dataRecorrencia])
+}
+
+// ─── Lançamentos Recorrentes ──────────────────────────────────────────────────
+
+enum FrequenciaRecorrencia {
+  SEMANAL
+  QUINZENAL
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum TipoLancamentoRecorrente {
+  RECEITA
+  DESPESA
+}
+
+model LancamentoRecorrente {
+  id                 String                   @id @default(cuid())
+  userId             String
+  descricao          String
+  tipo               TipoLancamentoRecorrente
+  valor              Decimal                  @db.Decimal(15, 2)
+  frequencia         FrequenciaRecorrencia
+  dataInicio         DateTime
+  dataFim            DateTime?
+  proximaExecucao    DateTime
+  estaAtivo          Boolean                  @default(true)
+  categoryId         String
+  financialAccountId String
+  paymentMethodId    String
+  cardId             String?
+  observacoes        String?
+  diaInicioOriginal  Int
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  paymentMethod    PaymentMethod    @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  card             Card?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  transactions     Transaction[]
+
+  @@index([userId, estaAtivo, proximaExecucao])
+  @@index([userId])
+}
+
+// ─── Caixa Financeira (Financial Inbox) ───────────────────────────────────────
+
+enum InboxStatus {
+  PENDING
+  PROCESSING
+  READY
+  NEEDS_CONFIRMATION
+  SAVED
+  ERROR
+}
+
+enum InboxChannel {
+  WEB
+  WEB_VOICE
+  WEB_IMAGE
+  WEB_IMPORT
+  TELEGRAM
+  TELEGRAM_VOICE
+  TELEGRAM_IMAGE
+  WHATSAPP
+}
+
+model FinancialInbox {
+  id           String       @id @default(cuid())
+  userId       String
+  status       InboxStatus  @default(PENDING)
+  channel      InboxChannel
+  rawContent   String       @db.Text
+  channelMeta  Json?
+  metadata     Json?
+  externalId   String?
+  importHash   String?
+  errorMessage String?
+  processedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments       Attachment[]
+  extractionResults ExtractionResult[]
+  transaction       Transaction?
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([userId, channel, externalId])
+  @@index([userId, channel, importHash])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  inboxItemId String
+  fileName    String
+  mimeType    String
+  storageKey  String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  inboxItem         FinancialInbox     @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
+  extractionResults ExtractionResult[]
+
+  @@index([inboxItemId])
+}
+
+model ExtractionResult {
+  id            String   @id @default(cuid())
+  inboxItemId   String
+  attachmentId  String?
+  provider      String
+  extractedData Json
+  confidence    Json
+  tokensUsed    Int?
+  processingMs  Int?
+  createdAt     DateTime @default(now())
+
+  inboxItem  FinancialInbox @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
+  attachment Attachment?    @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@index([inboxItemId])
+}
+
+// ─── Motor de Aprendizado ─────────────────────────────────────────────────────
+
+model UserRule {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  condition   Json
+  action      Json
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model UserLearningPattern {
+  id           String   @id @default(cuid())
+  userId       String
+  patternType  String
+  inputSignal  Json
+  outputSignal Json
+  confidence   Float
+  occurrences  Int      @default(1)
+  lastSeenAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, patternType])
+}
