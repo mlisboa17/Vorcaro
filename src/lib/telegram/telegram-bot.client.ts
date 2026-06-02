@@ -17,6 +17,23 @@ interface TelegramFileResponse {
   };
 }
 
+export async function sendTelegramMessage(chatId: number, text: string): Promise<void> {
+  const token = getBotToken();
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram sendMessage failed: HTTP ${response.status}`);
+  }
+}
+
 export async function downloadTelegramFile(
   fileId: string,
   fallbackMimeType = "application/octet-stream",

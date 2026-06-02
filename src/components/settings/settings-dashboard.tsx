@@ -124,11 +124,19 @@ export function SettingsDashboard() {
   return (
     <SettingsToastProvider>
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Cadastros</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Central de configurações financeiras — categorias, contas, cartões e demais cadastros.
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Cadastros</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Central de configurações financeiras — categorias, contas, cartões e demais cadastros.
+            </p>
+          </div>
+          <a
+            href="/dashboard/settings/integrations"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Integrações →
+          </a>
         </header>
 
         <nav className="flex gap-2 overflow-x-auto border-b border-slate-200 pb-1">

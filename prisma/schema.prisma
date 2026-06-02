@@ -33,6 +33,8 @@ model User {
   patrimonyLiabilities PatrimonyLiability[]
   patrimonyTransactions PatrimonyTransaction[]
   consortiums          Consortium[]
+  telegramConnections  TelegramConnection[]
+  telegramConnectCodes TelegramConnectCode[]
 }
 
 model Account {
@@ -596,4 +598,37 @@ model PatrimonyTransaction {
   @@index([assetId])
   @@index([liabilityId])
   @@index([mainTransactionId])
+}
+
+// ─── Telegram (Sprint 4.7) ────────────────────────────────────────────────────
+
+model TelegramConnection {
+  id             String   @id @default(cuid())
+  userId         String
+  telegramChatId BigInt
+  telegramUserId BigInt?
+  username       String?
+  firstName      String?
+  isActive       Boolean  @default(true)
+  connectedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([telegramChatId])
+  @@index([userId])
+}
+
+model TelegramConnectCode {
+  id        String    @id @default(cuid())
+  userId    String
+  code      String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

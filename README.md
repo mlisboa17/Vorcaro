@@ -176,9 +176,27 @@ backups/          # dumps locais (ignorado no Git)
 
 ---
 
+## Telegram (Sprint 4.7)
+
+1. Configure `TELEGRAM_BOT_TOKEN` e `TELEGRAM_WEBHOOK_SECRET` no `.env`.
+2. Abra **Cadastros → Integrações** (`/dashboard/settings/integrations`) e gere um código.
+3. No Telegram, envie: `/connect SEUCODIGO`
+4. Envie texto, áudio ou foto — itens entram na Caixa Financeira.
+
+**Webhook:** `POST /api/telegram/webhook`  
+**Dev local:** use [ngrok](https://ngrok.com/) ou [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — o Telegram não acessa `localhost`.
+
+```bash
+ngrok http 3000
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<tunnel>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Rota legada (somente `?token=`): `/api/webhooks/telegram`.
+
+---
+
 ## Roadmap próximo
 
-- **Sprint 4.7** — integração Telegram
 - **Sprint 5** — IA Financeira Vorcaro
 
 ---
