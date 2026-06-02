@@ -53,16 +53,17 @@ function serializeCategoryTree(record: {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const userId = session.user.id;
+  const includeInactive = new URL(request.url).searchParams.get("includeInactive") === "true";
   const repository = new PrismaCategoryConfigRepository(prisma);
   const useCase = new ListCategoriesConfigUseCase(repository);
-  const items = await useCase.execute(userId);
+  const items = await useCase.execute(userId, { includeInactive });
 
   return NextResponse.json({ items: items.map(serializeCategoryTree) });
 }

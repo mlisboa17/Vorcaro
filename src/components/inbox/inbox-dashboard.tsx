@@ -1,7 +1,7 @@
 "use client";
 
-import type { FinanceCatalog, InboxItem, InboxListResponse, InboxStatusFilter } from "@/types/inbox";
-import { INBOX_STATUS_TABS } from "@/types/inbox";
+import type { FinanceCatalog, InboxItem, InboxListResponse } from "@/types/inbox";
+import { INBOX_STATUS_TABS, type InboxStatusFilter } from "@/types/inbox.constants";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfirmTransactionDrawer } from "./confirm-transaction-drawer";
@@ -9,11 +9,15 @@ import { InboxItemList } from "./inbox-item-list";
 import { InboxMetricsCards } from "./inbox-metrics-cards";
 import { QuickIngest } from "./quick-ingest";
 import { cn } from "@/lib/utils/cn";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
+import { FinancialFileImportModal } from "./financial-file-import-modal";
+import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
+import { InboxBulkReviewModal } from "./inbox-bulk-review-modal";
 
-export function InboxDashboard() {
+function InboxDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { pushToast } = useSettingsToast();
   const activeStatus = (searchParams.get("status") as InboxStatusFilter | null) ?? "ALL";
 
   const [allItems, setAllItems] = useState<InboxItem[]>([]);
@@ -27,6 +31,9 @@ export function InboxDashboard() {
   const [authError, setAuthError] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const fetchInbox = useCallback(async () => {
     const response = await fetch("/api/inbox?limit=100", { credentials: "include" });
@@ -109,6 +116,26 @@ export function InboxDashboard() {
     );
   }
 
+  const reviewableItems = useMemo(
+    () => filteredItems.filter((item) => item.status === "NEEDS_CONFIRMATION"),
+    [filteredItems],
+  );
+
+  const pageAllSelected =
+    reviewableItems.length > 0 && reviewableItems.every((item) => selectedIds.has(item.id));
+
+  function toggleSelectAllReviewable() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (pageAllSelected) {
+        reviewableItems.forEach((item) => next.delete(item.id));
+      } else {
+        reviewableItems.forEach((item) => next.add(item.id));
+      }
+      return next;
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -137,11 +164,21 @@ export function InboxDashboard() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Caixa Financeira</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Visão cognitiva do Logos — IA, regras automáticas e confirmações pendentes.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Caixa Financeira</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Visão cognitiva do Logos — IA, regras automáticas e confirmações pendentes.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          <Upload className="h-4 w-4" />
+          Importar Extrato / Fatura
+        </button>
       </header>
 
       <InboxMetricsCards items={allItems} />
@@ -170,6 +207,24 @@ export function InboxDashboard() {
         ))}
       </nav>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleSelectAllReviewable}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          {pageAllSelected ? "Desmarcar revisão" : "Selecionar revisão"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setBulkOpen(true)}
+          disabled={selectedIds.size === 0}
+          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+        >
+          Revisão em massa ({selectedIds.size})
+        </button>
+      </div>
+
       <InboxItemList items={filteredItems} onReview={handleReview} />
 
       <ConfirmTransactionDrawer
@@ -179,6 +234,41 @@ export function InboxDashboard() {
         onClose={() => setDrawerOpen(false)}
         onConfirmed={handleConfirmed}
       />
+
+      <FinancialFileImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImportSuccess={(result) => {
+          pushToast(
+            "success",
+            `Arquivo importado. ${result.imported} lançamentos enviados para revisão.`,
+          );
+          fetchInbox().catch(console.error);
+        }}
+      />
+
+      <InboxBulkReviewModal
+        open={bulkOpen}
+        selectedIds={[...selectedIds]}
+        catalog={catalog}
+        onClose={() => setBulkOpen(false)}
+        onSaved={(result) => {
+          pushToast(
+            "success",
+            `Revisão em massa concluída: ${result.updated} atualizados, ${result.skipped} ignorados, ${result.failed} falhas.`,
+          );
+          setSelectedIds(new Set());
+          fetchInbox().catch(console.error);
+        }}
+      />
     </div>
+  );
+}
+
+export function InboxDashboard() {
+  return (
+    <SettingsToastProvider>
+      <InboxDashboardContent />
+    </SettingsToastProvider>
   );
 }

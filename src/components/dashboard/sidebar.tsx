@@ -4,13 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
+  CalendarClock,
   Cpu,
+  Handshake,
   History,
   Inbox,
+  Landmark,
+  LayoutDashboard,
   LogOut,
   Menu,
   RefreshCw,
-  Wallet,
+  Settings,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -23,10 +27,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
   { href: "/dashboard/inbox", label: "Caixa Financeira", icon: Inbox },
   { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
+  { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
+  { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
+  { href: "/dashboard/consorcios", label: "Consórcios", icon: Handshake },
+  { href: "/dashboard/cashflow", label: "Fluxo de Caixa Futuro", icon: CalendarClock },
   { href: "/dashboard/recurring", label: "Lançamentos Recorrentes", icon: RefreshCw },
-  { href: "/dashboard/instruments", label: "Instrumentos Financeiros", icon: Wallet },
   { href: "/dashboard/rules", label: "Cérebro & Automações", icon: Cpu },
 ];
 
@@ -37,6 +45,9 @@ interface SidebarProps {
 }
 
 function isActiveRoute(pathname: string, href: string): boolean {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard";
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

@@ -29,11 +29,29 @@ function buildRecord(overrides: Partial<RecurringTransactionRecord> = {}): Recur
     financialAccountId: "acc-1",
     paymentMethodId: "pm-1",
     cardId: null,
+    liabilityId: null,
+    defaultAllocations: null,
     observacoes: null,
     diaInicioOriginal: 10,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
+  };
+}
+
+function buildLiabilityRepositoryMock() {
+  return {
+    listByUserId: vi.fn(),
+    findByIdForUser: vi.fn().mockResolvedValue({
+      id: "liab-1",
+      userId,
+      nome: "Financiamento Corolla",
+      saldoAtual: 82000,
+    }),
+    create: vi.fn(),
+    update: vi.fn(),
+    deleteById: vi.fn(),
+    countUsage: vi.fn(),
   };
 }
 
@@ -74,7 +92,7 @@ describe("recurring transaction use cases", () => {
       update: vi.fn(),
       findDueActiveByUserId: vi.fn(),
       hasGeneratedTransaction: vi.fn(),
-      processOccurrence: vi.fn(),
+      processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
       advanceNextExecution: vi.fn(),
       deactivate: vi.fn(),
     };
@@ -86,6 +104,7 @@ describe("recurring transaction use cases", () => {
       ownership.financialAccountRepository,
       ownership.paymentMethodRepository,
       ownership.cardRepository,
+      buildLiabilityRepositoryMock(),
     );
 
     const result = await useCase.execute({
@@ -110,6 +129,49 @@ describe("recurring transaction use cases", () => {
     expect(result.descricao).toBe("Internet mensal");
   });
 
+  it("vincula recorrência ao passivo com ownership", async () => {
+    const repository: RecurringTransactionRepositoryPort = {
+      listByUserId: vi.fn(),
+      findByIdForUser: vi.fn(),
+      create: vi.fn().mockResolvedValue(buildRecord({ liabilityId: "liab-1" })),
+      update: vi.fn(),
+      findDueActiveByUserId: vi.fn(),
+      hasGeneratedTransaction: vi.fn(),
+      processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
+      advanceNextExecution: vi.fn(),
+      deactivate: vi.fn(),
+    };
+
+    const ownership = buildOwnershipMocks();
+    const liabilityRepository = buildLiabilityRepositoryMock();
+    const useCase = new CreateRecurringTransactionUseCase(
+      repository,
+      ownership.categoryRepository,
+      ownership.financialAccountRepository,
+      ownership.paymentMethodRepository,
+      ownership.cardRepository,
+      liabilityRepository,
+    );
+
+    await useCase.execute({
+      userId,
+      descricao: "Parcela Corolla",
+      tipo: "DESPESA",
+      valor: 1800,
+      frequencia: "MENSAL",
+      dataInicio: parseDateOnlyToUtcNoon("2026-01-10"),
+      categoryId: "cat-1",
+      financialAccountId: "acc-1",
+      paymentMethodId: "pm-1",
+      liabilityId: "liab-1",
+    });
+
+    expect(liabilityRepository.findByIdForUser).toHaveBeenCalledWith("liab-1", userId);
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ liabilityId: "liab-1" }),
+    );
+  });
+
   it("edita recorrência existente", async () => {
     const repository: RecurringTransactionRepositoryPort = {
       listByUserId: vi.fn(),
@@ -118,7 +180,7 @@ describe("recurring transaction use cases", () => {
       update: vi.fn().mockResolvedValue(buildRecord({ valor: 139.9 })),
       findDueActiveByUserId: vi.fn(),
       hasGeneratedTransaction: vi.fn(),
-      processOccurrence: vi.fn(),
+      processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
       advanceNextExecution: vi.fn(),
       deactivate: vi.fn(),
     };
@@ -130,6 +192,7 @@ describe("recurring transaction use cases", () => {
       ownership.financialAccountRepository,
       ownership.paymentMethodRepository,
       ownership.cardRepository,
+      buildLiabilityRepositoryMock(),
     );
 
     const result = await useCase.execute({
@@ -155,7 +218,7 @@ describe("recurring transaction use cases", () => {
       update: vi.fn(),
       findDueActiveByUserId: vi.fn(),
       hasGeneratedTransaction: vi.fn(),
-      processOccurrence: vi.fn(),
+      processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
       advanceNextExecution: vi.fn(),
       deactivate: vi.fn().mockResolvedValue(undefined),
     };
@@ -174,7 +237,7 @@ describe("recurring transaction use cases", () => {
       update: vi.fn(),
       findDueActiveByUserId: vi.fn(),
       hasGeneratedTransaction: vi.fn(),
-      processOccurrence: vi.fn(),
+      processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
       advanceNextExecution: vi.fn(),
       deactivate: vi.fn(),
     };

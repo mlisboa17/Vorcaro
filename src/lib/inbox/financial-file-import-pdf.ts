@@ -1,0 +1,102 @@
+import { parsePdf } from "@/lib/parsers/pdf-parser";
+import { PdfParseError, toPdfParseError } from "@/lib/parsers/pdf-import-errors";
+import type { ImportedFinancialLine } from "./financial-file-import";
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeDateToYyyyMmDd(value: string): string | null {
+  const raw = value.trim();
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  }
+
+  const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) {
+    return `${br[3]}-${br[2]}-${br[1]}`;
+  }
+
+  const compact = raw.match(/^(\d{4})(\d{2})(\d{2})/);
+  if (compact) {
+    return `${compact[1]}-${compact[2]}-${compact[3]}`;
+  }
+
+  return null;
+}
+
+function safeNumber(value: string): number | null {
+  if (normalizeDateToYyyyMmDd(value)) {
+    return null;
+  }
+
+  const cleaned = value
+    .replace(/[^\d,.\-]/g, "")
+    .replace(/\.(?=\d{3}(\D|$))/g, "")
+    .replace(",", ".")
+    .trim();
+
+  if (!cleaned || cleaned === "-" || cleaned === ".") {
+    return null;
+  }
+
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function splitLines(text: string): string[] {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function linesFromPdfText(text: string, fileName: string): ImportedFinancialLine[] {
+  const lines = splitLines(text);
+
+  if (lines.length === 0) {
+    return [
+      {
+        rawContent: `PDF sem texto extraível: ${fileName}`,
+      },
+    ];
+  }
+
+  const result: ImportedFinancialLine[] = [];
+
+  for (const line of lines.slice(0, 500)) {
+    const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})/);
+    const amountMatch = line.match(/(-?\d{1,3}(\.\d{3})*,\d{2}|-?\d+(\.\d+)?)/);
+
+    const date = dateMatch ? normalizeDateToYyyyMmDd(dateMatch[1]) : null;
+    const amount = amountMatch ? safeNumber(amountMatch[0]) : null;
+
+    result.push({
+      date: date ?? undefined,
+      amount: amount ?? undefined,
+      description: normalizeWhitespace(line).slice(0, 140) || undefined,
+      rawContent: normalizeWhitespace(line),
+    });
+  }
+
+  return result;
+}
+
+export async function parsePdfWithLocalExtraction(
+  buffer: Buffer,
+  fileName: string,
+  password?: string,
+): Promise<ImportedFinancialLine[]> {
+  try {
+    const text = await parsePdf(buffer, { pdfPassword: password });
+    return linesFromPdfText(text, fileName);
+  } catch (error) {
+    throw toPdfParseError(error, Boolean(password?.trim()));
+  }
+}
+
+export { PdfParseError };

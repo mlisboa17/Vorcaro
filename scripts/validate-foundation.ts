@@ -11,6 +11,7 @@ import {
   PrismaFinancialAccountRepository,
   PrismaPaymentMethodRepository,
 } from "@/modules/transactions/infrastructure/repositories/prisma-ownership.repositories";
+import { PrismaPatrimonyLiabilityRepository } from "@/modules/patrimony/infrastructure/repositories/prisma-patrimony.repositories";
 import { PrismaTransactionRepository } from "@/modules/transactions/infrastructure/repositories/prisma-transaction.repository";
 import { ListInboxItemsUseCase } from "@/modules/financial-inbox/application/use-cases/list-inbox-items.use-case";
 import { PrismaInboxRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-inbox.repository";
@@ -68,6 +69,7 @@ function createTransactionUseCase() {
     new PrismaFinancialAccountRepository(prisma),
     new PrismaPaymentMethodRepository(prisma),
     new PrismaCardOwnershipRepository(prisma),
+    new PrismaPatrimonyLiabilityRepository(prisma),
   );
 }
 

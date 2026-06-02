@@ -2,6 +2,7 @@ import type {
   FrequenciaRecorrencia,
   TipoLancamentoRecorrente,
 } from "@prisma/client";
+import type { TransactionAllocation } from "@/lib/financial/liability-payment-metadata";
 import type { TransactionInput } from "@/modules/transactions/domain/ports/transaction-repository.port";
 
 export interface RecurringTransactionRecord {
@@ -19,6 +20,8 @@ export interface RecurringTransactionRecord {
   financialAccountId: string;
   paymentMethodId: string;
   cardId: string | null;
+  liabilityId: string | null;
+  defaultAllocations: TransactionAllocation[] | null;
   observacoes: string | null;
   diaInicioOriginal: number;
   createdAt: Date;
@@ -37,6 +40,8 @@ export interface CreateRecurringTransactionInput {
   financialAccountId: string;
   paymentMethodId: string;
   cardId?: string | null;
+  liabilityId?: string | null;
+  defaultAllocations?: TransactionAllocation[] | null;
   observacoes?: string | null;
 }
 
@@ -54,6 +59,8 @@ export interface UpdateRecurringTransactionInput {
   financialAccountId?: string;
   paymentMethodId?: string;
   cardId?: string | null;
+  liabilityId?: string | null;
+  defaultAllocations?: TransactionAllocation[] | null;
   observacoes?: string | null;
 }
 
@@ -77,7 +84,7 @@ export interface RecurringTransactionRepositoryPort {
     lancamentoRecorrenteId: string,
     dataRecorrencia: Date,
   ): Promise<boolean>;
-  processOccurrence(input: ProcessRecurringOccurrenceInput): Promise<void>;
+  processOccurrence(input: ProcessRecurringOccurrenceInput): Promise<{ transactionId: string }>;
   advanceNextExecution(
     id: string,
     currentExecutionDate: Date,

@@ -29,6 +29,7 @@ export interface BuildCreditCardTransactionsInput {
   metadata?: Record<string, unknown>;
   lancamentoRecorrenteId?: string;
   dataRecorrencia?: Date;
+  liabilityId?: string;
 }
 
 export class CreditCardTransactionBuilderError extends Error {
@@ -79,6 +80,7 @@ function applyCreditCardDates(
       idGrupoParcelamento: partial.idGrupoParcelamento,
       lancamentoRecorrenteId: input.lancamentoRecorrenteId,
       dataRecorrencia: input.dataRecorrencia,
+      liabilityId: input.liabilityId,
     };
   }
 
@@ -112,6 +114,7 @@ function applyCreditCardDates(
     idGrupoParcelamento: partial.idGrupoParcelamento,
     lancamentoRecorrenteId: input.lancamentoRecorrenteId,
     dataRecorrencia: input.dataRecorrencia,
+    liabilityId: input.liabilityId,
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Loader2, Mic, MicOff, Paperclip, SendHorizonal, Square } from "lucide-react";
+import { Camera, Loader2, Mic, MicOff, Paperclip, SendHorizontal, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -265,7 +265,7 @@ export function QuickIngest({ onSubmitted, className }: QuickIngestProps) {
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <SendHorizonal className="h-4 w-4" />
+                <SendHorizontal className="h-4 w-4" />
               )}
               <span className="hidden sm:inline">Enviar</span>
             </button>

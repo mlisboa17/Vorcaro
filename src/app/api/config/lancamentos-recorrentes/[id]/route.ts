@@ -50,6 +50,8 @@ export async function PATCH(
       financialAccountId: parsed.data.contaFinanceiraId,
       paymentMethodId: parsed.data.formaPagamentoId,
       cardId: parsed.data.cartaoId,
+      liabilityId: parsed.data.liabilityId,
+      defaultAllocations: parsed.data.defaultAllocations,
       observacoes: parsed.data.observacoes,
     });
 

@@ -50,6 +50,8 @@ export async function POST(request: Request) {
       financialAccountId: parsed.data.contaFinanceiraId,
       paymentMethodId: parsed.data.formaPagamentoId,
       cardId: parsed.data.cartaoId ?? null,
+      liabilityId: parsed.data.liabilityId ?? null,
+      defaultAllocations: parsed.data.defaultAllocations ?? null,
       observacoes: parsed.data.observacoes ?? null,
     });
 

@@ -30,6 +30,8 @@ export interface ConfigCartao {
   bandeira: CardBrand;
   tipo: CardType;
   ultimosQuatroDigitos: string | null;
+  diaFechamento?: number | null;
+  diaVencimento?: number | null;
   estaAtivo?: boolean;
 }
 

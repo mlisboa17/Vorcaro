@@ -14,6 +14,8 @@ export function serializeRecurring(record: {
   financialAccountId: string;
   paymentMethodId: string;
   cardId: string | null;
+  liabilityId: string | null;
+  defaultAllocations: import("@/lib/financial/liability-payment-metadata").TransactionAllocation[] | null;
   observacoes: string | null;
 }) {
   return {
@@ -30,6 +32,8 @@ export function serializeRecurring(record: {
     contaFinanceiraId: record.financialAccountId,
     formaPagamentoId: record.paymentMethodId,
     cartaoId: record.cardId,
+    liabilityId: record.liabilityId,
+    defaultAllocations: record.defaultAllocations,
     observacoes: record.observacoes,
   };
 }

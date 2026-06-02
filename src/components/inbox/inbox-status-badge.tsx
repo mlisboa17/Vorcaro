@@ -1,9 +1,9 @@
-import type { InboxStatus } from "@prisma/client";
+import type { InboxStatusLiteral } from "@/types/inbox.constants";
 import { AlertCircle, CheckCircle2, Clock, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const STATUS_CONFIG: Record<
-  InboxStatus,
+  InboxStatusLiteral,
   { label: string; className: string; icon: React.ReactNode; pulse?: boolean }
 > = {
   PENDING: {
@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<
 };
 
 interface InboxStatusBadgeProps {
-  status: InboxStatus;
+  status: InboxStatusLiteral;
   className?: string;
 }
 

@@ -1,25 +1,18 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { InstrumentsDashboard } from "@/components/instruments/instruments-dashboard";
-import { Loader2 } from "lucide-react";
 
-export default async function InstrumentsPage() {
-  const session = await auth();
+const TAB_MAP: Record<string, string> = {
+  categorias: "categorias",
+  contas: "contas",
+  cartoes: "cartoes",
+  formas: "formas",
+};
 
-  if (!session?.user?.id) {
-    redirect("/api/auth/signin?callbackUrl=/dashboard/instruments");
-  }
-
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-        </div>
-      }
-    >
-      <InstrumentsDashboard />
-    </Suspense>
-  );
+export default async function InstrumentsRedirectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const params = await searchParams;
+  const targetTab = params.tab && TAB_MAP[params.tab] ? TAB_MAP[params.tab] : "categorias";
+  redirect(`/dashboard/settings?tab=${targetTab}`);
 }

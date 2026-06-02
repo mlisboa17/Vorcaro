@@ -36,16 +36,17 @@ function serializePaymentMethod(record: {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const userId = session.user.id;
+  const includeInactive = new URL(request.url).searchParams.get("includeInactive") === "true";
   const repository = new PrismaPaymentMethodRepository(prisma);
   const useCase = new ListPaymentMethodsUseCase(repository);
-  const items = await useCase.execute(userId);
+  const items = await useCase.execute(userId, { includeInactive });
 
   return NextResponse.json({ items: items.map(serializePaymentMethod) });
 }

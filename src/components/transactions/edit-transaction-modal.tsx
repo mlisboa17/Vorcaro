@@ -8,6 +8,12 @@ import { useEffect, useMemo, useState } from "react";
 import { flattenCatalogCategories } from "@/lib/categories/category-utils";
 import { cn } from "@/lib/utils/cn";
 import { isCardPaymentMethodType } from "@/modules/financial-instruments/domain/utils/payment-method-type.mapper";
+import {
+  emptyPatrimonyImpactState,
+  parsePatrimonyImpactState,
+  patrimonyImpactFromTransaction,
+  TransactionPatrimonyImpactSection,
+} from "./transaction-patrimony-impact";
 
 interface EditTransactionModalProps {
   item: TransactionListItem | null;
@@ -88,6 +94,7 @@ export function EditTransactionModal({
       parcelas: "1",
     },
   );
+  const [patrimony, setPatrimony] = useState(emptyPatrimonyImpactState);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +116,7 @@ export function EditTransactionModal({
 
     setError(null);
     setForm(buildInitialForm(item, catalog));
+    setPatrimony(patrimonyImpactFromTransaction(item.liabilityId, item.allocations));
   }, [open, item, catalog]);
 
   async function handleSubmit() {
@@ -147,8 +155,10 @@ export function EditTransactionModal({
         throw new Error("Informe um número válido de parcelas");
       }
 
+      const patrimonyPayload = parsePatrimonyImpactState(patrimony);
+
       const response = await fetch(`/api/transactions/${item.id}`, {
-        method: "PUT",
+        method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -161,6 +171,8 @@ export function EditTransactionModal({
           metodoPagamentoId: form.metodoPagamentoId,
           cartaoId: showCardField ? form.cartaoId : null,
           parcelas: parsedParcelas,
+          liabilityId: patrimony.enabled ? patrimonyPayload.liabilityId ?? null : null,
+          allocations: patrimonyPayload.allocations,
         }),
       });
 
@@ -344,6 +356,12 @@ export function EditTransactionModal({
                 className={inputClassName}
               />
             </Field>
+
+            <TransactionPatrimonyImpactSection
+              state={patrimony}
+              onChange={setPatrimony}
+              parcelaValor={Number(form.valor) || undefined}
+            />
 
             {error ? (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>

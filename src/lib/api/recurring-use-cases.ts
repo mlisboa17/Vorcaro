@@ -7,6 +7,8 @@ import {
   UpdateRecurringTransactionUseCase,
 } from "@/modules/recurring-transactions/application/use-cases/recurring-transaction.use-cases";
 import { PrismaRecurringTransactionRepository } from "@/modules/recurring-transactions/infrastructure/repositories/prisma-recurring-transaction.repository";
+import { PrismaPatrimonyLiabilityRepository } from "@/modules/patrimony/infrastructure/repositories/prisma-patrimony.repositories";
+import { PrismaTransactionRepository } from "@/modules/transactions/infrastructure/repositories/prisma-transaction.repository";
 import {
   PrismaCardOwnershipRepository,
   PrismaCategoryRepository,
@@ -16,6 +18,7 @@ import {
 
 export function buildRecurringUseCases() {
   const repository = new PrismaRecurringTransactionRepository(prisma);
+  const liabilityRepository = new PrismaPatrimonyLiabilityRepository(prisma);
   const categoryRepository = new PrismaCategoryRepository(prisma);
   const financialAccountRepository = new PrismaFinancialAccountRepository(prisma);
   const paymentMethodRepository = new PrismaPaymentMethodRepository(prisma);
@@ -29,6 +32,7 @@ export function buildRecurringUseCases() {
       financialAccountRepository,
       paymentMethodRepository,
       cardRepository,
+      liabilityRepository,
     ),
     update: new UpdateRecurringTransactionUseCase(
       repository,
@@ -36,12 +40,15 @@ export function buildRecurringUseCases() {
       financialAccountRepository,
       paymentMethodRepository,
       cardRepository,
+      liabilityRepository,
     ),
     deactivate: new DeactivateRecurringTransactionUseCase(repository),
     process: new ProcessRecurringTransactionsUseCase(
       repository,
       paymentMethodRepository,
       cardRepository,
+      new PrismaTransactionRepository(prisma),
+      liabilityRepository,
     ),
   };
 }

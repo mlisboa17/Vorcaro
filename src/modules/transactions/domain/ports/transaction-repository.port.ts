@@ -26,6 +26,7 @@ export interface TransactionInput {
   metadata?: Record<string, unknown>;
   lancamentoRecorrenteId?: string;
   dataRecorrencia?: Date;
+  liabilityId?: string;
 }
 
 export interface Transaction {
@@ -55,6 +56,7 @@ export interface Transaction {
   observacoesInternas: string | null;
   lancamentoRecorrenteId: string | null;
   dataRecorrencia: Date | null;
+  liabilityId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -95,6 +97,19 @@ export interface UpdateTransactionData {
   paymentMethodId: string;
   cardId: string | null;
   installments: number;
+  liabilityId?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface BulkUpdateTransactionPatch {
+  categoryId?: string;
+  accountId?: string;
+  paymentMethodId?: string;
+  cardId?: string | null;
+  liabilityId?: string | null;
+  date?: Date;
+  dataCaixa?: Date;
+  dataCompra?: Date;
 }
 
 export interface TransactionRepositoryPort {
@@ -106,6 +121,14 @@ export interface TransactionRepositoryPort {
     userId: string,
   ): Promise<TransactionWithRelations | null>;
   listByUserId(userId: string, filters?: ListTransactionsFilters): Promise<ListTransactionsResult>;
+  listIdsByUserId(userId: string, filters?: ListTransactionsFilters): Promise<string[]>;
+  countByIdsForUser(userId: string, transactionIds: string[]): Promise<number>;
+  bulkUpdateForUser(
+    userId: string,
+    transactionIds: string[],
+    patch: BulkUpdateTransactionPatch,
+    auditFields: string[],
+  ): Promise<number>;
   updateById(
     id: string,
     userId: string,

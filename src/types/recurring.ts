@@ -1,4 +1,5 @@
 import type { FrequenciaRecorrencia, TipoLancamentoRecorrente } from "@prisma/client";
+import type { TransactionAllocation } from "@/lib/financial/liability-payment-metadata";
 
 export interface RecurringTransactionItem {
   id: string;
@@ -14,6 +15,8 @@ export interface RecurringTransactionItem {
   contaFinanceiraId: string;
   formaPagamentoId: string;
   cartaoId: string | null;
+  liabilityId: string | null;
+  defaultAllocations: TransactionAllocation[] | null;
   observacoes: string | null;
 }
 

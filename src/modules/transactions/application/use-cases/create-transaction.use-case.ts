@@ -1,5 +1,10 @@
 import type { TransactionType } from "@prisma/client";
 import {
+  buildLiabilityPaymentMetadata,
+  parseAllocationsInput,
+  type TransactionAllocation,
+} from "@/lib/financial/liability-payment-metadata";
+import {
   TransactionInstrumentValidationError,
   validateTransactionInstruments,
 } from "@/modules/financial-inbox/application/validators/transaction-instrument.validator";
@@ -7,6 +12,9 @@ import {
   buildCreditCardAwareTransactions,
   CreditCardTransactionBuilderError,
 } from "@/modules/financial/application/services/credit-card-transaction-builder.service";
+import { LiabilityAmortizationService } from "@/modules/patrimony/application/services/liability-amortization.service";
+import { PatrimonyError } from "@/modules/patrimony/domain/errors/patrimony.error";
+import type { PatrimonyLiabilityRepositoryPort } from "@/modules/patrimony/domain/ports/patrimony.port";
 import type {
   CardRepositoryPort,
   CategoryRepositoryPort,
@@ -31,22 +39,40 @@ export interface CreateTransactionCommand {
   formaPagamentoId: string;
   cartaoId?: string | null;
   parcelas?: number;
+  liabilityId?: string;
+  allocations?: TransactionAllocation[];
 }
 
 export class CreateTransactionUseCase {
+  private readonly amortization: LiabilityAmortizationService;
+
   constructor(
     private readonly transactionRepository: TransactionRepositoryPort,
     private readonly categoryRepository: CategoryRepositoryPort,
     private readonly financialAccountRepository: FinancialAccountRepositoryPort,
     private readonly paymentMethodRepository: PaymentMethodRepositoryPort,
     private readonly cardRepository: CardRepositoryPort,
-  ) {}
+    private readonly liabilityRepository: PatrimonyLiabilityRepositoryPort,
+  ) {
+    this.amortization = new LiabilityAmortizationService(liabilityRepository);
+  }
 
   async execute(input: CreateTransactionCommand): Promise<TransactionWithRelations> {
     const parcelas = input.parcelas ?? 1;
 
     if (parcelas < 1) {
       throw new CreateTransactionError("parcelas deve ser pelo menos 1", "VALIDATION");
+    }
+
+    if (input.liabilityId) {
+      const liability = await this.liabilityRepository.findByIdForUser(
+        input.liabilityId,
+        input.userId,
+      );
+
+      if (!liability) {
+        throw new CreateTransactionError("Passivo vinculado não encontrado", "VALIDATION");
+      }
     }
 
     let instruments;
@@ -106,6 +132,12 @@ export class CreateTransactionUseCase {
       throw error;
     }
 
+    const baseMetadata: Record<string, unknown> = { source: "manual-api" };
+
+    const metadata: Record<string, unknown> = input.liabilityId
+      ? { ...baseMetadata, ...buildLiabilityPaymentMetadata(input.allocations) }
+      : baseMetadata;
+
     let transactionInputs;
 
     try {
@@ -122,7 +154,8 @@ export class CreateTransactionUseCase {
         cardId: instruments.cardId ?? undefined,
         cardBilling,
         installments: parcelas,
-        metadata: { source: "manual-api" },
+        metadata,
+        liabilityId: input.liabilityId,
       });
     } catch (error) {
       if (error instanceof CreditCardTransactionBuilderError) {
@@ -136,6 +169,37 @@ export class CreateTransactionUseCase {
       transactionInputs.length === 1
         ? [await this.transactionRepository.save(transactionInputs[0])]
         : await this.transactionRepository.saveMany(transactionInputs);
+
+    if (input.liabilityId) {
+      try {
+        const stamped = await this.amortization.applyAmortization({
+          liabilityId: input.liabilityId,
+          userId: input.userId,
+          metadata: metadata as Record<string, unknown>,
+          allocations: input.allocations,
+        });
+
+        await this.transactionRepository.updateById(created[0].id, input.userId, {
+          description: created[0].description,
+          amount: created[0].amount,
+          type: created[0].type,
+          date: created[0].date,
+          categoryId: created[0].categoryId,
+          accountId: created[0].accountId,
+          paymentMethodId: created[0].paymentMethodId ?? "",
+          cardId: created[0].cardId,
+          installments: created[0].installments,
+          liabilityId: input.liabilityId,
+          metadata: stamped,
+        });
+      } catch (error) {
+        if (error instanceof PatrimonyError) {
+          throw new CreateTransactionError(error.message, "VALIDATION");
+        }
+
+        throw error;
+      }
+    }
 
     const withRelations = await this.transactionRepository.findByIdWithRelationsForUser(
       created[0].id,
@@ -159,3 +223,5 @@ export class CreateTransactionUseCase {
     return parsed;
   }
 }
+
+export { parseAllocationsInput };

@@ -1,7 +1,7 @@
 "use client";
 
 import type { InboxItem } from "@/types/inbox";
-import { REVIEWABLE_STATUSES } from "@/types/inbox";
+import { REVIEWABLE_STATUSES } from "@/types/inbox.constants";
 import { ArrowRight, Inbox } from "lucide-react";
 import { InboxChannelBadge } from "./inbox-channel-badge";
 import { InboxStatusBadge } from "./inbox-status-badge";

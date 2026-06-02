@@ -9,8 +9,8 @@ import { CategoryHierarchyValidator } from "../../domain/services/category-hiera
 export class ListCategoriesConfigUseCase {
   constructor(private readonly repository: CategoryConfigRepositoryPort) {}
 
-  execute(userId: string) {
-    return this.repository.listTreeByUserId(userId);
+  execute(userId: string, options?: { includeInactive?: boolean }) {
+    return this.repository.listTreeByUserId(userId, options);
   }
 }
 
@@ -62,5 +62,51 @@ export class UpdateCategoryConfigUseCase {
     }
 
     return updated;
+  }
+}
+
+export class DeleteCategoryConfigUseCase {
+  constructor(private readonly repository: CategoryConfigRepositoryPort) {}
+
+  async execute(categoryId: string, userId: string): Promise<"soft" | "hard"> {
+    const existing = await this.repository.findByIdForUser(categoryId, userId);
+
+    if (!existing) {
+      throw new CategoryConfigError("Categoria não encontrada.", "NOT_FOUND");
+    }
+
+    const subIds = await this.repository.listSubcategoryIds(categoryId, userId);
+    const ownUsage = await this.repository.countUsage(categoryId);
+
+    let subUsage = 0;
+    for (const subId of subIds) {
+      subUsage += await this.repository.countUsage(subId);
+    }
+
+    const hasUsage = ownUsage > 0 || subUsage > 0 || existing.isSystem;
+
+    if (hasUsage) {
+      await this.repository.update(categoryId, userId, { isActive: false });
+
+      for (const subId of subIds) {
+        await this.repository.update(subId, userId, { isActive: false });
+      }
+
+      return "soft";
+    }
+
+    for (const subId of subIds) {
+      const deleted = await this.repository.deleteById(subId, userId);
+      if (!deleted) {
+        throw new CategoryConfigError("Não foi possível excluir subcategoria.", "VALIDATION");
+      }
+    }
+
+    const deleted = await this.repository.deleteById(categoryId, userId);
+    if (!deleted) {
+      throw new CategoryConfigError("Categoria não encontrada.", "NOT_FOUND");
+    }
+
+    return "hard";
   }
 }

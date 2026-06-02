@@ -4,7 +4,8 @@ import type { FinanceCatalog, PeriodPreset, TransactionListResponse } from "@/ty
 import type { TransactionListItem } from "@/types/transactions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { CreateTransactionModal } from "./create-transaction-modal";
 import { parsePeriodPreset } from "@/lib/utils/date-periods";
 import {
   TransactionBalanceCards,
@@ -15,16 +16,22 @@ import { TransactionFilters } from "./transaction-filters";
 import { TransactionTable } from "./transaction-table";
 import { EditTransactionModal } from "./edit-transaction-modal";
 import { DeleteTransactionModal } from "./delete-transaction-modal";
+import { TransactionBulkSelectionBar } from "./transaction-bulk-selection-bar";
+import { BulkEditTransactionsModal } from "./bulk-edit-transactions-modal";
+import { BulkDeleteTransactionsModal } from "./bulk-delete-transactions-modal";
+import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
 
 const PAGE_SIZE = 50;
 
-export function TransactionsDashboard() {
+function TransactionsDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { pushToast } = useSettingsToast();
 
   const accountId = searchParams.get("accountId") ?? "";
   const categoryId = searchParams.get("categoryId") ?? "";
   const period = parsePeriodPreset(searchParams.get("period"));
+  const offset = Math.max(0, Number(searchParams.get("offset") ?? "0") || 0);
 
   const [data, setData] = useState<TransactionListResponse | null>(null);
   const [catalog, setCatalog] = useState<FinanceCatalog>({
@@ -41,8 +48,15 @@ export function TransactionsDashboard() {
   const [editOpen, setEditOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<TransactionListItem | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const queryString = useMemo(() => {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectingFiltered, setSelectingFiltered] = useState(false);
+
+  const filterQueryString = useMemo(() => {
     const params = new URLSearchParams();
 
     if (accountId) {
@@ -54,10 +68,16 @@ export function TransactionsDashboard() {
     }
 
     params.set("period", period);
-    params.set("limit", String(PAGE_SIZE));
 
     return params.toString();
   }, [accountId, categoryId, period]);
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams(filterQueryString);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String(offset));
+    return params.toString();
+  }, [filterQueryString, offset]);
 
   const fetchTransactions = useCallback(async () => {
     const response = await fetch(`/api/transactions?${queryString}`, {
@@ -94,6 +114,10 @@ export function TransactionsDashboard() {
       .finally(() => setLoading(false));
   }, [fetchTransactions, fetchCatalog]);
 
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [queryString]);
+
   function updateFilters(next: {
     accountId?: string;
     categoryId?: string;
@@ -118,7 +142,14 @@ export function TransactionsDashboard() {
     }
 
     params.set("period", nextPeriod);
+    params.delete("offset");
 
+    router.push(`/dashboard/transactions?${params.toString()}`);
+  }
+
+  function goToPage(nextOffset: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("offset", String(Math.max(0, nextOffset)));
     router.push(`/dashboard/transactions?${params.toString()}`);
   }
 
@@ -182,6 +213,113 @@ export function TransactionsDashboard() {
     await fetchTransactions();
   }
 
+  const pageIds = useMemo(() => data?.items.map((item) => item.id) ?? [], [data?.items]);
+  const pageAllSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const pageSomeSelected = pageIds.some((id) => selectedIds.has(id));
+  const selectionMode = selectedIds.size > 0;
+
+  const selectedItems = useMemo(
+    () => data?.items.filter((item) => selectedIds.has(item.id)) ?? [],
+    [data?.items, selectedIds],
+  );
+
+  const sampleSelectedItem = selectedItems[0] ?? null;
+
+  function toggleRow(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (pageAllSelected) {
+        for (const id of pageIds) {
+          next.delete(id);
+        }
+      } else {
+        for (const id of pageIds) {
+          next.add(id);
+        }
+      }
+
+      return next;
+    });
+  }
+
+  async function selectFiltered() {
+    setSelectingFiltered(true);
+
+    try {
+      const response = await fetch(`/api/transactions/ids?${filterQueryString}`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao carregar lançamentos filtrados");
+      }
+
+      const payload = (await response.json()) as { ids: string[] };
+      setSelectedIds(new Set(payload.ids));
+      pushToast(
+        "success",
+        `${payload.ids.length} lançamentos filtrados selecionados.`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro inesperado";
+      pushToast("error", message);
+    } finally {
+      setSelectingFiltered(false);
+    }
+  }
+
+  async function handleBulkDeleteConfirm() {
+    const ids = [...selectedIds];
+    setBulkBusy(true);
+
+    try {
+      const response = await fetch("/api/transactions/bulk-delete", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionIds: ids }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Falha ao excluir lançamentos");
+      }
+
+      const result = (await response.json()) as { deletedCount: number };
+      pushToast("success", `${result.deletedCount} lançamentos excluídos com sucesso.`);
+      setBulkDeleteOpen(false);
+      setSelectedIds(new Set());
+      await fetchTransactions();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro inesperado";
+      pushToast("error", message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+  const canGoPrev = offset > 0;
+  const canGoNext = offset + PAGE_SIZE < total;
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -215,7 +353,7 @@ export function TransactionsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={selectionMode ? "space-y-6 pb-28" : "space-y-6"}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Extrato Financeiro</h1>
@@ -223,6 +361,14 @@ export function TransactionsDashboard() {
             Livro-caixa consolidado — transações confirmadas e saldo da conta principal.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          <Plus className="h-4 w-4" />
+          Novo lançamento
+        </button>
       </header>
 
       {data?.summary && <TransactionBalanceCards summary={data.summary} />}
@@ -247,21 +393,126 @@ export function TransactionsDashboard() {
 
       {data && data.items.length > 0 ? (
         <>
-          <div className="flex items-center justify-between text-sm text-slate-500">
-            <span>
-              {data.total} {data.total === 1 ? "lançamento" : "lançamentos"}
-            </span>
-            <span>{data.summary.periodLabel}</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-slate-500">
+              <span>
+                {data.total} {data.total === 1 ? "lançamento" : "lançamentos"}
+              </span>
+              <span className="mx-2 text-slate-300">·</span>
+              <span>{data.summary.periodLabel}</span>
+              {totalPages > 1 ? (
+                <>
+                  <span className="mx-2 text-slate-300">·</span>
+                  <span>
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={togglePage}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {pageAllSelected ? "Desmarcar página" : "Selecionar página"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void selectFiltered()}
+                disabled={selectingFiltered}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {selectingFiltered ? (
+                  <Loader2 className="inline h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  "Selecionar filtrados"
+                )}
+              </button>
+            </div>
           </div>
 
           <TransactionTable
             items={data.items}
             deletingId={deletingId}
+            selectedIds={selectedIds}
+            selectionMode={selectionMode}
+            pageAllSelected={pageAllSelected}
+            pageSomeSelected={pageSomeSelected}
+            onToggleRow={toggleRow}
+            onTogglePage={togglePage}
             onEdit={handleEdit}
             onDelete={handleDeleteRequest}
           />
+
+          {totalPages > 1 ? (
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => goToPage(offset - PAGE_SIZE)}
+                disabled={!canGoPrev}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <button
+                type="button"
+                onClick={() => goToPage(offset + PAGE_SIZE)}
+                disabled={!canGoNext}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Próxima
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
+
+      <TransactionBulkSelectionBar
+        selectedCount={selectedIds.size}
+        busy={bulkBusy}
+        onEdit={() => setBulkEditOpen(true)}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={() => setSelectedIds(new Set())}
+      />
+
+      <BulkEditTransactionsModal
+        open={bulkEditOpen}
+        selectedIds={[...selectedIds]}
+        sampleItem={sampleSelectedItem}
+        catalog={catalog}
+        onClose={() => setBulkEditOpen(false)}
+        onSaved={async (updatedCount) => {
+          pushToast("success", `${updatedCount} lançamentos atualizados com sucesso.`);
+          setSelectedIds(new Set());
+          await fetchTransactions();
+        }}
+      />
+
+      <BulkDeleteTransactionsModal
+        open={bulkDeleteOpen}
+        count={selectedIds.size}
+        deleting={bulkBusy}
+        onClose={() => {
+          if (!bulkBusy) {
+            setBulkDeleteOpen(false);
+          }
+        }}
+        onConfirm={() => void handleBulkDeleteConfirm()}
+      />
+
+      <CreateTransactionModal
+        open={createOpen}
+        catalog={catalog}
+        onClose={() => setCreateOpen(false)}
+        onSaved={async () => {
+          setActionMessage("Lançamento criado com sucesso.");
+          await fetchTransactions();
+        }}
+      />
 
       <EditTransactionModal
         item={editingItem}
@@ -288,5 +539,13 @@ export function TransactionsDashboard() {
         onConfirm={handleDeleteConfirm}
       />
     </div>
+  );
+}
+
+export function TransactionsDashboard() {
+  return (
+    <SettingsToastProvider>
+      <TransactionsDashboardContent />
+    </SettingsToastProvider>
   );
 }

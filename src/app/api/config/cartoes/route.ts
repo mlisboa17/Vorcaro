@@ -34,6 +34,8 @@ function serializeCard(record: {
   brand: CardBrand;
   type: CardType;
   lastFourDigits: string | null;
+  closingDay: number | null;
+  dueDay: number | null;
   isActive: boolean;
 }) {
   return {
@@ -44,20 +46,23 @@ function serializeCard(record: {
     bandeira: record.brand,
     tipo: record.type,
     ultimosQuatroDigitos: record.lastFourDigits,
+    diaFechamento: record.closingDay,
+    diaVencimento: record.dueDay,
     estaAtivo: record.isActive,
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const userId = session.user.id;
+  const includeInactive = new URL(request.url).searchParams.get("includeInactive") === "true";
   const repository = new PrismaCardRepository(prisma);
   const useCase = new ListCardsUseCase(repository);
-  const items = await useCase.execute(userId);
+  const items = await useCase.execute(userId, { includeInactive });
 
   return NextResponse.json({ items: items.map(serializeCard) });
 }

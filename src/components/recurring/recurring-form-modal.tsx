@@ -1,6 +1,7 @@
 "use client";
 
 import type { FinanceCatalog } from "@/types/inbox";
+import type { PatrimonyLiabilityDto } from "@/types/patrimony";
 import type { RecurringTransactionItem } from "@/types/recurring";
 import { FREQUENCIA_LABELS } from "@/types/recurring";
 import { Loader2, X } from "lucide-react";
@@ -8,6 +9,12 @@ import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { flattenCatalogCategories } from "@/lib/categories/category-utils";
 import { isCardPaymentMethodType } from "@/modules/financial-instruments/domain/utils/payment-method-type.mapper";
+import {
+  emptyPatrimonyImpactState,
+  parsePatrimonyImpactState,
+  patrimonyImpactFromTransaction,
+  TransactionPatrimonyImpactSection,
+} from "@/components/transactions/transaction-patrimony-impact";
 
 interface RecurringFormModalProps {
   open: boolean;
@@ -47,6 +54,8 @@ export function RecurringFormModal({
   const [formaPagamentoId, setFormaPagamentoId] = useState("");
   const [cartaoId, setCartaoId] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [patrimony, setPatrimony] = useState(emptyPatrimonyImpactState);
+  const [liabilities, setLiabilities] = useState<PatrimonyLiabilityDto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +94,23 @@ export function RecurringFormModal({
     setFormaPagamentoId(item?.formaPagamentoId ?? "");
     setCartaoId(item?.cartaoId ?? "");
     setObservacoes(item?.observacoes ?? "");
+    setPatrimony(
+      patrimonyImpactFromTransaction(item?.liabilityId, item?.defaultAllocations ?? undefined),
+    );
   }, [open, item]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    void fetch("/api/patrimony/liabilities", { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : { items: [] }))
+      .then((payload: { items?: PatrimonyLiabilityDto[] }) => {
+        setLiabilities(payload.items ?? []);
+      })
+      .catch(() => setLiabilities([]));
+  }, [open]);
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -114,6 +139,13 @@ export function RecurringFormModal({
         contaFinanceiraId,
         formaPagamentoId,
         cartaoId: showCardField ? cartaoId : undefined,
+        ...(() => {
+          const patrimonyPayload = parsePatrimonyImpactState(patrimony);
+          return {
+            liabilityId: patrimonyPayload.liabilityId,
+            defaultAllocations: patrimonyPayload.allocations,
+          };
+        })(),
         observacoes: observacoes.trim() || undefined,
       };
 
@@ -299,6 +331,13 @@ export function RecurringFormModal({
                 </select>
               </Field>
             ) : null}
+
+            <TransactionPatrimonyImpactSection
+              state={patrimony}
+              onChange={setPatrimony}
+              liabilities={liabilities}
+              parcelaValor={Number(valor) || undefined}
+            />
 
             <Field label="Observações">
               <textarea

@@ -13,6 +13,10 @@ import {
   PrismaPaymentMethodRepository,
 } from "@/modules/transactions/infrastructure/repositories/prisma-ownership.repositories";
 import { PrismaTransactionRepository } from "@/modules/transactions/infrastructure/repositories/prisma-transaction.repository";
+import { PrismaPatrimonyLiabilityRepository } from "@/modules/patrimony/infrastructure/repositories/prisma-patrimony.repositories";
+import { createTransactionBodySchema } from "@/lib/api/transaction-body-schema";
+import { parseAllocationsInput } from "@/lib/financial/liability-payment-metadata";
+import type { TransactionAllocation } from "@/lib/financial/liability-payment-metadata";
 import type { TransactionListItem, TransactionListResponse } from "@/types/transactions";
 
 const querySchema = z.object({
@@ -25,17 +29,13 @@ const querySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-const createBodySchema = z.object({
-  descricao: z.string().min(1),
-  valor: z.number().positive(),
-  tipo: z.nativeEnum(TransactionType),
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  categoriaId: z.string().min(1),
-  contaFinanceiraId: z.string().min(1),
-  formaPagamentoId: z.string().min(1),
-  cartaoId: z.string().min(1).nullable().optional(),
-  parcelas: z.number().int().min(1).optional(),
-});
+function extractAllocations(metadata: unknown): TransactionAllocation[] | undefined {
+  if (!metadata || typeof metadata !== "object") {
+    return undefined;
+  }
+
+  return parseAllocationsInput((metadata as Record<string, unknown>).allocations);
+}
 
 function serializeItem(item: {
   id: string;
@@ -43,11 +43,15 @@ function serializeItem(item: {
   amount: number;
   description: string;
   date: Date;
+  dataCaixa: Date | null;
+  dataCompra: Date | null;
   inboxItemId: string | null;
   accountId: string | null;
   categoryId: string | null;
   paymentMethodId: string | null;
   cardId: string | null;
+  liabilityId: string | null;
+  metadata: Record<string, unknown> | null;
   installments: number;
   currentInstallment: number | null;
   totalInstallments: number | null;
@@ -63,11 +67,15 @@ function serializeItem(item: {
     amount: item.amount,
     description: item.description,
     date: item.date.toISOString(),
+    dataCaixa: item.dataCaixa?.toISOString() ?? null,
+    dataCompra: item.dataCompra?.toISOString() ?? null,
     inboxItemId: item.inboxItemId,
     accountId: item.accountId,
     categoryId: item.categoryId,
     paymentMethodId: item.paymentMethodId,
     cardId: item.cardId,
+    liabilityId: item.liabilityId,
+    allocations: extractAllocations(item.metadata),
     installments: item.installments,
     currentInstallment: item.currentInstallment,
     totalInstallments: item.totalInstallments,
@@ -138,7 +146,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = createBodySchema.safeParse(body);
+  const parsed = createTransactionBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
@@ -150,12 +158,23 @@ export async function POST(request: Request) {
     new PrismaFinancialAccountRepository(prisma),
     new PrismaPaymentMethodRepository(prisma),
     new PrismaCardOwnershipRepository(prisma),
+    new PrismaPatrimonyLiabilityRepository(prisma),
   );
 
   try {
     const created = await useCase.execute({
       userId: session.user.id,
-      ...parsed.data,
+      descricao: parsed.data.descricao,
+      valor: parsed.data.valor,
+      tipo: parsed.data.tipo,
+      data: parsed.data.data,
+      categoriaId: parsed.data.categoriaId,
+      contaFinanceiraId: parsed.data.contaFinanceiraId,
+      formaPagamentoId: parsed.data.formaPagamentoId,
+      cartaoId: parsed.data.cartaoId,
+      parcelas: parsed.data.parcelas,
+      liabilityId: parsed.data.liabilityId ?? undefined,
+      allocations: parseAllocationsInput(parsed.data.allocations),
     });
 
     return NextResponse.json(serializeItem(created), { status: 201 });

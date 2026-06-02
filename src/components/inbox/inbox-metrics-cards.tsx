@@ -1,7 +1,7 @@
 "use client";
 
 import type { InboxItem } from "@/types/inbox";
-import { METRIC_STATUSES } from "@/types/inbox";
+import { METRIC_STATUSES } from "@/types/inbox.constants";
 import { cn } from "@/lib/utils/cn";
 
 interface InboxMetricsCardsProps {

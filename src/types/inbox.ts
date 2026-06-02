@@ -75,23 +75,4 @@ export interface FinanceCatalog {
   cards: FinanceCard[];
 }
 
-export type InboxStatusFilter = InboxStatus | "ALL";
-
-export const INBOX_STATUS_TABS: { value: InboxStatusFilter; label: string }[] = [
-  { value: "ALL", label: "Todos" },
-  { value: "NEEDS_CONFIRMATION", label: "Revisão" },
-  { value: "READY", label: "Prontos" },
-  { value: "PROCESSING", label: "Processando" },
-  { value: "PENDING", label: "Pendentes" },
-  { value: "SAVED", label: "Salvos" },
-  { value: "ERROR", label: "Erros" },
-];
-
-export const METRIC_STATUSES = [
-  "PENDING",
-  "PROCESSING",
-  "NEEDS_CONFIRMATION",
-  "SAVED",
-] as const satisfies readonly InboxStatus[];
-
-export const REVIEWABLE_STATUSES: InboxStatus[] = ["READY", "NEEDS_CONFIRMATION"];
+export type { InboxStatusFilter, InboxStatusLiteral } from "./inbox.constants";

@@ -22,6 +22,19 @@ export interface CreateFinancialAccountInput {
   saldoInicial?: number;
 }
 
+export interface UpdateFinancialAccountInput {
+  name?: string;
+  institutionName?: string | null;
+  type?: AccountType;
+  currency?: string;
+  balance?: number;
+  isActive?: boolean;
+}
+
+export interface ListInstrumentsOptions {
+  includeInactive?: boolean;
+}
+
 export interface PaymentMethodRecord {
   id: string;
   userId: string;
@@ -38,6 +51,13 @@ export interface CreatePaymentMethodInput {
   name: string;
   type: PaymentMethodType;
   isDefault?: boolean;
+}
+
+export interface UpdatePaymentMethodInput {
+  name?: string;
+  type?: PaymentMethodType;
+  isDefault?: boolean;
+  isActive?: boolean;
 }
 
 export interface CardRecord {
@@ -98,22 +118,39 @@ export interface InstrumentLookupResult {
 }
 
 export interface FinancialAccountRepositoryPort {
-  listByUserId(userId: string): Promise<FinancialAccountRecord[]>;
+  listByUserId(userId: string, options?: ListInstrumentsOptions): Promise<FinancialAccountRecord[]>;
   create(input: CreateFinancialAccountInput): Promise<FinancialAccountRecord>;
+  findByIdForUser(accountId: string, userId: string): Promise<FinancialAccountRecord | null>;
+  update(
+    accountId: string,
+    userId: string,
+    input: UpdateFinancialAccountInput,
+  ): Promise<FinancialAccountRecord | null>;
   belongsToUser(accountId: string, userId: string): Promise<boolean>;
   findByInstitution(userId: string, institutionName: string): Promise<FinancialAccountRecord | null>;
+  countUsage(accountId: string): Promise<number>;
+  deleteById(accountId: string, userId: string): Promise<boolean>;
 }
 
 export interface PaymentMethodRepositoryPort {
-  listByUserId(userId: string): Promise<PaymentMethodRecord[]>;
+  listByUserId(userId: string, options?: ListInstrumentsOptions): Promise<PaymentMethodRecord[]>;
   create(input: CreatePaymentMethodInput): Promise<PaymentMethodRecord>;
+  findByIdForUser(paymentMethodId: string, userId: string): Promise<PaymentMethodRecord | null>;
+  update(
+    paymentMethodId: string,
+    userId: string,
+    input: UpdatePaymentMethodInput,
+  ): Promise<PaymentMethodRecord | null>;
   belongsToUser(paymentMethodId: string, userId: string): Promise<boolean>;
   findByType(userId: string, type: PaymentMethodType): Promise<PaymentMethodRecord | null>;
+  countUsage(paymentMethodId: string): Promise<number>;
+  deleteById(paymentMethodId: string, userId: string): Promise<boolean>;
 }
 
 export interface CardRepositoryPort {
-  listByUserId(userId: string): Promise<CardRecord[]>;
+  listByUserId(userId: string, options?: ListInstrumentsOptions): Promise<CardRecord[]>;
   create(input: CreateCardInput): Promise<CardRecord>;
+  findByIdForUser(cardId: string, userId: string): Promise<CardRecord | null>;
   update(id: string, userId: string, input: UpdateCardInput): Promise<CardRecord | null>;
   belongsToUser(cardId: string, userId: string): Promise<boolean>;
   findByLastFourDigits(
@@ -121,6 +158,8 @@ export interface CardRepositoryPort {
     lastFourDigits: string,
     institutionName?: string | null,
   ): Promise<CardRecord | null>;
+  countUsage(cardId: string): Promise<number>;
+  deleteById(cardId: string, userId: string): Promise<boolean>;
 }
 
 export interface InstrumentLookupPort {

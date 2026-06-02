@@ -26,13 +26,18 @@ function toRecord(record: {
 export class PrismaCategoryConfigRepository implements CategoryConfigRepositoryPort {
   constructor(private readonly db: PrismaClient) {}
 
-  async listTreeByUserId(userId: string): Promise<CategoryTreeNode[]> {
+  async listTreeByUserId(userId: string, options?: { includeInactive?: boolean }): Promise<CategoryTreeNode[]> {
+    const includeInactive = options?.includeInactive ?? false;
     const roots = await this.db.category.findMany({
-      where: { userId, isActive: true, parentCategoryId: null },
+      where: {
+        userId,
+        parentCategoryId: null,
+        ...(includeInactive ? {} : { isActive: true }),
+      },
       orderBy: { name: "asc" },
       include: {
         subcategories: {
-          where: { isActive: true },
+          where: includeInactive ? {} : { isActive: true },
           orderBy: { name: "asc" },
         },
       },
@@ -102,10 +107,39 @@ export class PrismaCategoryConfigRepository implements CategoryConfigRepositoryP
 
   async belongsToUser(categoryId: string, userId: string): Promise<boolean> {
     const category = await this.db.category.findFirst({
-      where: { id: categoryId, userId, isActive: true },
+      where: { id: categoryId, userId },
       select: { id: true },
     });
 
     return category !== null;
+  }
+
+  async countUsage(categoryId: string): Promise<number> {
+    const [transactions, recurring] = await Promise.all([
+      this.db.transaction.count({ where: { categoryId } }),
+      this.db.lancamentoRecorrente.count({ where: { categoryId } }),
+    ]);
+
+    return transactions + recurring;
+  }
+
+  async listSubcategoryIds(categoryId: string, userId: string): Promise<string[]> {
+    const subs = await this.db.category.findMany({
+      where: { parentCategoryId: categoryId, userId },
+      select: { id: true },
+    });
+
+    return subs.map((item) => item.id);
+  }
+
+  async deleteById(categoryId: string, userId: string): Promise<boolean> {
+    const existing = await this.findByIdForUser(categoryId, userId);
+
+    if (!existing) {
+      return false;
+    }
+
+    await this.db.category.delete({ where: { id: categoryId } });
+    return true;
   }
 }

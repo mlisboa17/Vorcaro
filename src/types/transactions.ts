@@ -1,4 +1,5 @@
 import type { TransactionType } from "@prisma/client";
+import type { TransactionAllocation } from "@/lib/financial/liability-payment-metadata";
 import type { FinanceCatalog } from "@/types/inbox";
 
 export interface TransactionRelation {
@@ -12,11 +13,15 @@ export interface TransactionListItem {
   amount: number;
   description: string;
   date: string;
+  dataCaixa: string | null;
+  dataCompra: string | null;
   inboxItemId: string | null;
   accountId: string | null;
   categoryId: string | null;
   paymentMethodId: string | null;
   cardId: string | null;
+  liabilityId: string | null;
+  allocations?: TransactionAllocation[];
   account: TransactionRelation | null;
   category: TransactionRelation | null;
   paymentMethod: TransactionRelation | null;

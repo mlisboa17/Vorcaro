@@ -21,7 +21,7 @@ function formatDate(value: string): string {
   return `${day}/${month}/${year}`;
 }
 
-export function RecurringDashboard() {
+export function RecurringDashboard({ embedded = false }: { embedded?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,14 +140,38 @@ export function RecurringDashboard() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Despesas Recorrentes</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Aluguel, contas fixas, assinaturas e receitas periódicas — com processamento automático.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      {embedded ? null : (
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Despesas Recorrentes</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Aluguel, contas fixas, assinaturas e receitas periódicas — com processamento automático.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleProcess()}
+              disabled={processing}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Processar vencidas
+            </button>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Nova recorrência
+            </button>
+          </div>
+        </header>
+      )}
+
+      {embedded ? (
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={() => void handleProcess()}
@@ -166,7 +190,7 @@ export function RecurringDashboard() {
             Nova recorrência
           </button>
         </div>
-      </header>
+      ) : null}
 
       {message ? (
         <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p>

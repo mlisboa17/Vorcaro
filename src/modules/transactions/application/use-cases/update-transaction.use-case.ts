@@ -1,8 +1,18 @@
 import type { TransactionType } from "@prisma/client";
 import {
+  buildLiabilityPaymentMetadata,
+  clearLiabilityPaymentMetadata,
+  mergeLiabilityPaymentMetadata,
+  parseAllocationsInput,
+  type TransactionAllocation,
+} from "@/lib/financial/liability-payment-metadata";
+import {
   TransactionInstrumentValidationError,
   validateTransactionInstruments,
 } from "@/modules/financial-inbox/application/validators/transaction-instrument.validator";
+import { LiabilityAmortizationService } from "@/modules/patrimony/application/services/liability-amortization.service";
+import { PatrimonyError } from "@/modules/patrimony/domain/errors/patrimony.error";
+import type { PatrimonyLiabilityRepositoryPort } from "@/modules/patrimony/domain/ports/patrimony.port";
 import type {
   CardRepositoryPort,
   CategoryRepositoryPort,
@@ -27,16 +37,23 @@ export interface UpdateTransactionCommand {
   metodoPagamentoId: string;
   cartaoId?: string | null;
   parcelas: number;
+  liabilityId?: string | null;
+  allocations?: TransactionAllocation[];
 }
 
 export class UpdateTransactionUseCase {
+  private readonly amortization: LiabilityAmortizationService;
+
   constructor(
     private readonly transactionRepository: TransactionRepositoryPort,
     private readonly financialAccountRepository: FinancialAccountRepositoryPort,
     private readonly categoryRepository: CategoryRepositoryPort,
     private readonly paymentMethodRepository: PaymentMethodRepositoryPort,
     private readonly cardRepository: CardRepositoryPort,
-  ) {}
+    private readonly liabilityRepository: PatrimonyLiabilityRepositoryPort,
+  ) {
+    this.amortization = new LiabilityAmortizationService(liabilityRepository);
+  }
 
   async execute(input: UpdateTransactionCommand): Promise<TransactionWithRelations> {
     const existing = await this.transactionRepository.findByIdForUser(
@@ -62,6 +79,20 @@ export class UpdateTransactionUseCase {
 
     if (input.parcelas < 1) {
       throw new UpdateTransactionError("O número de parcelas deve ser pelo menos 1", "VALIDATION");
+    }
+
+    const nextLiabilityId =
+      input.liabilityId === undefined ? existing.liabilityId : input.liabilityId;
+
+    if (nextLiabilityId) {
+      const liability = await this.liabilityRepository.findByIdForUser(
+        nextLiabilityId,
+        input.userId,
+      );
+
+      if (!liability) {
+        throw new UpdateTransactionError("Passivo vinculado não encontrado", "VALIDATION");
+      }
     }
 
     let instruments;
@@ -91,6 +122,41 @@ export class UpdateTransactionUseCase {
 
     const date = this.parseDate(input.data);
 
+    const baseMetadata =
+      typeof existing.metadata === "object" && existing.metadata !== null
+        ? { ...existing.metadata }
+        : {};
+
+    let nextMetadata: Record<string, unknown>;
+
+    if (nextLiabilityId) {
+      const allocations =
+        input.allocations ?? parseAllocationsInput(baseMetadata.allocations) ?? undefined;
+
+      nextMetadata = mergeLiabilityPaymentMetadata(
+        clearLiabilityPaymentMetadata(baseMetadata),
+        allocations,
+      );
+    } else {
+      nextMetadata = clearLiabilityPaymentMetadata(baseMetadata);
+    }
+
+    try {
+      nextMetadata = await this.amortization.syncTransactionAmortization({
+        userId: input.userId,
+        previousLiabilityId: existing.liabilityId,
+        previousMetadata: existing.metadata,
+        nextLiabilityId,
+        nextMetadata,
+        allocations: input.allocations,
+      });
+    } catch (error) {
+      if (error instanceof PatrimonyError) {
+        throw new UpdateTransactionError(error.message, "VALIDATION");
+      }
+      throw error;
+    }
+
     const updated = await this.transactionRepository.updateById(input.transactionId, input.userId, {
       description: input.descricao.trim(),
       amount: input.valor,
@@ -101,6 +167,8 @@ export class UpdateTransactionUseCase {
       paymentMethodId: instruments.paymentMethodId,
       cardId: instruments.cardId,
       installments: input.parcelas,
+      liabilityId: nextLiabilityId,
+      metadata: nextMetadata,
     });
 
     if (!updated) {

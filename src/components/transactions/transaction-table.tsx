@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils/cn";
 interface TransactionTableProps {
   items: TransactionListItem[];
   deletingId: string | null;
+  selectedIds: Set<string>;
+  selectionMode: boolean;
+  pageAllSelected: boolean;
+  pageSomeSelected: boolean;
+  onToggleRow: (id: string) => void;
+  onTogglePage: () => void;
   onEdit: (item: TransactionListItem) => void;
   onDelete: (item: TransactionListItem) => void;
 }
@@ -71,14 +77,43 @@ function AmountCell({ item }: { item: TransactionListItem }) {
   );
 }
 
+function SelectionCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      ref={(element) => {
+        if (element) {
+          element.indeterminate = Boolean(indeterminate);
+        }
+      }}
+      onChange={onChange}
+      aria-label={ariaLabel}
+      className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+    />
+  );
+}
+
 function ActionButtons({
   item,
   deletingId,
+  selectionMode,
   onEdit,
   onDelete,
 }: {
   item: TransactionListItem;
   deletingId: string | null;
+  selectionMode: boolean;
   onEdit: (item: TransactionListItem) => void;
   onDelete: (item: TransactionListItem) => void;
 }) {
@@ -87,7 +122,7 @@ function ActionButtons({
       <button
         type="button"
         onClick={() => onEdit(item)}
-        disabled={deletingId === item.id}
+        disabled={deletingId === item.id || selectionMode}
         className="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         title="Editar lançamento"
         aria-label={`Editar ${item.description}`}
@@ -97,7 +132,7 @@ function ActionButtons({
       <button
         type="button"
         onClick={() => onDelete(item)}
-        disabled={deletingId === item.id}
+        disabled={deletingId === item.id || selectionMode}
         className="inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
         title="Excluir lançamento"
         aria-label={`Excluir ${item.description}`}
@@ -112,7 +147,18 @@ function ActionButtons({
   );
 }
 
-export function TransactionTable({ items, deletingId, onEdit, onDelete }: TransactionTableProps) {
+export function TransactionTable({
+  items,
+  deletingId,
+  selectedIds,
+  selectionMode,
+  pageAllSelected,
+  pageSomeSelected,
+  onToggleRow,
+  onTogglePage,
+  onEdit,
+  onDelete,
+}: TransactionTableProps) {
   if (items.length === 0) {
     return null;
   }
@@ -123,6 +169,14 @@ export function TransactionTable({ items, deletingId, onEdit, onDelete }: Transa
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
+              <th className="w-10 px-3 py-3">
+                <SelectionCheckbox
+                  checked={pageAllSelected}
+                  indeterminate={pageSomeSelected && !pageAllSelected}
+                  onChange={onTogglePage}
+                  ariaLabel="Selecionar página"
+                />
+              </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Data
               </th>
@@ -153,105 +207,134 @@ export function TransactionTable({ items, deletingId, onEdit, onDelete }: Transa
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {items.map((item) => (
-              <tr key={item.id} className="hover:bg-slate-50/80">
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                  {formatDate(item.date)}
-                </td>
-                <td className="px-4 py-3 text-sm font-medium text-slate-900">{item.description}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {item.category?.name ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-600">{item.account?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {item.paymentMethod?.name ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-600">{formatInstrument(item)}</td>
-                <td className="px-4 py-3">
-                  <OriginBadge inboxItemId={item.inboxItemId} />
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                  <AmountCell item={item} />
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <ActionButtons
-                    item={item}
-                    deletingId={deletingId}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
-                </td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const isSelected = selectedIds.has(item.id);
+
+              return (
+                <tr
+                  key={item.id}
+                  className={cn("hover:bg-slate-50/80", isSelected && "bg-slate-100/80")}
+                >
+                  <td className="px-3 py-3">
+                    <SelectionCheckbox
+                      checked={isSelected}
+                      onChange={() => onToggleRow(item.id)}
+                      ariaLabel={`Selecionar ${item.description}`}
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                    {formatDate(item.date)}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-slate-900">{item.description}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">
+                    {item.category?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{item.account?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">
+                    {item.paymentMethod?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{formatInstrument(item)}</td>
+                  <td className="px-4 py-3">
+                    <OriginBadge inboxItemId={item.inboxItemId} />
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                    <AmountCell item={item} />
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <ActionButtons
+                      item={item}
+                      deletingId={deletingId}
+                      selectionMode={selectionMode}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="space-y-3 md:hidden">
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-medium text-slate-900">{item.description}</p>
-                <p className="mt-1 text-xs text-slate-500">{formatDate(item.date)}</p>
-              </div>
-              <AmountCell item={item} />
-            </div>
+        {items.map((item) => {
+          const isSelected = selectedIds.has(item.id);
 
-            <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-              <div>
-                <dt className="text-slate-400">Categoria</dt>
-                <dd className="font-medium">{item.category?.name ?? "—"}</dd>
+          return (
+            <article
+              key={item.id}
+              className={cn(
+                "rounded-xl border border-slate-200 bg-white p-4 shadow-sm",
+                isSelected && "ring-2 ring-slate-400",
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <SelectionCheckbox
+                  checked={isSelected}
+                  onChange={() => onToggleRow(item.id)}
+                  ariaLabel={`Selecionar ${item.description}`}
+                />
+                <div className="flex flex-1 items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-900">{item.description}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatDate(item.date)}</p>
+                  </div>
+                  <AmountCell item={item} />
+                </div>
               </div>
-              <div>
-                <dt className="text-slate-400">Conta</dt>
-                <dd className="font-medium">{item.account?.name ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-400">Método</dt>
-                <dd className="font-medium">{item.paymentMethod?.name ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-400">Instrumento</dt>
-                <dd className="font-medium">{formatInstrument(item)}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-400">Origem</dt>
-                <dd className="mt-0.5">
-                  <OriginBadge inboxItemId={item.inboxItemId} />
-                </dd>
-              </div>
-            </dl>
 
-            <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
-              <button
-                type="button"
-                onClick={() => onEdit(item)}
-                disabled={deletingId === item.id}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(item)}
-                disabled={deletingId === item.id}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
-              >
-                {deletingId === item.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Excluir
-              </button>
-            </div>
-          </article>
-        ))}
+              <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div>
+                  <dt className="text-slate-400">Categoria</dt>
+                  <dd className="font-medium">{item.category?.name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-400">Conta</dt>
+                  <dd className="font-medium">{item.account?.name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-400">Método</dt>
+                  <dd className="font-medium">{item.paymentMethod?.name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-400">Instrumento</dt>
+                  <dd className="font-medium">{formatInstrument(item)}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-400">Origem</dt>
+                  <dd className="mt-0.5">
+                    <OriginBadge inboxItemId={item.inboxItemId} />
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => onEdit(item)}
+                  disabled={deletingId === item.id || selectionMode}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(item)}
+                  disabled={deletingId === item.id || selectionMode}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                >
+                  {deletingId === item.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                  Excluir
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </>
   );

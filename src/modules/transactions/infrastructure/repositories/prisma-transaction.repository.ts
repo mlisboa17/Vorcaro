@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { buildEffectiveDateRangeFilter } from "@/modules/financial/core/effective-date-filter";
 import type {
+  BulkUpdateTransactionPatch,
   ListTransactionsFilters,
   ListTransactionsResult,
   Transaction,
@@ -9,6 +10,9 @@ import type {
   TransactionWithRelations,
   UpdateTransactionData,
 } from "../../domain/ports/transaction-repository.port";
+
+const MAX_BULK_IDS = 500;
+const MAX_FILTERED_IDS = 5000;
 
 const RELATION_SELECT = {
   account: { select: { id: true, name: true } },
@@ -30,6 +34,7 @@ function mapTransactionInputToCreateData(input: TransactionInput): Prisma.Transa
     ...(input.lancamentoRecorrenteId
       ? { lancamentoRecorrente: { connect: { id: input.lancamentoRecorrenteId } } }
       : {}),
+    ...(input.liabilityId ? { liability: { connect: { id: input.liabilityId } } } : {}),
     type: input.type,
     amount: input.amount,
     description: input.description,
@@ -78,6 +83,7 @@ function toTransaction(record: {
   observacoesInternas: string | null;
   lancamentoRecorrenteId: string | null;
   dataRecorrencia: Date | null;
+  liabilityId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): Transaction {
@@ -111,6 +117,7 @@ function toTransaction(record: {
     observacoesInternas: record.observacoesInternas,
     lancamentoRecorrenteId: record.lancamentoRecorrenteId,
     dataRecorrencia: record.dataRecorrencia,
+    liabilityId: record.liabilityId,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
@@ -143,6 +150,7 @@ function toTransactionWithRelations(record: {
   observacoesInternas: string | null;
   lancamentoRecorrenteId: string | null;
   dataRecorrencia: Date | null;
+  liabilityId: string | null;
   createdAt: Date;
   updatedAt: Date;
   account: { id: string; name: string } | null;
@@ -242,6 +250,129 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     };
   }
 
+  async listIdsByUserId(userId: string, filters: ListTransactionsFilters = {}): Promise<string[]> {
+    const where = buildWhere(userId, filters);
+    const records = await this.db.transaction.findMany({
+      where,
+      select: { id: true },
+      orderBy: [{ dataCaixa: "desc" }, { date: "desc" }],
+      take: MAX_FILTERED_IDS,
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async countByIdsForUser(userId: string, transactionIds: string[]): Promise<number> {
+    if (transactionIds.length === 0) {
+      return 0;
+    }
+
+    return this.db.transaction.count({
+      where: {
+        userId,
+        id: { in: transactionIds },
+      },
+    });
+  }
+
+  async bulkUpdateForUser(
+    userId: string,
+    transactionIds: string[],
+    patch: BulkUpdateTransactionPatch,
+    auditFields: string[],
+  ): Promise<number> {
+    const uniqueIds = [...new Set(transactionIds)];
+
+    if (uniqueIds.length === 0 || uniqueIds.length > MAX_BULK_IDS) {
+      return 0;
+    }
+
+    const scalarData: Prisma.TransactionUncheckedUpdateManyInput = {};
+
+    if (patch.categoryId !== undefined) {
+      scalarData.categoryId = patch.categoryId;
+    }
+
+    if (patch.accountId !== undefined) {
+      scalarData.accountId = patch.accountId;
+    }
+
+    if (patch.paymentMethodId !== undefined) {
+      scalarData.paymentMethodId = patch.paymentMethodId;
+    }
+
+    if (patch.cardId !== undefined) {
+      scalarData.cardId = patch.cardId;
+    }
+
+    if (patch.liabilityId !== undefined) {
+      scalarData.liabilityId = patch.liabilityId;
+    }
+
+    if (patch.date !== undefined) {
+      scalarData.date = patch.date;
+    }
+
+    if (patch.dataCaixa !== undefined) {
+      scalarData.dataCaixa = patch.dataCaixa;
+    }
+
+    if (patch.dataCompra !== undefined) {
+      scalarData.dataCompra = patch.dataCompra;
+    }
+
+    await this.db.$transaction(async (tx) => {
+      const ownedCount = await tx.transaction.count({
+        where: { userId, id: { in: uniqueIds } },
+      });
+
+      if (ownedCount !== uniqueIds.length) {
+        throw new Error("BULK_UPDATE_OWNERSHIP_MISMATCH");
+      }
+
+      if (Object.keys(scalarData).length > 0) {
+        await tx.transaction.updateMany({
+          where: { userId, id: { in: uniqueIds } },
+          data: scalarData,
+        });
+      }
+
+      if (auditFields.length === 0) {
+        return;
+      }
+
+      const rows = await tx.transaction.findMany({
+        where: { userId, id: { in: uniqueIds } },
+        select: { id: true, metadata: true },
+      });
+
+      const bulkUpdatedAt = new Date().toISOString();
+
+      for (const row of rows) {
+        const base =
+          typeof row.metadata === "object" &&
+          row.metadata !== null &&
+          !Array.isArray(row.metadata)
+            ? { ...(row.metadata as Record<string, unknown>) }
+            : {};
+
+        await tx.transaction.update({
+          where: { id: row.id },
+          data: {
+            metadata: {
+              ...base,
+              bulkUpdate: true,
+              updatedFields: auditFields,
+              bulkUpdatedAt,
+            } as Prisma.InputJsonValue,
+          },
+        });
+      }
+    });
+
+    return uniqueIds.length;
+  }
+
   async updateById(
     id: string,
     userId: string,
@@ -265,6 +396,10 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         paymentMethodId: data.paymentMethodId,
         cardId: data.cardId,
         installments: data.installments,
+        ...(data.liabilityId !== undefined ? { liabilityId: data.liabilityId } : {}),
+        ...(data.metadata !== undefined
+          ? { metadata: data.metadata as Prisma.InputJsonValue }
+          : {}),
       },
       include: RELATION_SELECT,
     });

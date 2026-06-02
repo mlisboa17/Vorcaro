@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, SendHorizonal } from "lucide-react";
+import { Loader2, SendHorizontal } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -76,7 +76,7 @@ export function QuickIngestInput({ onSubmitted, className }: QuickIngestInputPro
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <SendHorizonal className="h-4 w-4" />
+            <SendHorizontal className="h-4 w-4" />
           )}
           Enviar para a Caixa
         </button>

@@ -30,8 +30,12 @@ export interface UpdateCategoryConfigInput {
   isActive?: boolean;
 }
 
+export interface ListCategoriesOptions {
+  includeInactive?: boolean;
+}
+
 export interface CategoryConfigRepositoryPort {
-  listTreeByUserId(userId: string): Promise<CategoryTreeNode[]>;
+  listTreeByUserId(userId: string, options?: ListCategoriesOptions): Promise<CategoryTreeNode[]>;
   listAllActiveByUserId(userId: string): Promise<CategoryConfigRecord[]>;
   findByIdForUser(categoryId: string, userId: string): Promise<CategoryConfigRecord | null>;
   create(input: CreateCategoryConfigInput): Promise<CategoryConfigRecord>;
@@ -41,4 +45,7 @@ export interface CategoryConfigRepositoryPort {
     input: UpdateCategoryConfigInput,
   ): Promise<CategoryConfigRecord | null>;
   belongsToUser(categoryId: string, userId: string): Promise<boolean>;
+  countUsage(categoryId: string): Promise<number>;
+  deleteById(categoryId: string, userId: string): Promise<boolean>;
+  listSubcategoryIds(categoryId: string, userId: string): Promise<string[]>;
 }

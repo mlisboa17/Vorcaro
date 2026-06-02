@@ -1,4 +1,6 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
+import { parseAllocationsInput } from "@/lib/financial/liability-payment-metadata";
+import { toDefaultAllocationsJson } from "@/lib/recurring/to-default-allocations-json";
 import {
   calculateNextRecurringDate,
   endOfUtcDay,
@@ -28,6 +30,8 @@ function toRecord(record: {
   financialAccountId: string;
   paymentMethodId: string;
   cardId: string | null;
+  liabilityId: string | null;
+  defaultAllocations: Prisma.JsonValue | null;
   observacoes: string | null;
   diaInicioOriginal: number;
   createdAt: Date;
@@ -36,6 +40,7 @@ function toRecord(record: {
   return {
     ...record,
     valor: record.valor.toNumber(),
+    defaultAllocations: parseAllocationsInput(record.defaultAllocations) ?? null,
   };
 }
 
@@ -83,6 +88,8 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
         financialAccountId: input.financialAccountId,
         paymentMethodId: input.paymentMethodId,
         cardId: input.cardId ?? null,
+        liabilityId: input.liabilityId ?? null,
+        defaultAllocations: toDefaultAllocationsJson(input.defaultAllocations),
         observacoes: input.observacoes ?? null,
         diaInicioOriginal,
       },
@@ -103,28 +110,34 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
       ? extractOriginalStartDay(input.dataInicio)
       : existing.diaInicioOriginal;
 
+    const data: Prisma.LancamentoRecorrenteUpdateInput = {
+      ...(input.descricao !== undefined ? { descricao: input.descricao } : {}),
+      ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
+      ...(input.valor !== undefined ? { valor: input.valor } : {}),
+      ...(input.frequencia !== undefined ? { frequencia: input.frequencia } : {}),
+      ...(input.dataInicio !== undefined ? { dataInicio: input.dataInicio } : {}),
+      ...(input.dataFim !== undefined ? { dataFim: input.dataFim } : {}),
+      ...(input.proximaExecucao !== undefined ? { proximaExecucao: input.proximaExecucao } : {}),
+      ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+      ...(input.financialAccountId !== undefined
+        ? { financialAccountId: input.financialAccountId }
+        : {}),
+      ...(input.paymentMethodId !== undefined ? { paymentMethodId: input.paymentMethodId } : {}),
+      ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
+      ...(input.liabilityId !== undefined ? { liabilityId: input.liabilityId } : {}),
+      ...(input.defaultAllocations !== undefined
+        ? { defaultAllocations: toDefaultAllocationsJson(input.defaultAllocations) }
+        : {}),
+      ...(input.observacoes !== undefined ? { observacoes: input.observacoes } : {}),
+      diaInicioOriginal,
+      ...(input.dataInicio !== undefined && !input.proximaExecucao
+        ? { proximaExecucao: dataInicio }
+        : {}),
+    };
+
     const record = await this.db.lancamentoRecorrente.update({
       where: { id: input.id },
-      data: {
-        ...(input.descricao !== undefined ? { descricao: input.descricao } : {}),
-        ...(input.tipo !== undefined ? { tipo: input.tipo } : {}),
-        ...(input.valor !== undefined ? { valor: input.valor } : {}),
-        ...(input.frequencia !== undefined ? { frequencia: input.frequencia } : {}),
-        ...(input.dataInicio !== undefined ? { dataInicio: input.dataInicio } : {}),
-        ...(input.dataFim !== undefined ? { dataFim: input.dataFim } : {}),
-        ...(input.proximaExecucao !== undefined ? { proximaExecucao: input.proximaExecucao } : {}),
-        ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
-        ...(input.financialAccountId !== undefined
-          ? { financialAccountId: input.financialAccountId }
-          : {}),
-        ...(input.paymentMethodId !== undefined ? { paymentMethodId: input.paymentMethodId } : {}),
-        ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
-        ...(input.observacoes !== undefined ? { observacoes: input.observacoes } : {}),
-        diaInicioOriginal,
-        ...(input.dataInicio !== undefined && !input.proximaExecucao
-          ? { proximaExecucao: dataInicio }
-          : {}),
-      },
+      data,
     });
 
     return toRecord(record);
@@ -169,7 +182,9 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
     return existing !== null;
   }
 
-  async processOccurrence(input: ProcessRecurringOccurrenceInput): Promise<void> {
+  async processOccurrence(
+    input: ProcessRecurringOccurrenceInput,
+  ): Promise<{ transactionId: string }> {
     const { recurring, executionDate, transactionInput } = input;
     const nextExecution = calculateNextRecurringDate(
       executionDate,
@@ -177,7 +192,7 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
       recurring.diaInicioOriginal,
     );
 
-    await this.db.$transaction([
+    const [created] = await this.db.$transaction([
       this.db.transaction.create({
         data: {
           userId: transactionInput.userId,
@@ -203,6 +218,7 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
           currentInstallment: transactionInput.currentInstallment ?? transactionInput.numeroParcela,
           totalInstallments: transactionInput.totalInstallments ?? transactionInput.totalParcelas,
           installments: transactionInput.installments ?? 1,
+          liabilityId: transactionInput.liabilityId,
         },
       }),
       this.db.lancamentoRecorrente.update({
@@ -210,6 +226,8 @@ export class PrismaRecurringTransactionRepository implements RecurringTransactio
         data: { proximaExecucao: nextExecution },
       }),
     ]);
+
+    return { transactionId: created.id };
   }
 
   async advanceNextExecution(

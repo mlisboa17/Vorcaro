@@ -30,6 +30,8 @@ function buildRecord(
     financialAccountId: "acc-1",
     paymentMethodId: "pm-1",
     cardId: null,
+    liabilityId: null,
+    defaultAllocations: null,
     observacoes: null,
     diaInicioOriginal: 5,
     createdAt: new Date(),
@@ -49,7 +51,7 @@ function buildRepository(
     update: vi.fn(),
     findDueActiveByUserId: vi.fn().mockResolvedValue([recurring]),
     hasGeneratedTransaction: vi.fn().mockResolvedValue(options?.alreadyGenerated ?? false),
-    processOccurrence: vi.fn().mockResolvedValue(undefined),
+    processOccurrence: vi.fn().mockResolvedValue({ transactionId: "tx-1" }),
     advanceNextExecution: vi.fn().mockResolvedValue(undefined),
     deactivate: vi.fn(),
   };
@@ -77,15 +79,27 @@ function buildCardRepo(): CardRepositoryPort {
   };
 }
 
+function buildProcessUseCase(repository: RecurringTransactionRepositoryPort) {
+  return new ProcessRecurringTransactionsUseCase(
+    repository,
+    buildPaymentMethodRepo("PIX"),
+    buildCardRepo(),
+    {
+      findByIdForUser: vi.fn(),
+      updateById: vi.fn(),
+    } as never,
+    {
+      findByIdForUser: vi.fn(),
+      update: vi.fn(),
+    } as never,
+  );
+}
+
 describe("ProcessRecurringTransactionsUseCase", () => {
   it("processa recorrência mensal criando transação", async () => {
     const recurring = buildRecord({ frequencia: "MENSAL" });
     const repository = buildRepository(recurring);
-    const useCase = new ProcessRecurringTransactionsUseCase(
-      repository,
-      buildPaymentMethodRepo("PIX"),
-      buildCardRepo(),
-    );
+    const useCase = buildProcessUseCase(repository);
 
     const result = await useCase.execute(userId, parseDateOnlyToUtcNoon("2026-05-31"));
 
@@ -104,11 +118,7 @@ describe("ProcessRecurringTransactionsUseCase", () => {
       diaInicioOriginal: 4,
     });
     const repository = buildRepository(recurring);
-    const useCase = new ProcessRecurringTransactionsUseCase(
-      repository,
-      buildPaymentMethodRepo("PIX"),
-      buildCardRepo(),
-    );
+    const useCase = buildProcessUseCase(repository);
 
     const result = await useCase.execute(userId, parseDateOnlyToUtcNoon("2026-05-10"));
 
@@ -123,11 +133,7 @@ describe("ProcessRecurringTransactionsUseCase", () => {
       diaInicioOriginal: 6,
     });
     const repository = buildRepository(recurring);
-    const useCase = new ProcessRecurringTransactionsUseCase(
-      repository,
-      buildPaymentMethodRepo("PIX"),
-      buildCardRepo(),
-    );
+    const useCase = buildProcessUseCase(repository);
 
     const result = await useCase.execute(userId, parseDateOnlyToUtcNoon("2026-05-20"));
 
@@ -138,11 +144,7 @@ describe("ProcessRecurringTransactionsUseCase", () => {
   it("não duplica mesma recorrência/data", async () => {
     const recurring = buildRecord();
     const repository = buildRepository(recurring, { alreadyGenerated: true });
-    const useCase = new ProcessRecurringTransactionsUseCase(
-      repository,
-      buildPaymentMethodRepo("PIX"),
-      buildCardRepo(),
-    );
+    const useCase = buildProcessUseCase(repository);
 
     const result = await useCase.execute(userId, parseDateOnlyToUtcNoon("2026-05-31"));
 
@@ -162,6 +164,14 @@ describe("ProcessRecurringTransactionsUseCase", () => {
       repository,
       buildPaymentMethodRepo("CARTAO"),
       buildCardRepo(),
+      {
+        findByIdForUser: vi.fn(),
+        updateById: vi.fn(),
+      } as never,
+      {
+        findByIdForUser: vi.fn(),
+        update: vi.fn(),
+      } as never,
     );
 
     const result = await useCase.execute(userId, parseDateOnlyToUtcNoon("2026-05-31"));
