@@ -339,6 +339,15 @@ Motor proativo com persistência, idempotência (`fingerprint`) e auto-resoluç�
 
 Regras: pagamento próximo (7d), recebível atrasado, risco cartão (>30% renda), alto comprometimento (>80%), meta em risco, reembolso atrasado (>15d), fluxo negativo (15d).
 
+### Operação local / produção
+
+1. Subir banco: `docker compose up -d`
+2. Aplicar schema: `npx prisma migrate deploy`
+3. Configurar `CRON_SECRET` no `.env` (copiar de `.env.example`; gerar com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+4. Rodar motor manualmente: `npm run alerts:engine`
+5. Agendar diário (`0 6 * * *`): mesmo comando ou `POST /api/cron/financial-alerts` com `Authorization: Bearer <CRON_SECRET>`
+6. Checagens: `npx tsx scripts/check-alerts-db.ts`, `npx tsx scripts/validate-alerts-api.ts`
+
 ---
 
 ## Roadmap próximo

@@ -47,6 +47,25 @@ vi.mock("@/modules/installments/application/services/installment-read-model.serv
   },
 }));
 
+vi.mock("@/lib/api/monthly-commitments", () => ({
+  buildMonthlyCommitmentsUseCases: () => ({
+    getMonthly: vi.fn().mockResolvedValue({ commitmentsCount: 0 }),
+  }),
+}));
+
+vi.mock("@/modules/financial-alerts/application/services/financial-alert-query.service", () => ({
+  FinancialAlertQueryService: vi.fn().mockImplementation(() => ({
+    summary: vi.fn().mockResolvedValue({
+      totalOpen: 0,
+      totalResolved: 0,
+      totalCritical: 0,
+      bySeverity: { INFO: 0, WARNING: 0, CRITICAL: 0 },
+      byType: {},
+    }),
+    list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 15 }),
+  })),
+}));
+
 describe("FinancialDataAggregatorService — contas a receber", () => {
   it("injeta seção de contas a receber no markdown", async () => {
     const prisma = {

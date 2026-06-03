@@ -90,6 +90,22 @@ Cobertura nova:
 
 ---
 
+## Evidências pós-deploy (2026-06-03)
+
+| Verificação | Resultado |
+|-------------|-----------|
+| `prisma migrate deploy` | Migration `20260603120000_financial_alerts_sprint9` aplicada; schema up to date |
+| `npm run alerts:engine` (1ª exec.) | 5 alertas criados (1 usuário com condições) |
+| `npm run alerts:engine` (2ª exec.) | 0 criados, 5 atualizados — sem duplicata OPEN |
+| `check-alerts-db.ts` | 5 OPEN, 0 fingerprints duplicados |
+| `POST /api/cron/financial-alerts` | HTTP 200 com Bearer `CRON_SECRET` |
+| APIs autenticadas sem sessão | HTTP 401 (esperado) |
+| Páginas `/dashboard/alerts`, `/dashboard` | HTTP 200 |
+
+Scripts operacionais: `scripts/check-alerts-db.ts`, `scripts/validate-alerts-api.ts`.
+
+---
+
 ## Próximo passo (Sprint 10)
 
 - Enfileirar/enviar digest via Telegram usando `TelegramAlertFormatter`.

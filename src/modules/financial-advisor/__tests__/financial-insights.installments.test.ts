@@ -49,6 +49,19 @@ vi.mock("@/lib/api/receivable-use-cases", () => ({
   }),
 }));
 
+vi.mock("@/modules/financial-alerts/application/services/financial-alert-query.service", () => ({
+  FinancialAlertQueryService: vi.fn().mockImplementation(() => ({
+    summary: vi.fn().mockResolvedValue({
+      totalOpen: 0,
+      totalResolved: 0,
+      totalCritical: 0,
+      bySeverity: { INFO: 0, WARNING: 0, CRITICAL: 0 },
+      byType: {},
+    }),
+    list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 15 }),
+  })),
+}));
+
 describe("FinancialInsightsService — parcelamentos", () => {
   beforeEach(() => {
     vi.clearAllMocks();
