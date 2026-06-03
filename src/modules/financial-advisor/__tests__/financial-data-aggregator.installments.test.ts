@@ -2,6 +2,28 @@ import { describe, expect, it, vi } from "vitest";
 import { FinancialDataAggregatorService } from "../application/services/financial-data-aggregator.service";
 import { InstallmentReadModelService } from "@/modules/installments/application/services/installment-read-model.service";
 
+vi.mock("@/lib/api/monthly-commitments", () => ({
+  buildMonthlyCommitmentsUseCases: () => ({
+    getMonthly: vi.fn().mockResolvedValue({
+      month: "2026-06",
+      totalOutflows: 0,
+      totalInflows: 0,
+      netCommitment: 0,
+      commitmentsCount: 0,
+      overdueCount: 0,
+      next7DaysCount: 0,
+      byOrigin: [],
+      items: [],
+    }),
+  }),
+}));
+
+vi.mock("@/lib/api/receivable-use-cases", () => ({
+  buildReceivableUseCases: () => ({
+    getSummary: { execute: vi.fn().mockResolvedValue({ totalPendente: 0 }) },
+  }),
+}));
+
 describe("FinancialDataAggregatorService — parcelamentos", () => {
   it("injeta sumário de parcelamentos no markdown", async () => {
     vi.spyOn(InstallmentReadModelService.prototype, "getSummary").mockResolvedValue({

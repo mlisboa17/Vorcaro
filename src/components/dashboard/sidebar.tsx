@@ -37,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/installments", label: "Parcelamentos", icon: WalletCards },
   { href: "/dashboard/inbox", label: "Caixa Financeira", icon: Inbox },
   { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
+  { href: "/dashboard/commitments", label: "Compromissos Recorrentes", icon: CalendarClock },
   { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
   { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
   { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },

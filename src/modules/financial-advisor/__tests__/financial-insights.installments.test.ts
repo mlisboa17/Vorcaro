@@ -27,6 +27,28 @@ vi.mock("@/modules/ai/application/services/ai-router.service", () => ({
   })),
 }));
 
+vi.mock("@/lib/api/monthly-commitments", () => ({
+  buildMonthlyCommitmentsUseCases: () => ({
+    getMonthly: vi.fn().mockResolvedValue({
+      month: "2026-06",
+      totalOutflows: 0,
+      totalInflows: 0,
+      netCommitment: 0,
+      commitmentsCount: 0,
+      overdueCount: 0,
+      next7DaysCount: 0,
+      byOrigin: [],
+      items: [],
+    }),
+  }),
+}));
+
+vi.mock("@/lib/api/receivable-use-cases", () => ({
+  buildReceivableUseCases: () => ({
+    getSummary: { execute: vi.fn().mockResolvedValue({ totalPendente: 0 }) },
+  }),
+}));
+
 describe("FinancialInsightsService — parcelamentos", () => {
   beforeEach(() => {
     vi.clearAllMocks();

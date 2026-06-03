@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { buildCashflowProjectionService } from "@/modules/cashflow/application/services/cashflow-projection.service";
 import { buildReceivableUseCases } from "@/lib/api/receivable-use-cases";
+import { buildMonthlyCommitmentsUseCases } from "@/lib/api/monthly-commitments";
 import { InstallmentReadModelService } from "@/modules/installments/application/services/installment-read-model.service";
 import { PrismaInstallmentReadRepository } from "@/modules/installments/infrastructure/prisma-installment-read.repository";
 import { FinancialPlanningService } from "@/modules/financial-planning/application/services/financial-planning.service";
@@ -276,6 +277,31 @@ export class FinancialDataAggregatorService {
       }
     } catch {
       /* contas a receber opcionais */
+    }
+
+    // Compromissos recorrentes (Sprint 8)
+    try {
+      const { getMonthly } = buildMonthlyCommitmentsUseCases();
+      const commit = await getMonthly(userId, new Date().toISOString().slice(0, 7));
+      if (commit.commitmentsCount > 0) {
+        usedSources.push("compromissos_recorrentes");
+        dataScore += 2;
+        sections.push(
+          "## Compromissos do mês",
+          `- Saídas comprometidas: R$ ${commit.totalOutflows.toFixed(2)}`,
+          `- Entradas previstas: R$ ${commit.totalInflows.toFixed(2)}`,
+          `- Saldo líquido: R$ ${(commit.netCommitment * -1).toFixed(2)}`,
+          `- Vencidos: ${commit.overdueCount}`,
+          `- Itens nos próximos 7 dias: ${commit.next7DaysCount ?? 0}`,
+          "### Por origem",
+          ...commit.byOrigin.slice(0, 6).map(
+            (o: { origin: string; total: number; count: number }) =>
+              `- ${o.origin}: R$ ${o.total.toFixed(2)} (${o.count})`,
+          ),
+        );
+      }
+    } catch {
+      /* compromissos opcionais */
     }
 
     try {

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added — Sprint 8 (Central de Compromissos Recorrentes)
+
+- Read model `MonthlyCommitment` + `MonthlyCommitmentsService` (sem migration, sem tabela).
+- API `GET /api/commitments/monthly?month=YYYY-MM` — auth via sessão; `userId` somente da sessão.
+- UI `/dashboard/commitments` — cards, tabela e filtros (mês, origem, status, tipo, busca).
+- Fontes consolidadas: recorrências (todas ocorrências do mês), parcelamentos, passivos (parcela mensal), consórcios, faturas de cartão, contas a receber, transações futuras agendadas.
+- Deduplicação mínima segura por (descrição + data + valor).
+- Integrações: Dashboard Executivo (`ExecutiveCommitmentsCard`), Advisor (`compromissos_recorrentes`).
+- Testes: serviço, helpers, API route, agregador advisor (19+ testes no módulo).
+
 ### Added — Sprint 7.5 (Contas a Receber e Reembolsos)
 
 - Modelo `Receivable` + enum `ReceivableStatus`; migration `20260603010000_receivables_sprint75`.

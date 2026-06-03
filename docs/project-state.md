@@ -1,6 +1,6 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 7.5).
+Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 8).
 
 **Princípios transversais**
 
@@ -183,6 +183,21 @@ Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 7.5).
 | **Transações** | Metadata `thirdPartyPurchase` / `receivableId`; exclusão da visão de despesa pessoal em listagens e DRE |
 | **Integrações** | Patrimônio (`contasAReceber`, ativo `RECEIVABLE`), cashflow (`origem: RECEIVABLE`), advisor (`contas_a_receber`), inbox (hint reembolso), Telegram (`detectReceivableTelegramHint`) |
 | **Status** | **Concluído (Sprint 7.5)** |
+
+### Central de Compromissos Recorrentes (Sprint 8)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Consolidar compromissos mensais (saídas, entradas, vencimentos) a partir de múltiplas fontes sem duplicar o cashflow. |
+| **Rotas UI** | `/dashboard/commitments` |
+| **Rotas API** | `GET /api/commitments/monthly?month=YYYY-MM` |
+| **Tabelas Prisma** | Nenhuma (read model/DTO) |
+| **Serviços** | `MonthlyCommitmentsService`, `commitment-projection.helpers` |
+| **Factory** | `buildMonthlyCommitmentsUseCases()` em `src/lib/api/monthly-commitments.ts` |
+| **Fontes** | Recorrências, parcelamentos, passivos, consórcios, faturas (CREDIT_CARD), recebíveis, transações agendadas |
+| **Integrações** | Dashboard executivo (`ExecutiveCommitmentsCard`), Advisor (`compromissos_recorrentes`) |
+| **Deduplicação** | Chave `(descrição normalizada + data + valor)` — documentada no serviço |
+| **Status** | **Concluído (Sprint 8)** |
 
 ### Inbox Intelligence (evolução pós-7.4)
 

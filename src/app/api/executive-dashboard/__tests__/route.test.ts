@@ -13,6 +13,19 @@ vi.mock("@/lib/api/financial-planning", () => ({
   buildFinancialPlanningService: vi.fn(),
 }));
 
+vi.mock("@/lib/api/installments", () => ({
+  getInstallmentExecutiveSnapshotForUser: vi.fn().mockResolvedValue({
+    parceladoTotal: 0,
+    valorJaPago: 0,
+    valorRestante: 0,
+    parcelasRestantes: 0,
+    planosAtivos: 0,
+    planosConcluidos: 0,
+    parcelasAVencer30Dias: 0,
+    cartaoMaiorConcentracao: null,
+  }),
+}));
+
 import { auth } from "@/lib/auth";
 import { buildExecutiveDashboardService } from "@/lib/api/executive-dashboard";
 import { buildFinancialPlanningService } from "@/lib/api/financial-planning";

@@ -44,6 +44,16 @@ src/
 | **Endpoints** | `GET /api/cashflow/projection` |
 | **Dependências** | Prisma, transações, recorrências, cartões, consórcios, passivos |
 
+### `commitments` (Sprint 8)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `MonthlyCommitmentsService`, `commitment-projection.helpers` |
+| **Repositórios** | Nenhum (read model sobre Prisma existente) |
+| **Endpoints** | `GET /api/commitments/monthly` |
+| **Dependências** | `recurring-transactions`, `installments`, `receivables`, `patrimony`, `consortium`, transações |
+| **Nota** | Complementa cashflow com visão mensal explicável; deduplicação mínima documentada no serviço |
+
 ### `patrimony`
 
 | Aspecto | Detalhe |

@@ -38,10 +38,11 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **6.5** | Fechamento técnico + preparação Sprint 7 (Central de Parcelamentos) | Concluída |
 | **7** | Central de Parcelamentos (read model + integrações) | Concluída |
 | **7.5** | Contas a Receber e Reembolsos (ativo, cobrança, integrações) | Concluída |
+| **8** | Central de Compromissos Recorrentes (read model mensal) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
-Fechamento Sprint 7.5: [`docs/sprint-7.5-closure-report.md`](docs/sprint-7.5-closure-report.md).  
-Parcelamentos: [`docs/sprint-7-impact-analysis.md`](docs/sprint-7-impact-analysis.md) e `docs/installments-*.md`.
+Fechamento Sprint 8: [`docs/sprint-8-closure-report.md`](docs/sprint-8-closure-report.md).  
+Fechamento Sprint 7.5: [`docs/sprint-7.5-closure-report.md`](docs/sprint-7.5-closure-report.md).
 
 ---
 
@@ -58,6 +59,7 @@ Parcelamentos: [`docs/sprint-7-impact-analysis.md`](docs/sprint-7-impact-analysi
 - **Planejamento financeiro** — metas, estratégia, viabilidade e recomendações
 - **Central de Parcelamentos** — visão agregada de compras parceladas (read model)
 - **Contas a Receber** — compras para terceiros, cobrança parcial/total e ativo no patrimônio
+- **Compromissos Recorrentes** — visão mensal de saídas comprometidas, entradas previstas e vencimentos
 - **IA Financeira (Advisor)** — perguntas com contexto agregado do banco
 - **Cérebro & Automações** — regras e padrões de aprendizado (em evolução)
 
@@ -304,6 +306,21 @@ Compras feitas para terceiros viram **ativo** (direito a receber), não despesa 
 - Status: `OPEN` → `PARTIALLY_RECEIVED` → `RECEIVED` (ou `CANCELLED`).
 - Cobrança gera transação `INCOME` e atualiza saldo da conta escolhida.
 - `userId` **somente** da sessão Auth.js.
+
+---
+
+## Compromissos Recorrentes (Sprint 8)
+
+Visão mensal consolidada: quanto já está comprometido, o que vence, entradas previstas e origens que mais pesam.
+
+| Recurso | Caminho |
+|---------|---------|
+| Dashboard | `/dashboard/commitments` |
+| API REST | `GET /api/commitments/monthly?month=YYYY-MM` |
+| Motor | `src/modules/commitments` |
+| Factory | `buildMonthlyCommitmentsUseCases()` em `src/lib/api/monthly-commitments.ts` |
+
+Fontes (read model, sem duplicar cashflow): recorrências, parcelamentos, passivos, consórcios, faturas de cartão, contas a receber, transações agendadas.
 
 ---
 

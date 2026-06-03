@@ -5,7 +5,7 @@ Convenções:
 - **Auth:** Obrigatório = sessão Auth.js (`session.user.id`), exceto onde indicado.
 - **Multitenancy:** `userId` nunca é aceito no body/query para escopo de dados.
 
-Total de **operações HTTP documentadas: 60** (rotas únicas; métodos listados separadamente).
+Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados separadamente).
 
 ---
 
@@ -39,6 +39,17 @@ Total de **operações HTTP documentadas: 60** (rotas únicas; métodos listados
 
 **Descrição:** Projeção de saldo (7–365 dias), eventos e alertas.  
 **Auth:** Obrigatório.
+
+---
+
+## Compromissos Recorrentes (Sprint 8)
+
+### `GET` — `/api/commitments/monthly`
+
+**Descrição:** Read model mensal de compromissos (saídas, entradas, vencidos, por origem).  
+**Auth:** Obrigatório.  
+**Query:** `month=YYYY-MM` (opcional; padrão mês corrente).  
+**Resposta:** `{ month, totalOutflows, totalInflows, netCommitment, commitmentsCount, overdueCount, next7DaysCount, byOrigin, items }`.
 
 ---
 

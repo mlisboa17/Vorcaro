@@ -24,6 +24,7 @@ import { ExecutiveConsortiumSummary } from "./executive-consortium-summary";
 import { ExecutiveInstallmentsCard } from "./executive-installments-card";
 import { ExecutivePlanningCard } from "./executive-planning-card";
 import { ExecutiveSummaryCards } from "./executive-summary-cards";
+import { ExecutiveCommitmentsCard } from "./commitments-card";
 
 const QUICK_ACTIONS = [
   { href: "/dashboard/inbox", label: "Ver Caixa Financeira", icon: Inbox },
@@ -147,11 +148,12 @@ function ExecutiveDashboardInner() {
         <ExecutiveAlertsPanel alerts={data?.alerts ?? []} loading={loading} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-5">
         <ExecutiveBudgetCard data={data} loading={loading} />
         <ExecutivePatrimonyCard data={data} loading={loading} />
         <ExecutivePlanningCard planning={data?.planning} />
         <ExecutiveInstallmentsCard installments={data?.installments} />
+        <ExecutiveCommitmentsCard />
       </div>
 
       {data ? (
