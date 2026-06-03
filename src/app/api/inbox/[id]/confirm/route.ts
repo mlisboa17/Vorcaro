@@ -57,6 +57,8 @@ function mapErrorToResponse(error: ConfirmTransactionError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     case "VALIDATION":
       return NextResponse.json({ error: error.message }, { status: 400 });
+    case "DUPLICATE":
+      return NextResponse.json({ error: error.message }, { status: 409 });
     default:
       return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }

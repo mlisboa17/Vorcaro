@@ -35,6 +35,13 @@ export interface FinancialExtraction {
   cardLastFourDigits: string | null;
   cardBrand: ExtractedCardBrand;
   installments: number | null;
+  currentInstallment?: number | null;
+  totalInstallments?: number | null;
+  installmentGroup?: string | null;
+  descricaoBase?: string | null;
+  dataCompra?: string | null;
+  dataCaixa?: string | null;
+  dataVencimentoFatura?: string | null;
   confidence: Record<string, number>;
   missingFields: string[];
   followUpQuestion: string | null;

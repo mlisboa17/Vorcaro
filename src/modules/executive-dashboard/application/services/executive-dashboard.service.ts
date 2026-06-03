@@ -3,7 +3,7 @@ import type { CashflowProjectionService } from "@/modules/cashflow/application/s
 import type { BudgetOverviewPort } from "@/modules/budget/domain/ports/budget-overview.port";
 import type { ConsortiumService } from "@/modules/consortium/application/consortium.service";
 import type { PatrimonyUnitOfWorkPort } from "@/modules/patrimony/domain/ports/patrimony.port";
-import type { ExecutiveDashboardDTO } from "@/types/executive-dashboard";
+import type { ExecutiveDashboardCoreDTO } from "@/types/executive-dashboard";
 import type { MonthFinancialOverviewService } from "./month-financial-overview.service";
 
 export class ExecutiveDashboardService {
@@ -15,7 +15,7 @@ export class ExecutiveDashboardService {
     private readonly consortiumService: ConsortiumService,
   ) {}
 
-  async execute(userId: string): Promise<ExecutiveDashboardDTO> {
+  async execute(userId: string): Promise<ExecutiveDashboardCoreDTO> {
     const [projection, patrimony, budget, month, consortium, consortiumRows] = await Promise.all([
       this.cashflowProjection.execute(userId),
       this.patrimonyUnitOfWork.getSummary(userId),
@@ -62,7 +62,7 @@ export class ExecutiveDashboardService {
   }
 
   private buildBudgetAlerts(budget: Awaited<ReturnType<BudgetOverviewPort["getOverview"]>>) {
-    const alerts: ExecutiveDashboardDTO["alerts"] = [];
+    const alerts: ExecutiveDashboardCoreDTO["alerts"] = [];
 
     if (budget.categoriasEstouradas > 0) {
       alerts.push({

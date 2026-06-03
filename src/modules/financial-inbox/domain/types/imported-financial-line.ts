@@ -10,6 +10,8 @@ export type ImportedFinancialLine = {
   rawContent: string;
   installment?: number;
   totalInstallments?: number;
+  /** Cidade do estabelecimento (ex.: fatura Bradesco). */
+  city?: string;
 };
 
 export type DetectedCardInfo = {

@@ -11,6 +11,10 @@ import type {
 } from "@/modules/financial-inbox/domain/types/imported-financial-line";
 import { parseCsvBankStatement, parseOfxBankStatement } from "./financial-file-import";
 import { PdfParseError, parsePdfWithLocalExtraction } from "./financial-file-import-pdf";
+import {
+  parseInstallmentStructure,
+} from "@/lib/financial/installment-structural-parser";
+import { resolveInboxInstallment } from "@/lib/financial/resolve-inbox-installment";
 
 export interface ImportPipelineLine extends ImportedFinancialLine {
   lineIndex: number;
@@ -19,9 +23,15 @@ export interface ImportPipelineLine extends ImportedFinancialLine {
   suggestedCategoryId: string | null;
   suggestedCategoryName: string | null;
   categoryConfidence: "HIGH" | "MEDIUM" | "LOW";
+  classificationScore?: number;
+  classificationExplanation?: string;
+  classificationSource?: string;
+  readyToConfirm?: boolean;
   dataCompra?: string;
   dataCaixa?: string;
   dataVencimentoFatura?: string;
+  descricaoBase?: string;
+  installmentGroup?: string;
 }
 
 const BANK_PATTERNS: Array<{ name: string; regex: RegExp }> = [
@@ -67,15 +77,15 @@ function normalizeText(value: string): string {
 }
 
 function extractInstallments(text: string): { installment?: number; totalInstallments?: number } {
-  const match = text.match(/\b(\d{1,2})\s*\/\s*(\d{1,2})\b/);
-  if (!match) return {};
+  const parsed = parseInstallmentStructure(text);
+  if (!parsed.hadInstallmentMarker) {
+    return {};
+  }
 
-  const installment = Number(match[1]);
-  const totalInstallments = Number(match[2]);
-  if (!Number.isFinite(installment) || !Number.isFinite(totalInstallments)) return {};
-  if (installment < 1 || totalInstallments < 1 || installment > totalInstallments) return {};
-
-  return { installment, totalInstallments };
+  return {
+    installment: parsed.numeroParcela,
+    totalInstallments: parsed.totalParcelas,
+  };
 }
 
 export function detectCardFromText(source: string): DetectedCardInfo {
@@ -128,45 +138,38 @@ export async function matchDetectedCard(
   };
 }
 
+function scoreToLegacyConfidence(score: number): CategorySuggestion["confidence"] {
+  if (score >= 90) return "HIGH";
+  if (score >= 70) return "MEDIUM";
+  return "LOW";
+}
+
 export async function suggestCategory(
   db: PrismaClient,
   userId: string,
   description: string,
-): Promise<CategorySuggestion> {
-  const normalized = description.toLowerCase();
-  const rule = CATEGORY_KEYWORDS.find((entry) => entry.keyword.test(normalized));
-
-  if (!rule) {
-    return {
-      categoryId: null,
-      categoryName: null,
-      categoriaPrincipal: null,
-      subcategoria: null,
-      confidence: "LOW",
-    };
-  }
-
-  const categories = await db.category.findMany({
-    where: { userId, isActive: true },
-    select: { id: true, name: true, parentCategoryId: true },
-  });
-
-  const parent = categories.find(
-    (category) => !category.parentCategoryId && category.name.toLowerCase() === rule.categoriaPrincipal.toLowerCase(),
+): Promise<CategorySuggestion & {
+  classificationScore?: number;
+  classificationExplanation?: string;
+  classificationSource?: string;
+  readyToConfirm?: boolean;
+}> {
+  const { InboxClassificationService } = await import(
+    "@/modules/inbox-intelligence/application/services/inbox-classification.service"
   );
-
-  const sub = categories.find(
-    (category) =>
-      category.parentCategoryId === parent?.id &&
-      category.name.toLowerCase() === rule.subcategoria.toLowerCase(),
-  );
+  const classifier = new InboxClassificationService(db);
+  const suggestion = await classifier.classify({ userId, description });
 
   return {
-    categoryId: sub?.id ?? parent?.id ?? null,
-    categoryName: sub?.name ?? parent?.name ?? null,
-    categoriaPrincipal: parent?.name ?? rule.categoriaPrincipal,
-    subcategoria: sub?.name ?? (parent ? null : rule.subcategoria),
-    confidence: rule.confidence,
+    categoryId: suggestion.categoryId,
+    categoryName: suggestion.categoryName,
+    categoriaPrincipal: suggestion.categoriaPrincipal,
+    subcategoria: suggestion.subcategoria,
+    confidence: scoreToLegacyConfidence(suggestion.confidence),
+    classificationScore: suggestion.confidence,
+    classificationExplanation: suggestion.explanation,
+    classificationSource: suggestion.source,
+    readyToConfirm: suggestion.readyToConfirm,
   };
 }
 
@@ -268,6 +271,12 @@ export function buildImportHash(params: {
   cardId?: string | null;
   line: ImportedFinancialLine;
 }): string {
+  const sourceText = normalizeText(params.line.description ?? params.line.rawContent);
+  const structural = parseInstallmentStructure(sourceText);
+  const descricaoBase = structural.descricaoBase || normalizeText(params.line.description ?? "");
+  const numeroParcela = params.line.installment ?? structural.numeroParcela;
+  const totalParcelas = params.line.totalInstallments ?? structural.totalParcelas;
+
   const raw = JSON.stringify({
     userId: params.userId,
     importType: params.importType,
@@ -275,7 +284,10 @@ export function buildImportHash(params: {
     accountId: params.accountId ?? null,
     cardId: params.cardId ?? null,
     date: params.line.date ?? null,
-    description: normalizeText(params.line.description ?? ""),
+    description: descricaoBase,
+    descricaoBase,
+    numeroParcela: structural.hadInstallmentMarker ? numeroParcela : null,
+    totalParcelas: structural.hadInstallmentMarker ? totalParcelas : null,
     amount: typeof params.line.amount === "number" ? params.line.amount : null,
     rawContent: normalizeText(params.line.rawContent),
   });
@@ -319,17 +331,49 @@ export async function buildPreviewLines(params: {
 
     const installments = extractInstallments(line.description ?? line.rawContent);
     const category = await suggestCategory(params.db, params.userId, line.description ?? line.rawContent);
+    const amount = typeof line.amount === "number" ? line.amount : null;
+    const installmentResolved =
+      amount != null && amount > 0
+        ? resolveInboxInstallment({
+            userId: params.userId,
+            description: line.description ?? line.rawContent,
+            rawContent: line.rawContent,
+            amount,
+            cardId: params.cardId ?? null,
+            purchaseDate: line.date ?? null,
+            dataCompra: line.date,
+            dataCaixa:
+              params.importType === "FATURA_CARTAO" ? params.defaultDataCaixa ?? undefined : line.date,
+            dataVencimentoFatura:
+              params.importType === "FATURA_CARTAO"
+                ? params.defaultDataVencimentoFatura ?? undefined
+                : undefined,
+            existingNumeroParcela: line.installment ?? installments.installment ?? null,
+            existingTotalParcelas: line.totalInstallments ?? installments.totalInstallments ?? null,
+          })
+        : null;
 
     output.push({
       ...line,
       lineIndex: index,
       importHash,
       isDuplicate: Boolean(duplicate),
-      installment: installments.installment,
-      totalInstallments: installments.totalInstallments,
+      description: installmentResolved?.descricaoBase ?? line.description,
+      descricaoBase: installmentResolved?.descricaoBase,
+      installment:
+        installmentResolved?.numeroParcela ?? line.installment ?? installments.installment,
+      totalInstallments:
+        installmentResolved?.totalParcelas ??
+        line.totalInstallments ??
+        installments.totalInstallments,
+      installmentGroup: installmentResolved?.installmentGroup ?? undefined,
       suggestedCategoryId: category.categoryId,
       suggestedCategoryName: category.categoryName,
       categoryConfidence: category.confidence,
+      classificationScore: category.classificationScore,
+      classificationExplanation: category.classificationExplanation,
+      classificationSource: category.classificationSource,
+      readyToConfirm: category.readyToConfirm,
       dataCompra: line.date,
       dataCaixa: params.importType === "FATURA_CARTAO" ? params.defaultDataCaixa : line.date,
       dataVencimentoFatura:

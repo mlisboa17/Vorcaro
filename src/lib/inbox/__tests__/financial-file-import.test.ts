@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { importPreviewLineSchema } from "@/modules/financial-inbox/domain/schemas/financial-import-api.schema";
 import { parseCsvBankStatement, parseOfxBankStatement } from "../financial-file-import";
 
 describe("financial file import parsers (mínimo)", () => {
@@ -31,6 +32,19 @@ describe("financial file import parsers (mínimo)", () => {
     expect(items[0]?.externalId).toBe("abc-1");
     expect(items[0]?.date).toBe("2026-06-01");
     expect(items[0]?.amount).toBe(-123.45);
+  });
+
+  it("schema de preview aceita city do parser Bradesco", () => {
+    const parsed = importPreviewLineSchema.safeParse({
+      lineIndex: 0,
+      rawContent: "OUTBACK SAO PAULO 120,00",
+      importHash: "abc",
+      isDuplicate: false,
+      city: "SAO PAULO",
+      installment: 2,
+      totalInstallments: 12,
+    });
+    expect(parsed.success).toBe(true);
   });
 });
 

@@ -35,6 +35,8 @@ model User {
   consortiums          Consortium[]
   telegramConnections  TelegramConnection[]
   telegramConnectCodes TelegramConnectCode[]
+  financialGoals       FinancialGoal[]
+  receivables          Receivable[]
 }
 
 model Account {
@@ -264,6 +266,7 @@ model Transaction {
   inboxItem     FinancialInbox?   @relation(fields: [inboxItemId], references: [id])
   lancamentoRecorrente LancamentoRecorrente? @relation(fields: [lancamentoRecorrenteId], references: [id], onDelete: SetNull)
   patrimonyTransactions PatrimonyTransaction[]
+  receivable            Receivable?
 
   @@index([userId, date])
   @@index([accountId])
@@ -600,6 +603,51 @@ model PatrimonyTransaction {
   @@index([mainTransactionId])
 }
 
+// ─── Planejamento financeiro (Sprint 6) ───────────────────────────────────────
+
+enum FinancialGoalType {
+  EMERGENCY_FUND
+  VEHICLE
+  REAL_ESTATE
+  DEBT_SETTLEMENT
+  EDUCATION
+  RETIREMENT
+  CUSTOM
+}
+
+enum GoalPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  CANCELLED
+}
+
+model FinancialGoal {
+  id            String            @id @default(cuid())
+  userId        String
+  nome          String
+  descricao     String?
+  tipo          FinancialGoalType
+  valorObjetivo Decimal           @db.Decimal(15, 2)
+  valorAtual    Decimal           @default(0) @db.Decimal(15, 2)
+  aporteMensal  Decimal?          @db.Decimal(15, 2)
+  dataObjetivo  DateTime?
+  prioridade    GoalPriority
+  status        GoalStatus        @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
 // ─── Telegram (Sprint 4.7) ────────────────────────────────────────────────────
 
 model TelegramConnection {
@@ -631,4 +679,38 @@ model TelegramConnectCode {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ─── Contas a Receber (Sprint 7.5) ────────────────────────────────────────────
+
+enum ReceivableStatus {
+  OPEN
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model Receivable {
+  id              String           @id @default(cuid())
+  userId          String
+  descricao       String
+  devedorNome     String
+  valorOriginal   Decimal          @db.Decimal(15, 2)
+  valorRecebido   Decimal          @default(0) @db.Decimal(15, 2)
+  valorPendente   Decimal          @db.Decimal(15, 2)
+  status          ReceivableStatus @default(OPEN)
+  origem          String?
+  observacoes     String?
+  expectedDate    DateTime?
+  receivedAt      DateTime?
+  transactionId   String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, expectedDate])
 }

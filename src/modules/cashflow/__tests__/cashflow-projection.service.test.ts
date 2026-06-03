@@ -37,6 +37,7 @@ describe("cashflow projection service", () => {
       getActiveRecurring: async () => [],
       getActiveLiabilities: async () => [],
       getActiveConsortiums: async () => [],
+      getOpenReceivablesUntil: async () => [],
     });
 
     const result = await service.execute("user-1");
@@ -64,6 +65,7 @@ describe("cashflow projection service", () => {
       ],
       getActiveLiabilities: async () => [],
       getActiveConsortiums: async () => [],
+      getOpenReceivablesUntil: async () => [],
     });
 
     const result = await service.execute("user-2");
@@ -90,6 +92,7 @@ describe("cashflow projection service", () => {
       getActiveRecurring: async () => [],
       getActiveLiabilities: async () => [{ id: "liab-1", nome: "Financiamento", saldoAtual: "5000.00" }],
       getActiveConsortiums: async () => [],
+      getOpenReceivablesUntil: async () => [],
     });
 
     const result = await service.execute("user-3");
@@ -115,6 +118,7 @@ describe("cashflow projection service", () => {
           createdAt: daysFromNow(-300),
         },
       ],
+      getOpenReceivablesUntil: async () => [],
     });
 
     const result = await service.execute("user-cons");

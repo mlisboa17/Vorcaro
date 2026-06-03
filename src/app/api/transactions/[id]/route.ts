@@ -69,6 +69,7 @@ function serializeItem(record: {
     cardId: record.cardId,
     liabilityId: record.liabilityId,
     allocations: extractAllocations(record.metadata),
+    metadata: record.metadata,
     installments: record.installments,
     currentInstallment: record.currentInstallment,
     totalInstallments: record.totalInstallments,

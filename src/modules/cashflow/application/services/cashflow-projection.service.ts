@@ -1,4 +1,7 @@
 import type { FrequenciaRecorrencia, PrismaClient, TransactionType } from "@prisma/client";
+import { InstallmentReadModelService } from "@/modules/installments/application/services/installment-read-model.service";
+import { formatYearMonthUtc } from "@/modules/installments/domain/installment-read-rules";
+import { PrismaInstallmentReadRepository } from "@/modules/installments/infrastructure/prisma-installment-read.repository";
 import { calculateNextRecurringDate } from "@/modules/recurring-transactions/domain/services/calculate-next-recurring-date";
 import { buildConsortiumParcelDates } from "@/lib/consortium/consortium-domain";
 import type {
@@ -65,6 +68,15 @@ type CashflowProjectionDataSource = {
   getActiveRecurring(userId: string): Promise<RecurringRecord[]>;
   getActiveLiabilities(userId: string): Promise<LiabilityRecord[]>;
   getActiveConsortiums(userId: string): Promise<ConsortiumRecord[]>;
+  getOpenReceivablesUntil(userId: string, until: Date): Promise<
+    Array<{
+      id: string;
+      descricao: string;
+      devedorNome: string;
+      valorPendente: string;
+      expectedDate: Date;
+    }>
+  >;
 };
 
 class PrismaCashflowProjectionDataSource implements CashflowProjectionDataSource {
@@ -159,6 +171,34 @@ class PrismaCashflowProjectionDataSource implements CashflowProjectionDataSource
       valorTaxas: item.valorTaxas.toFixed(2),
     }));
   }
+
+  async getOpenReceivablesUntil(userId: string, until: Date) {
+    const rows = await this.prisma.receivable.findMany({
+      where: {
+        userId,
+        status: { in: ["OPEN", "PARTIALLY_RECEIVED"] },
+        expectedDate: { not: null, lte: until },
+      },
+      select: {
+        id: true,
+        descricao: true,
+        devedorNome: true,
+        valorPendente: true,
+        expectedDate: true,
+      },
+      orderBy: { expectedDate: "asc" },
+    });
+
+    return rows
+      .filter((row): row is typeof row & { expectedDate: Date } => row.expectedDate != null)
+      .map((row) => ({
+        id: row.id,
+        descricao: row.descricao,
+        devedorNome: row.devedorNome,
+        valorPendente: row.valorPendente.toFixed(2),
+        expectedDate: row.expectedDate,
+      }));
+  }
 }
 
 function startOfUtcDay(date: Date): Date {
@@ -196,19 +236,23 @@ function mapRecurringAmount(tipo: "RECEITA" | "DESPESA", amountCents: number): n
 }
 
 export class CashflowProjectionService {
-  constructor(private readonly dataSource: CashflowProjectionDataSource) {}
+  constructor(
+    private readonly dataSource: CashflowProjectionDataSource,
+    private readonly installmentReadModel?: InstallmentReadModelService,
+  ) {}
 
   async execute(userId: string): Promise<CashFlowProjectionDTO> {
     const today = startOfUtcDay(new Date());
     const maxHorizonDate = addDays(today, 365);
 
-    const [accountBalances, futureTransactions, recurringRules, liabilities, consortiums] =
+    const [accountBalances, futureTransactions, recurringRules, liabilities, consortiums, receivables] =
       await Promise.all([
         this.dataSource.getActiveAccountsBalance(userId),
         this.dataSource.getFutureTransactions(userId, maxHorizonDate),
         this.dataSource.getActiveRecurring(userId),
         this.dataSource.getActiveLiabilities(userId),
         this.dataSource.getActiveConsortiums(userId),
+        this.dataSource.getOpenReceivablesUntil(userId, maxHorizonDate),
       ]);
 
     const saldoAtualCents = accountBalances.reduce(
@@ -218,6 +262,9 @@ export class CashflowProjectionService {
 
     const events: TimelineEvent[] = [];
     const liabilityMap = new Map(liabilities.map((liability) => [liability.id, liability.nome]));
+    const processedFutureTxIds = new Set<string>();
+    const faturaTxIds = new Set<string>();
+    const faturaCardMonths = new Set<string>();
 
     for (const tx of futureTransactions) {
       const txDate = tx.dataCaixa ?? tx.date;
@@ -229,6 +276,9 @@ export class CashflowProjectionService {
 
       if (tx.cardId && tx.dataVencimentoFatura) {
         if (tx.dataVencimentoFatura <= today || tx.dataVencimentoFatura > maxHorizonDate) continue;
+        faturaTxIds.add(tx.id);
+        faturaCardMonths.add(`${tx.cardId}:${formatYearMonthUtc(tx.dataVencimentoFatura)}`);
+        processedFutureTxIds.add(tx.id);
         events.push({
           id: `fatura-${tx.id}`,
           date: tx.dataVencimentoFatura,
@@ -241,6 +291,7 @@ export class CashflowProjectionService {
 
       const financingName = tx.liabilityId ? liabilityMap.get(tx.liabilityId) : null;
       if (financingName) {
+        processedFutureTxIds.add(tx.id);
         events.push({
           id: `fin-${tx.id}`,
           date: txDate,
@@ -251,6 +302,7 @@ export class CashflowProjectionService {
         continue;
       }
 
+      processedFutureTxIds.add(tx.id);
       events.push({
         id: `tx-${tx.id}`,
         date: txDate,
@@ -297,6 +349,31 @@ export class CashflowProjectionService {
       }
     }
 
+    if (this.installmentReadModel) {
+      const commitments = await this.installmentReadModel.getFutureCommitments(userId);
+      for (const commitment of commitments) {
+        if (processedFutureTxIds.has(commitment.transactionId)) continue;
+        if (faturaTxIds.has(commitment.transactionId)) continue;
+
+        const commitmentDate = startOfUtcDay(new Date(`${commitment.data}T12:00:00.000Z`));
+        if (commitmentDate <= today || commitmentDate > maxHorizonDate) continue;
+
+        if (commitment.cardId) {
+          const monthKey = `${commitment.cardId}:${commitment.data.slice(0, 7)}`;
+          if (faturaCardMonths.has(monthKey)) continue;
+        }
+
+        const amountCents = Math.round(commitment.valor * 100);
+        events.push({
+          id: `inst-${commitment.transactionId}`,
+          date: commitmentDate,
+          description: `Parcela ${commitment.numeroParcela} — ${commitment.descricao}`,
+          amountCents: -amountCents,
+          origin: "INSTALLMENT",
+        });
+      }
+    }
+
     for (const consortium of consortiums) {
       if (consortium.quantidadeParcelas <= consortium.parcelasPagas) {
         continue;
@@ -317,6 +394,19 @@ export class CashflowProjectionService {
           amountCents: -parcelCents,
           origin: "CONSORCIO",
         });
+      });
+    }
+
+    for (const receivable of receivables) {
+      const receivableDate = startOfUtcDay(receivable.expectedDate);
+      if (receivableDate <= today || receivableDate > maxHorizonDate) continue;
+
+      events.push({
+        id: `recv-${receivable.id}`,
+        date: receivableDate,
+        description: `Receita prevista — ${receivable.devedorNome}: ${receivable.descricao}`,
+        amountCents: decimalStringToCents(receivable.valorPendente),
+        origin: "RECEIVABLE",
       });
     }
 
@@ -429,6 +519,9 @@ export class CashflowProjectionService {
 }
 
 export function buildCashflowProjectionService(prisma: PrismaClient): CashflowProjectionService {
-  return new CashflowProjectionService(new PrismaCashflowProjectionDataSource(prisma));
+  return new CashflowProjectionService(
+    new PrismaCashflowProjectionDataSource(prisma),
+    new InstallmentReadModelService(new PrismaInstallmentReadRepository(prisma)),
+  );
 }
 

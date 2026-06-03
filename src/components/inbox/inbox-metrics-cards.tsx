@@ -13,7 +13,7 @@ const METRIC_LABELS: Record<(typeof METRIC_STATUSES)[number], string> = {
   PENDING: "Pendentes",
   PROCESSING: "Processando",
   NEEDS_CONFIRMATION: "Revisão",
-  SAVED: "Salvos",
+  SAVED: "Efetivados",
 };
 
 const METRIC_COLORS: Record<(typeof METRIC_STATUSES)[number], string> = {

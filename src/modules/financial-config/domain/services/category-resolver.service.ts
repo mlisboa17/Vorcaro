@@ -1,8 +1,5 @@
 import type { CategoryConfigRecord } from "../ports/category-config.port";
-
-function normalizeName(value: string | null | undefined): string {
-  return (value ?? "").trim().toLowerCase();
-}
+import { normalizeCategoryName } from "@/lib/categories/category-name-normalizer";
 
 export function resolveCategoryIdFromNames(
   categories: CategoryConfigRecord[],
@@ -12,19 +9,21 @@ export function resolveCategoryIdFromNames(
     category?: string | null;
   },
 ): string | null {
-  const principal = normalizeName(input.categoriaPrincipal);
-  const sub = normalizeName(input.subcategoria);
-  const legacy = normalizeName(input.category);
+  const principal = normalizeCategoryName(input.categoriaPrincipal);
+  const sub = normalizeCategoryName(input.subcategoria);
+  const legacy = normalizeCategoryName(input.category);
 
   if (sub) {
     const parent = categories.find(
-      (category) => !category.parentCategoryId && normalizeName(category.name) === principal,
+      (category) =>
+        !category.parentCategoryId && normalizeCategoryName(category.name) === principal,
     );
 
     if (parent) {
       const match = categories.find(
         (category) =>
-          category.parentCategoryId === parent.id && normalizeName(category.name) === sub,
+          category.parentCategoryId === parent.id &&
+          normalizeCategoryName(category.name) === sub,
       );
 
       if (match) {
@@ -35,7 +34,8 @@ export function resolveCategoryIdFromNames(
 
   if (principal) {
     const rootMatch = categories.find(
-      (category) => !category.parentCategoryId && normalizeName(category.name) === principal,
+      (category) =>
+        !category.parentCategoryId && normalizeCategoryName(category.name) === principal,
     );
 
     if (rootMatch) {
@@ -44,7 +44,9 @@ export function resolveCategoryIdFromNames(
   }
 
   if (legacy) {
-    const directMatch = categories.find((category) => normalizeName(category.name) === legacy);
+    const directMatch = categories.find(
+      (category) => normalizeCategoryName(category.name) === legacy,
+    );
 
     if (directMatch) {
       return directMatch.id;
@@ -56,8 +58,8 @@ export function resolveCategoryIdFromNames(
       }
 
       const parent = categories.find((entry) => entry.id === category.parentCategoryId);
-      const combined = normalizeName(`${parent?.name ?? ""} ${category.name}`);
-      const combinedArrow = normalizeName(`${parent?.name ?? ""} → ${category.name}`);
+      const combined = normalizeCategoryName(`${parent?.name ?? ""} ${category.name}`);
+      const combinedArrow = normalizeCategoryName(`${parent?.name ?? ""} → ${category.name}`);
 
       if (combined === legacy || combinedArrow === legacy) {
         return category.id;

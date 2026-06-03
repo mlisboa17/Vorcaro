@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { financialGoalCompleteSchema } from "@/types/financial-planning";
+import { installmentExecutiveSnapshotSchema } from "@/types/installments";
 
 export const executiveAlertSeveritySchema = z.enum(["INFO", "WARNING", "CRITICAL"]);
 
@@ -8,7 +10,7 @@ export const executiveDashboardAlertSchema = z.object({
   message: z.string().min(1),
 });
 
-export const executiveDashboardResponseSchema = z.object({
+export const executiveDashboardCoreSchema = z.object({
   cash: z.object({
     saldoAtual: z.number(),
     saldoProjetado30Dias: z.number(),
@@ -44,5 +46,17 @@ export const executiveDashboardResponseSchema = z.object({
   alerts: z.array(executiveDashboardAlertSchema),
 });
 
+export const executiveDashboardResponseSchema = executiveDashboardCoreSchema.extend({
+  planning: z.object({
+    metasAtivas: z.number().int(),
+    percentualProgressoGlobal: z.number(),
+    metaMaisProxima: financialGoalCompleteSchema.nullable(),
+    metaMaisAtrasada: financialGoalCompleteSchema.nullable(),
+    metaMaiorValor: financialGoalCompleteSchema.nullable(),
+  }),
+  installments: installmentExecutiveSnapshotSchema,
+});
+
 export type ExecutiveDashboardAlert = z.infer<typeof executiveDashboardAlertSchema>;
+export type ExecutiveDashboardCoreDTO = z.infer<typeof executiveDashboardCoreSchema>;
 export type ExecutiveDashboardDTO = z.infer<typeof executiveDashboardResponseSchema>;

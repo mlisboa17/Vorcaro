@@ -22,6 +22,7 @@ export interface TransactionListItem {
   cardId: string | null;
   liabilityId: string | null;
   allocations?: TransactionAllocation[];
+  metadata?: Record<string, unknown> | null;
   account: TransactionRelation | null;
   category: TransactionRelation | null;
   paymentMethod: TransactionRelation | null;

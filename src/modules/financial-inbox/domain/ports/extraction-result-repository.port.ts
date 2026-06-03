@@ -24,5 +24,9 @@ export interface ExtractionResultRecord {
 export interface ExtractionResultRepositoryPort {
   save(input: SaveExtractionResultInput): Promise<{ id: string }>;
   findLatestByInboxItemId(inboxItemId: string): Promise<ExtractionResultRecord | null>;
+  findLatestOrCreateFromImport(
+    inboxItemId: string,
+    userId: string,
+  ): Promise<ExtractionResultRecord | null>;
   updateExtractedData(id: string, extractedData: FinancialExtraction): Promise<void>;
 }

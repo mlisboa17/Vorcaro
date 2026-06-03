@@ -14,6 +14,9 @@
 # production
 /build
 
+# local dev orchestrator (pids)
+.dev-all/
+
 # misc
 .DS_Store
 *.pem
@@ -33,6 +36,9 @@ next-env.d.ts
 
 # local database dumps (dev backups)
 /backups
+
+# QA artifacts (generated)
+scripts/qa-sprint-59-output.json
 
 # prisma
 /prisma/*.db

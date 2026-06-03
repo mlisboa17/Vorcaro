@@ -1,4 +1,5 @@
 import type { PrismaClient, TransactionType } from "@prisma/client";
+import { isThirdPartyExpenseTransaction } from "@/lib/financial/receivable-transaction-metadata";
 import { resolvePeriodPreset } from "@/lib/utils/date-periods";
 import type { TransactionSummary } from "@/types/transactions";
 import type {
@@ -125,7 +126,7 @@ export class ListTransactionsUseCase {
           lte: filters.endDate,
         },
       },
-      select: { type: true, amount: true },
+      select: { type: true, amount: true, metadata: true },
     });
 
     return transactions.reduce(
@@ -136,7 +137,7 @@ export class ListTransactionsUseCase {
           totals.income += amount;
         }
 
-        if (transaction.type === "EXPENSE") {
+        if (transaction.type === "EXPENSE" && !isThirdPartyExpenseTransaction(transaction.metadata)) {
           totals.expense += amount;
         }
 

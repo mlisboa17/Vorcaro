@@ -38,6 +38,17 @@ export const financialExtractionSchema = z.object({
   confidence: z.record(z.string(), z.number()),
   missingFields: z.array(z.string()),
   followUpQuestion: z.string().nullable(),
+  financialAccountId: z.string().nullable().optional(),
+  paymentMethodId: z.string().nullable().optional(),
+  cardId: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  currentInstallment: z.number().int().min(1).nullable().optional(),
+  totalInstallments: z.number().int().min(1).nullable().optional(),
+  installmentGroup: z.string().nullable().optional(),
+  descricaoBase: z.string().nullable().optional(),
+  dataCompra: z.string().nullable().optional(),
+  dataCaixa: z.string().nullable().optional(),
+  dataVencimentoFatura: z.string().nullable().optional(),
 });
 
 export function parseFinancialExtraction(data: unknown): FinancialExtraction {

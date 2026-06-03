@@ -1,6 +1,13 @@
 import { parsePdf } from "@/lib/parsers/pdf-parser";
 import { PdfParseError, toPdfParseError } from "@/lib/parsers/pdf-import-errors";
-import type { ImportedFinancialLine } from "./financial-file-import";
+import type { ImportedFinancialLine } from "@/modules/financial-inbox/domain/types/imported-financial-line";
+import {
+  isBradescoInvoiceText,
+  parseBradescoInvoiceText,
+  type BradescoInvoiceSummary,
+} from "./bradesco-invoice-parser";
+
+export type { BradescoInvoiceSummary };
 
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -56,6 +63,10 @@ function splitLines(text: string): string[] {
 }
 
 export function linesFromPdfText(text: string, fileName: string): ImportedFinancialLine[] {
+  if (isBradescoInvoiceText(text)) {
+    return parseBradescoInvoiceText(text, fileName).lines;
+  }
+
   const lines = splitLines(text);
 
   if (lines.length === 0) {
@@ -75,6 +86,10 @@ export function linesFromPdfText(text: string, fileName: string): ImportedFinanc
     const date = dateMatch ? normalizeDateToYyyyMmDd(dateMatch[1]) : null;
     const amount = amountMatch ? safeNumber(amountMatch[0]) : null;
 
+    if (amount === null && date === null) {
+      continue;
+    }
+
     result.push({
       date: date ?? undefined,
       amount: amount ?? undefined,
@@ -84,6 +99,11 @@ export function linesFromPdfText(text: string, fileName: string): ImportedFinanc
   }
 
   return result;
+}
+
+export function extractBradescoSummaryFromPdfText(text: string): BradescoInvoiceSummary | null {
+  if (!isBradescoInvoiceText(text)) return null;
+  return parseBradescoInvoiceText(text, "bradesco.pdf").summary;
 }
 
 export async function parsePdfWithLocalExtraction(

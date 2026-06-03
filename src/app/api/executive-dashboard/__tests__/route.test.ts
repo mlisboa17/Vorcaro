@@ -9,8 +9,13 @@ vi.mock("@/lib/api/executive-dashboard", () => ({
   buildExecutiveDashboardService: vi.fn(),
 }));
 
+vi.mock("@/lib/api/financial-planning", () => ({
+  buildFinancialPlanningService: vi.fn(),
+}));
+
 import { auth } from "@/lib/auth";
 import { buildExecutiveDashboardService } from "@/lib/api/executive-dashboard";
+import { buildFinancialPlanningService } from "@/lib/api/financial-planning";
 
 describe("GET /api/executive-dashboard", () => {
   beforeEach(() => {
@@ -64,6 +69,16 @@ describe("GET /api/executive-dashboard", () => {
         alerts: [],
       }),
     } as unknown as ReturnType<typeof buildExecutiveDashboardService>);
+
+    vi.mocked(buildFinancialPlanningService).mockReturnValue({
+      getExecutivePlanningSnapshot: vi.fn().mockResolvedValue({
+        metasAtivas: 2,
+        percentualProgressoGlobal: 35,
+        metaMaisProxima: null,
+        metaMaisAtrasada: null,
+        metaMaiorValor: null,
+      }),
+    } as never);
 
     const response = await GET();
     expect(response.status).toBe(200);

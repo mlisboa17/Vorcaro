@@ -21,6 +21,8 @@ import { ExecutiveBudgetCard } from "./executive-budget-card";
 import { ExecutiveCashflowCard } from "./executive-cashflow-card";
 import { ExecutivePatrimonyCard } from "./executive-patrimony-card";
 import { ExecutiveConsortiumSummary } from "./executive-consortium-summary";
+import { ExecutiveInstallmentsCard } from "./executive-installments-card";
+import { ExecutivePlanningCard } from "./executive-planning-card";
 import { ExecutiveSummaryCards } from "./executive-summary-cards";
 
 const QUICK_ACTIONS = [
@@ -145,9 +147,11 @@ function ExecutiveDashboardInner() {
         <ExecutiveAlertsPanel alerts={data?.alerts ?? []} loading={loading} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
         <ExecutiveBudgetCard data={data} loading={loading} />
         <ExecutivePatrimonyCard data={data} loading={loading} />
+        <ExecutivePlanningCard planning={data?.planning} />
+        <ExecutiveInstallmentsCard installments={data?.installments} />
       </div>
 
       {data ? (

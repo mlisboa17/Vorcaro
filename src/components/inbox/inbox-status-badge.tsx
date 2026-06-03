@@ -1,5 +1,5 @@
 import type { InboxStatusLiteral } from "@/types/inbox.constants";
-import { AlertCircle, CheckCircle2, Clock, Loader2, Save } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const STATUS_CONFIG: Record<
@@ -28,13 +28,13 @@ const STATUS_CONFIG: Record<
     icon: <AlertCircle className="h-3.5 w-3.5" />,
   },
   SAVED: {
-    label: "Salvo",
-    className: "bg-green-50 text-green-800 border-green-200",
-    icon: <Save className="h-3.5 w-3.5" />,
+    label: "Efetivado",
+    className: "bg-emerald-50 text-emerald-800 border-emerald-300",
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   ERROR: {
-    label: "Erro",
-    className: "bg-red-50 text-red-700 border-red-200",
+    label: "Ignorado",
+    className: "bg-slate-100 text-slate-600 border-slate-200",
     icon: <AlertCircle className="h-3.5 w-3.5" />,
   },
 };

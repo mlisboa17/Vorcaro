@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { CONNECT_CODE_TTL_MS, generateConnectCode } from "@/lib/telegram/generate-connect-code";
 import { isTelegramBotConfigured } from "@/lib/telegram/webhook-auth";
+import {
+  fetchTelegramWebhookDisplayStatus,
+  resolveInternalAppUrl,
+} from "@/lib/telegram/telegram-webhook-status";
 import { prisma } from "@/lib/prisma";
 import { PrismaTelegramIntegrationRepository } from "@/modules/telegram/infrastructure/prisma-telegram-integration.repository";
-
-function webhookPublicUrl(request: Request): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.AUTH_URL ?? new URL(request.url).origin;
-  return `${base.replace(/\/$/, "")}/api/telegram/webhook`;
-}
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -18,11 +17,13 @@ export async function GET(request: Request) {
 
   const repo = new PrismaTelegramIntegrationRepository(prisma);
   const connection = await repo.findActiveConnectionByUserId(session.user.id);
+  const telegramWebhook = await fetchTelegramWebhookDisplayStatus();
 
   return NextResponse.json({
     botConfigured: isTelegramBotConfigured(),
-    webhookUrl: webhookPublicUrl(request),
+    internalAppUrl: resolveInternalAppUrl(request),
     webhookSecretConfigured: Boolean(process.env.TELEGRAM_WEBHOOK_SECRET?.trim()),
+    telegramWebhook,
     connection: connection
       ? {
           id: connection.id,

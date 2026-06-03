@@ -21,6 +21,8 @@ import {
   PrismaInstrumentLookupService,
   PrismaPaymentMethodRepository,
 } from "@/modules/financial-instruments/infrastructure/repositories/prisma-financial-instrument.repositories";
+import { InboxClassificationService } from "@/modules/inbox-intelligence/application/services/inbox-classification.service";
+import { mergeClassificationIntoExtraction } from "@/lib/inbox/apply-inbox-classification";
 
 function createProcessInboxItemUseCase(): ProcessInboxItemUseCase {
   const inboxRepository = new PrismaInboxRepository(prisma);
@@ -72,6 +74,17 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
       try {
         const useCase = createProcessInboxItemUseCase();
         const result = await useCase.execute({ inboxItemId, userId });
+
+        const classifier = new InboxClassificationService(prisma);
+        const suggestion = await classifier.classify({
+          userId,
+          description: result.extraction.description ?? item.rawContent,
+          rawContent: item.rawContent,
+        });
+        const merged = mergeClassificationIntoExtraction(result.extraction, suggestion);
+        const extractionRepo = new PrismaExtractionResultRepository(prisma);
+        await extractionRepo.updateExtractedData(result.extractionResultId, merged);
+
         console.info(
           `[financial-inbox] Item ${inboxItemId} → ${result.status} (extraction: ${result.extractionResultId})`,
         );

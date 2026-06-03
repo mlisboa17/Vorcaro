@@ -21,6 +21,28 @@ Repositório: [github.com/mlisboa17/Vorcaro](https://github.com/mlisboa17/Vorcar
 
 Arquitetura modular: **Domain → Application → Infrastructure → Web** (ports & adapters).
 
+Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arquitetura, APIs, banco, IA, handoff Sprint 6).
+
+---
+
+## Estado atual do projeto
+
+| Sprint | Entrega | Status |
+|--------|---------|--------|
+| **4.5** | Rebaseline Prisma (`init_clean_schema`), migrations legadas arquivadas | Concluída |
+| **4.6** | Inventário e rastreabilidade de migrations perdidas | Concluída |
+| **4.7** | Integração Telegram (webhook, `/connect`, ingestão na Caixa) | Concluída |
+| **5** | IA Financeira multi-provider (Groq → Gemini → OpenRouter), `/dashboard/advisor` | Concluída |
+| **5.5** | Consolidação documental, inventários técnicos, handoff | Concluída |
+| **6** | Planejamento Financeiro Inteligente (4 camadas: meta, estratégia, viabilidade, recomendação) | Concluída |
+| **6.5** | Fechamento técnico + preparação Sprint 7 (Central de Parcelamentos) | Concluída |
+| **7** | Central de Parcelamentos (read model + integrações) | Concluída |
+| **7.5** | Contas a Receber e Reembolsos (ativo, cobrança, integrações) | Concluída |
+
+Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
+Fechamento Sprint 7.5: [`docs/sprint-7.5-closure-report.md`](docs/sprint-7.5-closure-report.md).  
+Parcelamentos: [`docs/sprint-7-impact-analysis.md`](docs/sprint-7-impact-analysis.md) e `docs/installments-*.md`.
+
 ---
 
 ## Módulos principais
@@ -33,6 +55,10 @@ Arquitetura modular: **Domain → Application → Infrastructure → Web** (port
 - **Consórcios** — parcelas, contemplação e vínculo com ativos
 - **Fluxo de caixa futuro** — projeção com recorrências e consórcios
 - **Dashboard executivo** — visão consolidada, orçamento e alertas
+- **Planejamento financeiro** — metas, estratégia, viabilidade e recomendações
+- **Central de Parcelamentos** — visão agregada de compras parceladas (read model)
+- **Contas a Receber** — compras para terceiros, cobrança parcial/total e ativo no patrimônio
+- **IA Financeira (Advisor)** — perguntas com contexto agregado do banco
 - **Cérebro & Automações** — regras e padrões de aprendizado (em evolução)
 
 ---
@@ -119,10 +145,38 @@ Acesse [http://localhost:3000](http://localhost:3000). Se a porta 3000 estiver o
 
 ---
 
+## Ambiente local com `dev:all`
+
+Um único comando sobe Docker (Postgres + Redis), gera o Prisma Client se necessário, Next.js, worker da inbox, ngrok e registra o webhook do Telegram (sem expor tokens nos logs):
+
+```bash
+npm run dev:all
+```
+
+**Pré-requisitos:** Docker Desktop em execução, `TELEGRAM_BOT_TOKEN` e `TELEGRAM_WEBHOOK_SECRET` no `.env`, [ngrok](https://ngrok.com/download) no `PATH` (para o túnel público).
+
+O script **não encerra** processos que já estejam rodando nas portas **3000**, **5433**, **6380** ou **4040** — apenas informa `OK — já em execução`.
+
+Em pastas sincronizadas pelo **OneDrive**, há pausas curtas (~2,5s) entre etapas para o sync de arquivos (Prisma, `.next`, etc.). Ajuste no `.env`: `DEV_ONEDRIVE_PAUSE_MS=4000` ou desative com `DEV_ONEDRIVE_PAUSE_MS=0`.
+
+O `dev:all` **apaga a pasta `.next` automaticamente** em caminhos OneDrive (evita erro `EINVAL readlink` e localhost que não abre). Para pular: `DEV_SKIP_CLEAN_NEXT=1`. Limpeza manual: `npm run dev:clean` e depois `npm run dev`.
+
+Quando o ngrok reiniciar e a URL pública mudar, re-registre o webhook:
+
+```bash
+npm run telegram:webhook
+# ou com URL explícita:
+npm run telegram:webhook -- https://seu-tunnel.ngrok-free.dev
+```
+
+---
+
 ## Scripts úteis
 
 | Comando | Descrição |
 |---------|-----------|
+| `npm run dev:all` | Ambiente local completo (Docker, Next, worker, ngrok, webhook) |
+| `npm run telegram:webhook` | Re-registra webhook Telegram (usa ngrok em `localhost:4040`) |
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Build de produção |
 | `npm run test` | Testes (Vitest) |
@@ -170,9 +224,48 @@ src/app/          # rotas Next.js (API + dashboard)
 src/components/   # UI por domínio
 src/modules/      # regras de negócio (DDD leve)
 src/lib/          # adapters, parsers, helpers
-docs/             # documentação técnica
+docs/             # documentação técnica (ver docs/project-state.md)
 backups/          # dumps locais (ignorado no Git)
 ```
+
+---
+
+## AI Providers (Sprint 5)
+
+Pipeline de fallback no **Financial Advisor** (`/dashboard/advisor`):
+
+**Groq (primário)** → **Gemini** → **OpenRouter** → erro controlado
+
+| Variável | Uso |
+|----------|-----|
+| `GROQ_API_KEY` / `GROQ_MODEL` | Provedor primário |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | Fallback |
+| `OPENROUTER_API_KEY` / `OPENROUTER_MODEL` | Fallback (padrão `openrouter/auto`) |
+
+- `POST /api/advisor/ask` — pergunta livre (auth; `userId` só da sessão)
+- `GET /api/advisor/insights` — regras estáticas + texto IA
+
+A IA **não inventa dados**: se faltar contexto, retorna: *"Não encontrei dados suficientes para responder com segurança."*
+
+---
+
+## Planejamento financeiro (Sprint 6)
+
+Metas orientadas a objetivos com **quatro camadas obrigatórias**: Meta → Estratégia → Viabilidade → Recomendação.
+
+| Recurso | Caminho |
+|---------|---------|
+| Dashboard | `/dashboard/planning` |
+| API REST | `GET/POST /api/planning/goals`, `PATCH/DELETE /api/planning/goals/[id]` |
+| Motor | `src/modules/financial-planning` |
+| Serviços | `FinancialGoalStrategyService`, `FinancialGoalViabilityService`, `FinancialGoalPrioritizationService`, `FinancialGoalRecommendationService`, `FinancialPlanningService` |
+| Export Telegram | `getFinancialGoalsForUser(userId)` em `src/lib/api/financial-planning.ts` |
+
+- Valores em `Decimal` (Prisma); `userId` **somente** da sessão Auth.js.
+- Viabilidade: risco `LOW` / `MEDIUM` / `HIGH` · indicadores 🟢 Viável · 🟡 Atenção · 🔴 Risco alto / Atrasada.
+- Priorização: emergência → dívidas com juros → curto prazo → patrimonial → aposentadoria → custom.
+- Advisor injeta metas com tom conversacional e explicabilidade (fluxo, patrimônio, passivos).
+- Dashboard executivo: metas ativas, progresso global, mais próxima, mais atrasada, maior valor.
 
 ---
 
@@ -184,20 +277,40 @@ backups/          # dumps locais (ignorado no Git)
 4. Envie texto, áudio ou foto — itens entram na Caixa Financeira.
 
 **Webhook:** `POST /api/telegram/webhook`  
-**Dev local:** use [ngrok](https://ngrok.com/) ou [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — o Telegram não acessa `localhost`.
+**Dev local:** use `npm run dev:all` (recomendado) ou [ngrok](https://ngrok.com/) manualmente — o Telegram não acessa `localhost`.
 
 ```bash
-ngrok http 3000
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<tunnel>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+npm run dev:all
+# após reiniciar o ngrok:
+npm run telegram:webhook
 ```
 
 Rota legada (somente `?token=`): `/api/webhooks/telegram`.
 
 ---
 
+## Contas a Receber (Sprint 7.5)
+
+Compras feitas para terceiros viram **ativo** (direito a receber), não despesa pessoal definitiva.
+
+| Recurso | Caminho |
+|---------|---------|
+| Dashboard | `/dashboard/receivables` |
+| API REST | `GET/POST /api/receivables`, `POST /api/receivables/from-transaction`, `POST /api/receivables/[id]?action=collect\|cancel` |
+| Motor | `src/modules/receivables` |
+| Metadata transação | `src/lib/financial/receivable-transaction-metadata.ts` |
+| Integrações | Patrimônio (`contasAReceber`), cashflow (`RECEIVABLE`), advisor, inbox (hint), Telegram (sugestão) |
+
+- Status: `OPEN` → `PARTIALLY_RECEIVED` → `RECEIVED` (ou `CANCELLED`).
+- Cobrança gera transação `INCOME` e atualiza saldo da conta escolhida.
+- `userId` **somente** da sessão Auth.js.
+
+---
+
 ## Roadmap próximo
 
-- **Sprint 5** — IA Financeira Vorcaro
+- Integração do Advisor no Telegram (reuso de `FinancialAdvisorService.ask`)
+- Evolução da Inbox Intelligence (confirmação assistida de reembolsos)
 
 ---
 

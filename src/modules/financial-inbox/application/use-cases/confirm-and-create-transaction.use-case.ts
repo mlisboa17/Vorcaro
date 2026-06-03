@@ -12,6 +12,7 @@ import type {
 } from "@/modules/transactions/domain/ports/ownership-validation.port";
 import type { UserLearningPatternRepositoryPort } from "../../domain/ports/user-learning-pattern-repository.port";
 import { extractLearningKeyword } from "../../domain/utils/learning-keyword";
+import { resolveInboxInstallment } from "@/lib/financial/resolve-inbox-installment";
 import { ConfirmTransactionError } from "../errors/confirm-transaction.error";
 import {
   TransactionInstrumentValidationError,
@@ -52,6 +53,9 @@ interface MergedConfirmationData {
   installmentGroup?: string;
   currentInstallment?: number;
   totalInstallments?: number;
+  dataCompra?: string | null;
+  dataCaixa?: string | null;
+  dataVencimentoFatura?: string | null;
 }
 
 export interface ConfirmAndCreateTransactionInput {
@@ -96,8 +100,9 @@ export class ConfirmAndCreateTransactionUseCase {
       );
     }
 
-    const extractionResult = await this.extractionResultRepository.findLatestByInboxItemId(
+    const extractionResult = await this.extractionResultRepository.findLatestOrCreateFromImport(
       input.inboxItemId,
+      input.userId,
     );
 
     if (!extractionResult) {
@@ -109,7 +114,11 @@ export class ConfirmAndCreateTransactionUseCase {
       input.corrections,
     );
 
+    this.applyInstallmentStructure(input.userId, merged, extractionResult.extractedData, item.rawContent);
+
     await this.validateOwnership(input.userId, merged);
+
+    await this.assertNoDuplicateInstallment(input.userId, merged);
 
     const transactionInput = this.buildTransactionInput(
       input.userId,
@@ -133,6 +142,82 @@ export class ConfirmAndCreateTransactionUseCase {
     };
   }
 
+  private applyInstallmentStructure(
+    userId: string,
+    merged: MergedConfirmationData,
+    extraction: FinancialExtraction,
+    rawContent: string,
+  ): void {
+    if (merged.amount == null || merged.amount <= 0) {
+      return;
+    }
+
+    const resolved = resolveInboxInstallment({
+      userId,
+      description: merged.description ?? extraction.description ?? "",
+      rawContent,
+      amount: merged.amount,
+      cardId: merged.cardId ?? extraction.cardId ?? null,
+      purchaseDate: merged.date ?? extraction.date ?? null,
+      dataCompra: merged.dataCompra ?? extraction.dataCompra ?? extraction.date ?? null,
+      dataCaixa: merged.dataCaixa ?? extraction.dataCaixa ?? null,
+      dataVencimentoFatura:
+        merged.dataVencimentoFatura ?? extraction.dataVencimentoFatura ?? null,
+      existingInstallmentGroup: merged.installmentGroup ?? extraction.installmentGroup ?? null,
+      existingNumeroParcela:
+        merged.currentInstallment ?? extraction.currentInstallment ?? null,
+      existingTotalParcelas:
+        merged.totalInstallments ?? extraction.totalInstallments ?? null,
+      existingDescricaoBase: extraction.descricaoBase ?? null,
+    });
+
+    merged.description = resolved.descricaoBase || merged.description;
+    merged.currentInstallment = merged.currentInstallment ?? resolved.numeroParcela;
+    merged.totalInstallments = merged.totalInstallments ?? resolved.totalParcelas;
+    merged.installmentGroup = merged.installmentGroup ?? resolved.installmentGroup ?? undefined;
+    merged.installments = merged.totalInstallments ?? merged.installments ?? 1;
+    merged.dataCompra = merged.dataCompra ?? resolved.dataCompra;
+    merged.dataCaixa = merged.dataCaixa ?? resolved.dataCaixa;
+    merged.dataVencimentoFatura =
+      merged.dataVencimentoFatura ?? resolved.dataVencimentoFatura;
+  }
+
+  private async assertNoDuplicateInstallment(
+    userId: string,
+    merged: MergedConfirmationData,
+  ): Promise<void> {
+    const numeroParcela = merged.currentInstallment;
+    const totalParcelas = merged.totalInstallments;
+
+    if (
+      numeroParcela == null ||
+      totalParcelas == null ||
+      totalParcelas <= 1 ||
+      merged.amount == null ||
+      !merged.date ||
+      !merged.description
+    ) {
+      return;
+    }
+
+    const duplicate = await this.transactionRepository.findDuplicateInstallmentTransaction({
+      userId,
+      cardId: merged.cardId ?? null,
+      descricaoBase: merged.description,
+      numeroParcela,
+      totalParcelas,
+      valor: merged.amount,
+      date: merged.date,
+    });
+
+    if (duplicate) {
+      throw new ConfirmTransactionError(
+        "Transação parcelada duplicada — esta parcela já foi efetivada",
+        "DUPLICATE",
+      );
+    }
+  }
+
   private mergeExtractionWithCorrections(
     extraction: FinancialExtraction,
     corrections: ConfirmTransactionCorrections,
@@ -149,9 +234,14 @@ export class ConfirmAndCreateTransactionUseCase {
       paymentMethod: corrections.paymentMethod ?? extraction.paymentMethod,
       cardId: corrections.cardId ?? extraction.cardId ?? undefined,
       installments: corrections.installments ?? extraction.installments ?? 1,
-      installmentGroup: corrections.installmentGroup,
-      currentInstallment: corrections.currentInstallment,
-      totalInstallments: corrections.totalInstallments,
+      installmentGroup: corrections.installmentGroup ?? extraction.installmentGroup ?? undefined,
+      currentInstallment:
+        corrections.currentInstallment ?? extraction.currentInstallment ?? undefined,
+      totalInstallments:
+        corrections.totalInstallments ?? extraction.totalInstallments ?? undefined,
+      dataCompra: extraction.dataCompra ?? extraction.date ?? null,
+      dataCaixa: extraction.dataCaixa ?? null,
+      dataVencimentoFatura: extraction.dataVencimentoFatura ?? null,
     };
   }
 
@@ -200,6 +290,10 @@ export class ConfirmAndCreateTransactionUseCase {
       );
     }
 
+    const installmentGroup = merged.installmentGroup ?? undefined;
+    const numeroParcela = merged.currentInstallment;
+    const totalParcelas = merged.totalInstallments;
+
     return {
       userId,
       accountId: merged.accountId,
@@ -207,14 +301,22 @@ export class ConfirmAndCreateTransactionUseCase {
       amount: merged.amount,
       description: merged.description.trim(),
       date,
+      dataCompra: merged.dataCompra ? this.parseDate(merged.dataCompra) : undefined,
+      dataCaixa: merged.dataCaixa ? this.parseDate(merged.dataCaixa) : undefined,
+      dataVencimentoFatura: merged.dataVencimentoFatura
+        ? this.parseDate(merged.dataVencimentoFatura)
+        : undefined,
       categoryId: merged.categoryId,
       paymentMethodId: merged.paymentMethodId,
       cardId: merged.cardId,
       inboxItemId,
-      installments: merged.installments ?? 1,
-      installmentGroup: merged.installmentGroup,
-      currentInstallment: merged.currentInstallment,
-      totalInstallments: merged.totalInstallments,
+      installments: totalParcelas ?? merged.installments ?? 1,
+      installmentGroup,
+      idGrupoParcelamento: installmentGroup,
+      currentInstallment: numeroParcela,
+      totalInstallments: totalParcelas,
+      numeroParcela,
+      totalParcelas,
       metadata: {
         source: "financial-inbox",
         categoryLabel: merged.category,

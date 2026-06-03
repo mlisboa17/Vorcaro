@@ -16,6 +16,7 @@ function buildRepository(
   overrides: Partial<TransactionRepositoryPort> = {},
 ): TransactionRepositoryPort {
   return {
+    findDuplicateInstallmentTransaction: vi.fn().mockResolvedValue(null),
     save: vi.fn(),
     saveMany: vi.fn(),
     findByIdForUser: vi.fn(),

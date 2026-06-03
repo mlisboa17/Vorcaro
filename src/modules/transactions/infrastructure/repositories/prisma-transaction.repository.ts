@@ -1,7 +1,9 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { buildEffectiveDateRangeFilter } from "@/modules/financial/core/effective-date-filter";
+import { normalizeInstallmentBaseDescription } from "@/lib/financial/installment-structural-parser";
 import type {
   BulkUpdateTransactionPatch,
+  FindDuplicateInstallmentInput,
   ListTransactionsFilters,
   ListTransactionsResult,
   Transaction,
@@ -187,6 +189,30 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     });
 
     return toTransaction(record);
+  }
+
+  async findDuplicateInstallmentTransaction(
+    input: FindDuplicateInstallmentInput,
+  ): Promise<Transaction | null> {
+    const descricaoBase = normalizeInstallmentBaseDescription(input.descricaoBase);
+    const parsedDate = new Date(`${input.date}T12:00:00.000Z`);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    const record = await this.db.transaction.findFirst({
+      where: {
+        userId: input.userId,
+        cardId: input.cardId,
+        numeroParcela: input.numeroParcela,
+        totalParcelas: input.totalParcelas,
+        amount: input.valor,
+        date: parsedDate,
+        description: { equals: descricaoBase, mode: "insensitive" },
+      },
+    });
+
+    return record ? toTransaction(record) : null;
   }
 
   async saveMany(inputs: TransactionInput[]): Promise<Transaction[]> {

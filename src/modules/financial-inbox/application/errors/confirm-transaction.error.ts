@@ -2,7 +2,8 @@ export type ConfirmTransactionErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "INVALID_STATE"
-  | "VALIDATION";
+  | "VALIDATION"
+  | "DUPLICATE";
 
 export class ConfirmTransactionError extends Error {
   constructor(

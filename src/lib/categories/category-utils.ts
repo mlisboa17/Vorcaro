@@ -1,13 +1,10 @@
 import type { FinanceCategory } from "@/types/inbox";
 import type { ConfigCategoria } from "@/types/instruments-config";
+import { normalizeCategoryName } from "./category-name-normalizer";
 
 export interface FlatCategoryOption {
   id: string;
   label: string;
-}
-
-function normalizeName(value: string | null | undefined): string {
-  return (value ?? "").trim().toLowerCase();
 }
 
 export function flattenCatalogCategories(
@@ -77,18 +74,20 @@ export function resolveCategoryIdFromCatalog(
     category?: string | null;
   },
 ): string | null {
-  const principal = normalizeName(input.categoriaPrincipal);
-  const sub = normalizeName(input.subcategoria);
-  const legacy = normalizeName(input.category);
+  const principal = normalizeCategoryName(input.categoriaPrincipal);
+  const sub = normalizeCategoryName(input.subcategoria);
+  const legacy = normalizeCategoryName(input.category);
 
   const roots = categories.filter((category) => !category.parentCategoryId);
 
   for (const root of roots) {
-    const rootName = normalizeName(root.name);
+    const rootName = normalizeCategoryName(root.name);
     const subcategories = categories.filter((category) => category.parentCategoryId === root.id);
 
     if (sub && rootName === principal) {
-      const match = subcategories.find((entry) => normalizeName(entry.name) === sub);
+      const match = subcategories.find(
+        (entry) => normalizeCategoryName(entry.name) === sub,
+      );
 
       if (match) {
         return match.id;
@@ -104,9 +103,9 @@ export function resolveCategoryIdFromCatalog(
     }
 
     for (const entry of subcategories) {
-      const entryName = normalizeName(entry.name);
-      const combined = normalizeName(`${root.name} ${entry.name}`);
-      const combinedArrow = normalizeName(`${root.name} → ${entry.name}`);
+      const entryName = normalizeCategoryName(entry.name);
+      const combined = normalizeCategoryName(`${root.name} ${entry.name}`);
+      const combinedArrow = normalizeCategoryName(`${root.name} → ${entry.name}`);
 
       if (entryName === legacy || combined === legacy || combinedArrow === legacy) {
         return entry.id;

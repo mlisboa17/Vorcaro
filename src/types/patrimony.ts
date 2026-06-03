@@ -6,6 +6,7 @@ export interface PatrimonySummaryDto {
   totalAtivos: number;
   totalPassivos: number;
   patrimonioLiquido: number;
+  contasAReceber: number;
   ativosPorTipo: Record<string, number>;
   passivosPorTipo: Record<string, number>;
   evolucaoMensal: Array<{

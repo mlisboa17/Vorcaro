@@ -141,7 +141,15 @@ function CashflowDashboardInner() {
                   <tr key={event.id}>
                     <td className="px-3 py-2">{event.data}</td>
                     <td className="px-3 py-2">{event.descricao}</td>
-                    <td className="px-3 py-2">{event.origem}</td>
+                    <td className="px-3 py-2">
+                      {event.origem === "RECEIVABLE" ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                          Receita prevista
+                        </span>
+                      ) : (
+                        event.origem
+                      )}
+                    </td>
                     <td className={`px-3 py-2 text-right font-medium ${event.valor < 0 ? "text-red-700" : "text-emerald-700"}`}>
                       {formatBRL(event.valor)}
                     </td>

@@ -4,7 +4,9 @@ export type CashflowEventOrigin =
   | "RECORRENCIA"
   | "FATURA"
   | "FINANCIAMENTO"
-  | "CONSORCIO";
+  | "CONSORCIO"
+  | "INSTALLMENT"
+  | "RECEIVABLE";
 
 export type CashflowAlertType =
   | "CAIXA_NEGATIVO"

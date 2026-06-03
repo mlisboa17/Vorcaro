@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { resolvePeriodPreset } from "@/lib/utils/date-periods";
+import { isThirdPartyExpenseTransaction } from "@/lib/financial/receivable-transaction-metadata";
 
 export interface MonthFinancialOverview {
   receitas: number;
@@ -22,7 +23,7 @@ export class MonthFinancialOverviewService {
           { dataCaixa: { gte: startDate, lte: endDate } },
         ],
       },
-      select: { type: true, amount: true, date: true, dataCaixa: true },
+      select: { type: true, amount: true, date: true, dataCaixa: true, metadata: true },
     });
 
     let receitas = 0;
@@ -34,13 +35,14 @@ export class MonthFinancialOverviewService {
       const inDrePeriod = tx.date >= startDate && tx.date <= endDate;
       const cashDate = tx.dataCaixa ?? tx.date;
       const inCashPeriod = cashDate >= startDate && cashDate <= endDate;
+      const thirdParty = isThirdPartyExpenseTransaction(tx.metadata);
 
       if (tx.type === "INCOME") {
         if (inDrePeriod) receitas += amount;
       }
 
       if (tx.type === "EXPENSE") {
-        if (inDrePeriod) despesasDre += amount;
+        if (inDrePeriod && !thirdParty) despesasDre += amount;
         if (inCashPeriod) despesasCaixa += amount;
       }
     }

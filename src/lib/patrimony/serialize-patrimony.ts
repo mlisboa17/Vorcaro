@@ -80,6 +80,7 @@ export function serializePatrimonySummary(summary: PatrimonySummary) {
     totalAtivos: summary.totalAtivos,
     totalPassivos: summary.totalPassivos,
     patrimonioLiquido: summary.patrimonioLiquido,
+    contasAReceber: summary.contasAReceber,
     ativosPorTipo: summary.ativosPorTipo,
     passivosPorTipo: summary.passivosPorTipo,
     evolucaoMensal: summary.evolucaoMensal,

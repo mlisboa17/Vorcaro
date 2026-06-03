@@ -358,6 +358,16 @@ export class PrismaPatrimonyUnitOfWork implements PatrimonyUnitOfWorkPort {
       passivosPorTipo[liability.tipo] = (passivosPorTipo[liability.tipo] ?? 0) + liability.saldoAtual;
     }
 
+    const receivableAgg = await this.db.receivable.aggregate({
+      where: { userId, status: { in: ["OPEN", "PARTIALLY_RECEIVED"] } },
+      _sum: { valorPendente: true },
+    });
+    const contasAReceber = receivableAgg._sum.valorPendente?.toNumber() ?? 0;
+    if (contasAReceber > 0) {
+      totalAtivos += contasAReceber;
+      ativosPorTipo.RECEIVABLE = (ativosPorTipo.RECEIVABLE ?? 0) + contasAReceber;
+    }
+
     const now = new Date();
     const year = now.getUTCFullYear();
     const monthLabels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -383,6 +393,7 @@ export class PrismaPatrimonyUnitOfWork implements PatrimonyUnitOfWorkPort {
       totalAtivos,
       totalPassivos,
       patrimonioLiquido: totalAtivos - totalPassivos,
+      contasAReceber,
       ativosPorTipo,
       passivosPorTipo,
       evolucaoMensal,

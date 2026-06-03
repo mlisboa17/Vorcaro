@@ -12,6 +12,7 @@ import {
   type TelegramMessage,
 } from "@/adapters/telegram/types/telegram-update";
 import { parseConnectCommand } from "@/lib/telegram/connect-command";
+import { detectReceivableTelegramHint } from "@/lib/telegram/detect-receivable-hint";
 import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegram-bot.client";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { enqueueFinancialInboxProcessing } from "@/lib/queue";
@@ -134,6 +135,17 @@ export class ProcessTelegramUpdateService {
       return { ok: true, skipped: "empty_message" };
     }
 
+    const receivableHint = detectReceivableTelegramHint(text);
+    if (receivableHint.detected && receivableHint.message) {
+      const detail =
+        receivableHint.amount != null && receivableHint.devedorNome
+          ? `\n\nDevedor: <b>${receivableHint.devedorNome}</b>\nValor sugerido: R$ ${receivableHint.amount.toFixed(2).replace(".", ",")}`
+          : receivableHint.devedorNome
+            ? `\n\nDevedor: <b>${receivableHint.devedorNome}</b>`
+            : "";
+      await this.safeReply(chatId, `${receivableHint.message}${detail}`);
+    }
+
     const ingestInput = toTelegramTextIngestInput(userId, {
       rawContent: text,
       chatId,
@@ -142,6 +154,7 @@ export class ProcessTelegramUpdateService {
     });
     const { id } = await ingestUseCase.execute(ingestInput);
     await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
+    // Integração futura: após worker classificar, enviar formatInboxClassificationReply via Telegram.
     return { ok: true, handled: "text", inboxItemId: id, channel: "TELEGRAM" };
   }
 

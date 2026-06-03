@@ -4,10 +4,19 @@ import { Loader2, MessageCircle, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
+interface TelegramWebhookStatus {
+  botUsername: string | null;
+  publicWebhookUrl: string | null;
+  active: boolean;
+  pendingUpdateCount: number | null;
+  lastErrorMessage: string | null;
+}
+
 interface IntegrationStatus {
   botConfigured: boolean;
-  webhookUrl: string;
+  internalAppUrl: string;
   webhookSecretConfigured: boolean;
+  telegramWebhook: TelegramWebhookStatus | null;
   connection: {
     id: string;
     username: string | null;
@@ -22,6 +31,11 @@ interface PendingCode {
   expiresAt: string;
   command: string;
   ttlMinutes: number;
+}
+
+function formatOptional(value: string | number | null | undefined, fallback = "—") {
+  if (value == null || value === "") return fallback;
+  return String(value);
 }
 
 export function TelegramIntegrationsPanel() {
@@ -86,6 +100,9 @@ export function TelegramIntegrationsPanel() {
       setActing(false);
     }
   }
+
+  const webhook = status?.telegramWebhook;
+  const webhookActive = Boolean(webhook?.active && webhook.publicWebhookUrl);
 
   if (loading) {
     return (
@@ -170,15 +187,68 @@ export function TelegramIntegrationsPanel() {
         )}
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-        <p className="font-semibold">Desenvolvimento local (ngrok / cloudflared)</p>
-        <p className="mt-2">
-          O Telegram não chama <code className="rounded bg-amber-100 px-1">localhost</code>. Exponha a API com
-          túnel HTTPS e registre o webhook:
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-800">
+        <p className="font-semibold text-slate-900">Webhook do Telegram</p>
+        <p className="mt-1 text-slate-600">
+          O Telegram só entrega mensagens em uma URL pública HTTPS — nunca em{" "}
+          <code className="rounded bg-slate-200 px-1">localhost</code>.
         </p>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-amber-100/80 p-3 text-xs">
-          {`ngrok http 3000\n# Webhook URL:\n${status?.webhookUrl ?? "https://<tunnel>/api/telegram/webhook"}`}
-        </pre>
+
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <dt className="text-slate-500">Bot</dt>
+            <dd className="font-medium text-slate-900">
+              {formatOptional(webhook?.botUsername, status?.botConfigured ? "—" : "Não configurado")}
+            </dd>
+          </div>
+
+          <div className="sm:col-span-2">
+            <dt className="text-slate-500">Webhook público</dt>
+            <dd className="mt-1 font-mono text-xs break-all text-slate-900">
+              {webhook?.publicWebhookUrl ?? "Não registrado"}
+            </dd>
+            {!webhookActive ? (
+              <p className="mt-2 text-xs text-amber-800">
+                Execute <code className="rounded bg-amber-100 px-1">npm run dev:all</code> para registrar
+                automaticamente o webhook (ngrok / cloudflared).
+              </p>
+            ) : null}
+          </div>
+
+          <div className="sm:col-span-2">
+            <dt className="text-slate-500">URL interna da aplicação</dt>
+            <dd className="mt-1 font-mono text-xs break-all text-slate-700">
+              {status?.internalAppUrl ?? "—"}
+              <span className="ml-2 font-sans text-slate-500">/api/telegram/webhook</span>
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-slate-500">Status</dt>
+            <dd
+              className={cn(
+                "font-medium",
+                webhookActive ? "text-emerald-700" : "text-amber-700",
+              )}
+            >
+              {webhookActive ? "Ativo" : "Inativo"}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-slate-500">Pending updates</dt>
+            <dd className="font-medium text-slate-900">
+              {formatOptional(webhook?.pendingUpdateCount)}
+            </dd>
+          </div>
+
+          <div className="sm:col-span-2">
+            <dt className="text-slate-500">Last error</dt>
+            <dd className="font-medium text-slate-900">
+              {formatOptional(webhook?.lastErrorMessage)}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       {error ? (

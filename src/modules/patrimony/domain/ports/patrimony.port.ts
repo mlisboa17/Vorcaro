@@ -176,6 +176,7 @@ export interface PatrimonySummary {
   totalAtivos: number;
   totalPassivos: number;
   patrimonioLiquido: number;
+  contasAReceber: number;
   ativosPorTipo: Record<AssetType, number>;
   passivosPorTipo: Record<LiabilityType, number>;
   evolucaoMensal: Array<{

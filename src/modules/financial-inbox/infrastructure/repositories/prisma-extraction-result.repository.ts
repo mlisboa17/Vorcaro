@@ -8,6 +8,8 @@ import type {
 import { parseFinancialExtraction } from "../../domain/schemas/financial-extraction.schema";
 import type { FinancialExtraction } from "../../domain/ports/ai-service.port";
 import type { ExtractionConfidence } from "@/modules/shared/domain/confidence";
+import { buildExtractionFromImportInbox } from "@/lib/inbox/build-import-inbox-extraction";
+import { parseInboxImportLineMetadata } from "../../domain/schemas/inbox-import-metadata.schema";
 
 function parseConfidence(data: unknown): ExtractionConfidence {
   if (!data || typeof data !== "object") {
@@ -59,6 +61,53 @@ export class PrismaExtractionResultRepository implements ExtractionResultReposit
       tokensUsed: result.tokensUsed,
       processingMs: result.processingMs,
       createdAt: result.createdAt,
+    };
+  }
+
+  async findLatestOrCreateFromImport(
+    inboxItemId: string,
+    userId: string,
+  ): Promise<ExtractionResultRecord | null> {
+    const latest = await this.findLatestByInboxItemId(inboxItemId);
+    if (latest) {
+      return latest;
+    }
+
+    const item = await this.db.financialInbox.findFirst({
+      where: { id: inboxItemId, userId },
+      select: { id: true, userId: true, rawContent: true, metadata: true, channel: true },
+    });
+
+    if (!item || item.channel !== "WEB_IMPORT") {
+      return null;
+    }
+
+    const meta = parseInboxImportLineMetadata(item.metadata);
+    if (!meta?.bulkImport) {
+      return null;
+    }
+
+    const extractedData = buildExtractionFromImportInbox(
+      { id: item.id, userId: item.userId, rawContent: item.rawContent, metadata: item.metadata },
+      meta,
+    );
+
+    const saved = await this.save({
+      inboxItemId,
+      provider: "import",
+      extractedData,
+      confidence: { overall: 1, fields: {} },
+    });
+
+    return {
+      id: saved.id,
+      inboxItemId,
+      provider: "import",
+      extractedData,
+      confidence: { overall: 1, fields: {} },
+      tokensUsed: null,
+      processingMs: null,
+      createdAt: new Date(),
     };
   }
 

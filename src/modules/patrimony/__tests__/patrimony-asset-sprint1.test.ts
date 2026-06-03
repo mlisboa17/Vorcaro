@@ -137,6 +137,7 @@ describe("patrimony asset sprint 1", () => {
         totalAtivos: 788000,
         totalPassivos: 502000,
         patrimonioLiquido: 286000,
+        contasAReceber: 0,
         ativosPorTipo: {} as never,
         passivosPorTipo: {} as never,
         evolucaoMensal: [],

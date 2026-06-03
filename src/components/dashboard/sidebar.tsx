@@ -7,6 +7,7 @@ import {
   CalendarClock,
   Cpu,
   Handshake,
+  HandCoins,
   History,
   Inbox,
   Landmark,
@@ -15,6 +16,9 @@ import {
   Menu,
   RefreshCw,
   Settings,
+  Sparkles,
+  Target,
+  WalletCards,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -28,7 +32,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
+  { href: "/dashboard/advisor", label: "IA Financeira", icon: Sparkles },
+  { href: "/dashboard/planning", label: "Planejamento", icon: Target },
+  { href: "/dashboard/installments", label: "Parcelamentos", icon: WalletCards },
   { href: "/dashboard/inbox", label: "Caixa Financeira", icon: Inbox },
+  { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
   { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
   { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
   { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },

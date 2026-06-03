@@ -112,8 +112,21 @@ export interface BulkUpdateTransactionPatch {
   dataCompra?: Date;
 }
 
+export interface FindDuplicateInstallmentInput {
+  userId: string;
+  cardId: string | null;
+  descricaoBase: string;
+  numeroParcela: number;
+  totalParcelas: number;
+  valor: number;
+  date: string;
+}
+
 export interface TransactionRepositoryPort {
   save(input: TransactionInput): Promise<Transaction>;
+  findDuplicateInstallmentTransaction(
+    input: FindDuplicateInstallmentInput,
+  ): Promise<Transaction | null>;
   saveMany(inputs: TransactionInput[]): Promise<Transaction[]>;
   findByIdForUser(id: string, userId: string): Promise<Transaction | null>;
   findByIdWithRelationsForUser(

@@ -394,6 +394,11 @@ function PatrimonyDashboardInner() {
             <p className="mt-2 text-2xl font-bold text-emerald-900">
               {formatBRL(summary.totalAtivos)}
             </p>
+            {summary.contasAReceber > 0 ? (
+              <p className="mt-1 text-xs text-emerald-800">
+                inclui {formatBRL(summary.contasAReceber)} em contas a receber
+              </p>
+            ) : null}
           </article>
           <article className="rounded-xl border border-red-200 bg-red-50 p-5">
             <div className="flex items-center gap-2 text-red-800">

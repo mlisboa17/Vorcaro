@@ -86,8 +86,10 @@ export async function POST(request: Request) {
                 : {}),
               ...(typeof line.amount === "number" ? { amount: line.amount } : {}),
               ...(line.description ? { description: line.description } : {}),
+              ...(line.descricaoBase ? { descricaoBase: line.descricaoBase } : {}),
               ...(line.installment ? { installment: line.installment } : {}),
               ...(line.totalInstallments ? { totalInstallments: line.totalInstallments } : {}),
+              ...(line.installmentGroup ? { installmentGroup: line.installmentGroup } : {}),
               ...(line.suggestedCategoryId ? { suggestedCategoryId: line.suggestedCategoryId } : {}),
               ...(line.suggestedCategoryName
                 ? { suggestedCategoryName: line.suggestedCategoryName }

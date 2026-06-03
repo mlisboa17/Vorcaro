@@ -14,6 +14,7 @@ import {
   patrimonyImpactFromTransaction,
   TransactionPatrimonyImpactSection,
 } from "./transaction-patrimony-impact";
+import { TransactionReceivableSection } from "./transaction-receivable-section";
 
 interface EditTransactionModalProps {
   item: TransactionListItem | null;
@@ -356,6 +357,8 @@ export function EditTransactionModal({
                 className={inputClassName}
               />
             </Field>
+
+            <TransactionReceivableSection item={item} />
 
             <TransactionPatrimonyImpactSection
               state={patrimony}

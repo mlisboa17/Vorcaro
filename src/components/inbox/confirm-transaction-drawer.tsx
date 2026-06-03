@@ -2,23 +2,28 @@
 
 import type { InboxDetailResponse, FinanceCatalog, InboxItem } from "@/types/inbox";
 import type { ExtractedTransactionType } from "@/modules/financial-inbox/domain/ports/ai-service.port";
+import type { InboxClassificationSuggestion } from "@/modules/inbox-intelligence/domain/types/inbox-classification";
 import { CheckCircle2, Loader2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ConfidenceField } from "./confidence-field";
 import { InboxChannelBadge } from "./inbox-channel-badge";
+import { InboxClassificationHint } from "./inbox-classification-hint";
 import { InboxStatusBadge } from "./inbox-status-badge";
 import { cn } from "@/lib/utils/cn";
 import {
   flattenCatalogCategories,
   resolveCategoryIdFromCatalog,
 } from "@/lib/categories/category-utils";
+import { readClassificationFromExtraction } from "@/lib/inbox/apply-inbox-classification";
 
 interface ConfirmTransactionDrawerProps {
   item: InboxItem | null;
   catalog: FinanceCatalog;
+  classification?: InboxClassificationSuggestion;
   open: boolean;
   onClose: () => void;
   onConfirmed: (itemId: string) => void;
+  onFeedbackRecorded?: () => void;
 }
 
 interface ConfirmFormState {
@@ -38,15 +43,18 @@ const TRANSACTION_TYPES: ExtractedTransactionType[] = ["EXPENSE", "INCOME", "TRA
 export function ConfirmTransactionDrawer({
   item,
   catalog,
+  classification,
   open,
   onClose,
   onConfirmed,
+  onFeedbackRecorded,
 }: ConfirmTransactionDrawerProps) {
   const [detail, setDetail] = useState<InboxDetailResponse | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const suggestedCategoryIdRef = useRef<string | null>(null);
   const [form, setForm] = useState<ConfirmFormState>({
     accountId: "",
     type: "EXPENSE",
@@ -78,6 +86,10 @@ export function ConfirmTransactionDrawer({
       .then((data) => {
         setDetail(data);
         const extraction = data.extractionResult?.extractedData;
+        const embeddedSuggestion =
+          classification ?? readClassificationFromExtraction(extraction);
+        const suggestedId = embeddedSuggestion?.categoryId ?? null;
+        suggestedCategoryIdRef.current = suggestedId;
         const cashWallet =
           catalog.accounts.find((account) => account.type === "CARTEIRA_DINHEIRO") ??
           catalog.accounts.find((account) =>
@@ -88,6 +100,7 @@ export function ConfirmTransactionDrawer({
           catalog.accounts[0];
         const matchedCategoryId =
           extraction?.categoryId ??
+          embeddedSuggestion?.categoryId ??
           resolveCategoryIdFromCatalog(catalog.categories, {
             categoriaPrincipal: extraction?.categoriaPrincipal,
             subcategoria: extraction?.subcategoria,
@@ -128,7 +141,32 @@ export function ConfirmTransactionDrawer({
         setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar");
       })
       .finally(() => setLoadingDetail(false));
-  }, [open, item, catalog]);
+  }, [open, item, catalog, classification]);
+
+  async function recordCategoryFeedback(chosenCategoryId: string, description: string) {
+    if (!chosenCategoryId) return;
+
+    const categoryLabel = flattenCatalogCategories(catalog.categories).find(
+      (entry) => entry.id === chosenCategoryId,
+    )?.label;
+
+    try {
+      await fetch("/api/inbox/intelligence/feedback", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          suggestedCategoryId: suggestedCategoryIdRef.current,
+          chosenCategoryId,
+          chosenCategoryName: categoryLabel,
+        }),
+      });
+      onFeedbackRecorded?.();
+    } catch (feedbackError) {
+      console.error("[inbox/feedback]", feedbackError);
+    }
+  }
 
   async function handleConfirm() {
     if (!item) {
@@ -163,6 +201,10 @@ export function ConfirmTransactionDrawer({
         throw new Error(typeof body.error === "string" ? body.error : "Falha na confirmação");
       }
 
+      if (form.categoryId) {
+        void recordCategoryFeedback(form.categoryId, form.description || item.rawContent);
+      }
+
       setSuccess(true);
       setTimeout(() => {
         onConfirmed(item.id);
@@ -181,6 +223,8 @@ export function ConfirmTransactionDrawer({
 
   const confidence = detail?.extractionResult?.confidence.fields ?? {};
   const categoryOptions = flattenCatalogCategories(catalog.categories);
+  const displaySuggestion =
+    classification ?? readClassificationFromExtraction(detail?.extractionResult?.extractedData);
 
   return (
     <>
@@ -221,6 +265,8 @@ export function ConfirmTransactionDrawer({
             </div>
           ) : (
             <div className="space-y-4">
+              <InboxClassificationHint suggestion={displaySuggestion} />
+
               <ConfidenceField label="Conta" fieldKey="accountId" confidence={undefined}>
                 <select
                   id="accountId"
