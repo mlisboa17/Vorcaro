@@ -1,6 +1,6 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 8).
+Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9).
 
 **Princípios transversais**
 
@@ -198,6 +198,19 @@ Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 8).
 | **Integrações** | Dashboard executivo (`ExecutiveCommitmentsCard`), Advisor (`compromissos_recorrentes`) |
 | **Deduplicação** | Chave `(descrição normalizada + data + valor)` — documentada no serviço |
 | **Status** | **Concluído (Sprint 8)** |
+
+### Alertas Financeiros Inteligentes (Sprint 9)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Motor proativo de riscos e oportunidades com persistência, idempotência e auto-resolução. |
+| **Rotas UI** | `/dashboard/alerts` |
+| **Rotas API** | `GET /api/alerts`, `GET /api/alerts/summary`, `PATCH /api/alerts/[id]`, `POST /api/alerts/bulk-patch`, `POST /api/cron/financial-alerts` |
+| **Tabelas Prisma** | `FinancialAlert` (migration `20260603120000_financial_alerts_sprint9`) |
+| **Serviços** | `FinancialAlertEngineService`, `FinancialAlertRulesEvaluator`, `FinancialAlertQueryService`, `PrismaFinancialAlertRepository` |
+| **Agendamento** | Cron `0 6 * * *` via `npm run alerts:engine` ou endpoint cron com `CRON_SECRET` |
+| **Integrações** | Dashboard executivo (`ExecutiveAlertsCard`), Advisor (`alertas_financeiros`), `TelegramAlertFormatter` (preparação Sprint 10) |
+| **Status** | **Concluído (Sprint 9)** |
 
 ### Inbox Intelligence (evolução pós-7.4)
 

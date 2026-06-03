@@ -39,8 +39,10 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **7** | Central de Parcelamentos (read model + integrações) | Concluída |
 | **7.5** | Contas a Receber e Reembolsos (ativo, cobrança, integrações) | Concluída |
 | **8** | Central de Compromissos Recorrentes (read model mensal) | Concluída |
+| **9** | Alertas Financeiros Inteligentes (motor persistido + dashboard) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
+Fechamento Sprint 9: [`docs/sprint-9-closure-report.md`](docs/sprint-9-closure-report.md).  
 Fechamento Sprint 8: [`docs/sprint-8-closure-report.md`](docs/sprint-8-closure-report.md).  
 Fechamento Sprint 7.5: [`docs/sprint-7.5-closure-report.md`](docs/sprint-7.5-closure-report.md).
 
@@ -321,6 +323,21 @@ Visão mensal consolidada: quanto já está comprometido, o que vence, entradas 
 | Factory | `buildMonthlyCommitmentsUseCases()` em `src/lib/api/monthly-commitments.ts` |
 
 Fontes (read model, sem duplicar cashflow): recorrências, parcelamentos, passivos, consórcios, faturas de cartão, contas a receber, transações agendadas.
+
+---
+
+## Alertas Financeiros (Sprint 9)
+
+Motor proativo com persistência, idempotência (`fingerprint`) e auto-resolução quando a condição deixa de existir.
+
+| Recurso | Caminho |
+|---------|---------|
+| Dashboard | `/dashboard/alerts` |
+| APIs | `GET /api/alerts`, `GET /api/alerts/summary`, `PATCH /api/alerts/[id]`, `POST /api/alerts/bulk-patch` |
+| Cron | `npm run alerts:engine` ou `POST /api/cron/financial-alerts` (`CRON_SECRET`) |
+| Motor | `src/modules/financial-alerts` |
+
+Regras: pagamento próximo (7d), recebível atrasado, risco cartão (>30% renda), alto comprometimento (>80%), meta em risco, reembolso atrasado (>15d), fluxo negativo (15d).
 
 ---
 

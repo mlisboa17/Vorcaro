@@ -33,7 +33,7 @@ src/
 | **Serviços** | `FinancialAdvisorService`, `FinancialDataAggregatorService`, `FinancialInsightsService` |
 | **Repositórios** | Prisma direto no agregador |
 | **Endpoints** | `POST /api/advisor/ask`, `GET /api/advisor/insights` |
-| **Dependências** | `ai`, `cashflow`, `financial-planning` (metas no agregador), Prisma |
+| **Dependências** | `ai`, `cashflow`, `financial-planning`, `financial-alerts`, `commitments`, Prisma |
 
 ### `cashflow`
 
@@ -43,6 +43,16 @@ src/
 | **Repositórios** | Queries Prisma internas ao serviço |
 | **Endpoints** | `GET /api/cashflow/projection` |
 | **Dependências** | Prisma, transações, recorrências, cartões, consórcios, passivos |
+
+### `financial-alerts` (Sprint 9)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `FinancialAlertEngineService`, `FinancialAlertRulesEvaluator`, `FinancialAlertQueryService` |
+| **Repositórios** | `PrismaFinancialAlertRepository` |
+| **Endpoints** | `GET /api/alerts`, `GET /api/alerts/summary`, `PATCH /api/alerts/[id]`, `POST /api/alerts/bulk-patch`, `POST /api/cron/financial-alerts` |
+| **Dependências** | `commitments`, `receivables`, `cashflow`, `financial-planning`, `executive-dashboard` (renda do mês) |
+| **Idempotência** | `fingerprint` + `@@unique([userId, fingerprint])` |
 
 ### `commitments` (Sprint 8)
 

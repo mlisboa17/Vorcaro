@@ -37,6 +37,7 @@ model User {
   telegramConnectCodes TelegramConnectCode[]
   financialGoals       FinancialGoal[]
   receivables          Receivable[]
+  financialAlerts      FinancialAlert[]
 }
 
 model Account {
@@ -713,4 +714,52 @@ model Receivable {
   @@index([userId])
   @@index([status])
   @@index([userId, expectedDate])
+}
+
+// ─── Alertas Financeiros (Sprint 9) ───────────────────────────────────────────
+
+enum FinancialAlertType {
+  UPCOMING_PAYMENT
+  OVERDUE_RECEIVABLE
+  CREDIT_CARD_RISK
+  CASHFLOW_WARNING
+  GOAL_AT_RISK
+  HIGH_COMMITMENT_MONTH
+  REIMBURSEMENT_DELAY
+}
+
+enum FinancialAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum FinancialAlertStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+}
+
+model FinancialAlert {
+  id          String                 @id @default(cuid())
+  userId      String
+  type        FinancialAlertType
+  severity    FinancialAlertSeverity
+  title       String
+  description String                 @db.Text
+  status      FinancialAlertStatus   @default(OPEN)
+  fingerprint String
+  metadata    Json?
+  actionUrl   String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  resolvedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([userId, severity])
+  @@index([createdAt])
 }

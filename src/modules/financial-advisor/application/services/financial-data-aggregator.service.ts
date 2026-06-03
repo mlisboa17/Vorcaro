@@ -2,6 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import { buildCashflowProjectionService } from "@/modules/cashflow/application/services/cashflow-projection.service";
 import { buildReceivableUseCases } from "@/lib/api/receivable-use-cases";
 import { buildMonthlyCommitmentsUseCases } from "@/lib/api/monthly-commitments";
+import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
+import { ALERT_TYPE_LABELS } from "@/types/financial-alerts";
 import { InstallmentReadModelService } from "@/modules/installments/application/services/installment-read-model.service";
 import { PrismaInstallmentReadRepository } from "@/modules/installments/infrastructure/prisma-installment-read.repository";
 import { FinancialPlanningService } from "@/modules/financial-planning/application/services/financial-planning.service";
@@ -302,6 +304,58 @@ export class FinancialDataAggregatorService {
       }
     } catch {
       /* compromissos opcionais */
+    }
+
+    try {
+      const alertQuery = new FinancialAlertQueryService(this.prisma);
+      const [summary, openAlerts] = await Promise.all([
+        alertQuery.summary(userId),
+        alertQuery.list(userId, 1, 15, { status: "OPEN" }),
+      ]);
+
+      if (summary.totalOpen > 0) {
+        usedSources.push("alertas_financeiros");
+        dataScore += 3;
+
+        const critical = openAlerts.items.filter((a) => a.severity === "CRITICAL");
+        const warning = openAlerts.items.filter((a) => a.severity === "WARNING");
+
+        const acoes: string[] = [];
+        if (critical.some((a) => a.type === "CASHFLOW_WARNING")) {
+          acoes.push("Reduza gastos variáveis neste mês.");
+        }
+        if (warning.some((a) => a.type === "OVERDUE_RECEIVABLE")) {
+          acoes.push("Antecipe recebíveis em atraso.");
+        }
+        if (critical.some((a) => a.type === "HIGH_COMMITMENT_MONTH")) {
+          acoes.push("Reestruture parcelamentos ativos.");
+        }
+        if (critical.some((a) => a.type === "CREDIT_CARD_RISK")) {
+          acoes.push("Evite novas compras no cartão até normalizar a fatura.");
+        }
+
+        sections.push(
+          "## Alertas financeiros",
+          `- Total aberto: ${summary.totalOpen} (críticos: ${summary.totalCritical}, warnings: ${summary.bySeverity.WARNING})`,
+          `- Por tipo: ${Object.entries(summary.byType)
+            .map(([t, n]) => `${ALERT_TYPE_LABELS[t] ?? t}: ${n}`)
+            .join("; ") || "nenhum"}`,
+          "### Riscos imediatos",
+          ...(critical.length > 0
+            ? critical.slice(0, 8).map((a) => `- [CRÍTICO] ${a.title}: ${a.description}`)
+            : ["- Nenhum alerta crítico aberto"]),
+          "### Atenção",
+          ...(warning.length > 0
+            ? warning.slice(0, 8).map((a) => `- [WARNING] ${a.title}: ${a.description}`)
+            : ["- Nenhum warning aberto"]),
+          "### Ações recomendadas",
+          ...(acoes.length > 0 ? acoes.map((a) => `- ${a}`) : ["- Manter monitoramento sem ação urgente"]),
+          "### Impacto potencial",
+          `- Compromissos e metas devem ser lidos em conjunto com os alertas acima.`,
+        );
+      }
+    } catch {
+      /* alertas opcionais */
     }
 
     try {

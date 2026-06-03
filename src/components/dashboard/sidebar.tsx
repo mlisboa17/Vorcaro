@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
+  Bell,
   CalendarClock,
   Cpu,
   Handshake,
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/inbox", label: "Caixa Financeira", icon: Inbox },
   { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
   { href: "/dashboard/commitments", label: "Compromissos Recorrentes", icon: CalendarClock },
+  { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
   { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
   { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
   { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },

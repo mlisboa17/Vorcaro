@@ -42,6 +42,37 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
+## Alertas Financeiros (Sprint 9)
+
+### `GET` — `/api/alerts`
+
+**Descrição:** Lista paginada de alertas persistidos.  
+**Auth:** Obrigatório.  
+**Query:** `page`, `pageSize`, `status`, `severity`, `type`, `search`, `date` (YYYY-MM-DD).  
+**Resposta:** `{ items, total, page, pageSize }`.
+
+### `GET` — `/api/alerts/summary`
+
+**Descrição:** Resumo (abertos, resolvidos, críticos, por severidade e tipo).  
+**Auth:** Obrigatório.
+
+### `PATCH` — `/api/alerts/[id]`
+
+**Descrição:** Atualiza status (`OPEN` | `DISMISSED` | `RESOLVED`).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/alerts/bulk-patch`
+
+**Descrição:** Atualização em lote de status. Body: `{ ids, status }`.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/cron/financial-alerts`
+
+**Descrição:** Executa o motor de alertas para todos os usuários (agendamento `0 6 * * *`).  
+**Auth:** `Authorization: Bearer <CRON_SECRET>`.
+
+---
+
 ## Compromissos Recorrentes (Sprint 8)
 
 ### `GET` — `/api/commitments/monthly`

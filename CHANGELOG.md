@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added — Sprint 9 (Alertas Financeiros Inteligentes)
+
+- Modelo `FinancialAlert` + enums (`FinancialAlertType`, `FinancialAlertSeverity`, `FinancialAlertStatus`); migration `20260603120000_financial_alerts_sprint9`.
+- Idempotência via `fingerprint` + `@@unique([userId, fingerprint])` — no máximo um registro por condição; reabertura automática após `RESOLVED`.
+- `FinancialAlertEngineService` + `FinancialAlertRulesEvaluator` — 7 regras (pagamento próximo, recebível atrasado, risco cartão, alto comprometimento, meta em risco, reembolso atrasado, fluxo negativo 15d) com auto-resolução.
+- Agendamento: `POST /api/cron/financial-alerts` (Bearer `CRON_SECRET`) e `npm run alerts:engine` (cron `div 6 * * *`).
+- APIs: `GET /api/alerts`, `GET /api/alerts/summary`, `PATCH /api/alerts/[id]`, `POST /api/alerts/bulk-patch` — paginação e filtros; `userId` somente da sessão.
+- UI `/dashboard/alerts` + card executivo **Alertas Financeiros**.
+- Advisor: seção `alertas_financeiros` (críticos, warnings, ações recomendadas).
+- `TelegramAlertFormatter` — payload MarkdownV2 (sem envio nesta sprint).
+- Logs estruturados JSON (`financial-alert-engine`).
+- Testes: engine (idempotência, auto-resolução, reabertura), API, advisor, Telegram formatter.
+
 ### Added — Sprint 8 (Central de Compromissos Recorrentes)
 
 - Read model `MonthlyCommitment` + `MonthlyCommitmentsService` (sem migration, sem tabela).
