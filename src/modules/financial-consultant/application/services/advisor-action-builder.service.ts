@@ -47,17 +47,36 @@ export class AdvisorActionBuilderService {
     const actions: AdvisorAction[] = [];
     const seen = new Set<string>();
 
-    const push = (draft: Omit<AdvisorAction, "effort" | "effortWeight" | "target">) => {
+    type ActionDraft = Omit<
+      AdvisorAction,
+      | "effort"
+      | "effortWeight"
+      | "target"
+      | "recommendationHash"
+      | "actionUrl"
+      | "objectiveMetric"
+      | "estimatedImpact"
+    > & { estimatedImpact?: number };
+
+    const push = (draft: ActionDraft) => {
       const key = `${draft.type}:${draft.id}`;
       if (seen.has(key)) return;
       seen.add(key);
       const { effort, effortWeight } = getActionEffort(draft.type);
       actions.push({
         ...draft,
+        estimatedImpact: draft.estimatedImpact ?? 0,
         effort,
         effortWeight,
+        recommendationHash: "",
+        actionUrl: "",
+        objectiveMetric: {
+          currentValue: draft.estimatedImpact ?? 0,
+          comparisonType: "THRESHOLD",
+          explanation: draft.description,
+        },
         target: resolveActionTarget(draft.type, draft.metadata as Record<string, unknown>),
-      });
+      } as AdvisorAction);
     };
 
     for (const r of input.overdueReceivables) {

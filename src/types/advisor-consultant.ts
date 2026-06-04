@@ -6,6 +6,23 @@ export const advisorActionPrioritySchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRI
 export const advisorEffortSchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
 export const advisorEffortWeightSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
+export const objectiveMetricSchema = z.object({
+  currentValue: z.number(),
+  comparisonValue: z.number().optional(),
+  comparisonType: z.enum([
+    "INCOME_PERCENTAGE",
+    "MONTHLY_AVERAGE",
+    "PREVIOUS_MONTH",
+    "THREE_MONTH_TREND",
+    "DUPLICATE_COUNT",
+    "THRESHOLD",
+  ]),
+  percentage: z.number().optional(),
+  threshold: z.number().optional(),
+  trendDeltaPercent: z.number().optional(),
+  explanation: z.string(),
+});
+
 export const advisorActionSchema = z.object({
   id: z.string(),
   type: z.enum(ADVISOR_ACTION_TYPES),
@@ -14,8 +31,11 @@ export const advisorActionSchema = z.object({
   priority: advisorActionPrioritySchema,
   effort: advisorEffortSchema,
   effortWeight: advisorEffortWeightSchema,
+  recommendationHash: z.string(),
+  actionUrl: z.string(),
   target: z.string().optional(),
-  estimatedImpact: z.number().optional(),
+  estimatedImpact: z.number(),
+  objectiveMetric: objectiveMetricSchema,
   metadata: z.record(z.unknown()),
 });
 

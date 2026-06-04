@@ -26,12 +26,15 @@ src/
 | **Endpoints** | Indireto via `financial-advisor` |
 | **Dependências** | Variáveis de ambiente (`GROQ_*`, `GEMINI_*`, `OPENROUTER_*`) |
 
-### `financial-consultant` (Sprint 9.5)
+### `financial-consultant` (Sprint 9.5 / 9.5A)
 
 | Aspecto | Detalhe |
 |---------|---------|
-| **Serviços** | `IntelligentAdvisorService`, detectores (subscription, money leak, spending health), `FinancialHealthScoreService`, `AdvisorActionBuilderService` |
-| **Endpoints** | `GET /api/advisor/consultation` |
+| **Serviços** | `IntelligentAdvisorService`, detectores, `AdvisorActionEnrichmentService`, `AdvisorRecommendationMemoryService`, `AdvisorRecommendationHashService`, guardrails de linguagem |
+| **Persistência** | `AdvisorRecommendationState` — memória de dismiss/click por `recommendationHash` (SHA-256 determinístico, sem texto de IA) |
+| **Endpoints** | `GET /api/advisor/consultation`, `POST .../actions/:hash/dismiss`, `click`, `reactivate` |
+| **Segurança** | Upsert sempre com `userId` da sessão; hash registrado para outro usuário → 403; hash inválido → 400 |
+| **Ciclo de vida** | Click mantém `PENDING` (card visível); dismiss oculta 30 dias; após `dismissedUntil` a ação pode voltar se o motor detectar de novo |
 | **Dependências** | `financial-alerts`, `receivables`, `commitments`, `financial-planning`, `cashflow`, Prisma |
 
 ### `financial-advisor`

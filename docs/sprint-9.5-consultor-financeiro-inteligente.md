@@ -79,19 +79,45 @@ Penalidades: alertas críticos/warning, comprometimento >80%, metas em risco, re
 
 ---
 
+## Sprint 9.5A — Memória e linguagem objetiva
+
+### Tabela `AdvisorRecommendationState`
+
+| Campo | Uso |
+|-------|-----|
+| `recommendationHash` | SHA-256 de `userId\|actionType\|category\|normalizedName\|relatedEntityId\|YYYY-MM` |
+| `status` | `PENDING`, `DISMISSED`, `CLICKED` (click não esconde o card — permanece `PENDING` salvo dismiss explícito) |
+| `dismissReason` | `NOT_RELEVANT`, `ALREADY_HANDLED`, `ACCEPTED_SPENDING`, `REMIND_LATER` |
+| `dismissedUntil` | +30 dias no dismiss; após expirar, a recomendação pode reaparecer |
+
+### APIs de interação
+
+- `POST /api/advisor/actions/:recommendationHash/dismiss` — body opcional `{ dismissReason, actionType }`
+- `POST /api/advisor/actions/:recommendationHash/click` — body `{ actionType }` — incrementa `clickCount`
+- `POST /api/advisor/actions/:recommendationHash/reactivate`
+
+**Multi-tenant:** mutações usam apenas `session.user.id`; hash já vinculado a outro `userId` → HTTP 403.
+
+### `AdvisorAction` na API
+
+Inclui `recommendationHash`, `actionUrl`, `objectiveMetric` (valor, comparação, `explanation` quantificada). O front não recalcula o hash.
+
+### Linguagem
+
+Proibido adjetivo vago sem métrica. O prompt do LLM reforça números; `AdvisorLanguageGuardrailService` anexa `objectiveMetric.explanation` se a resposta for vaga.
+
+---
+
 ## Aditivo Sprint 9.5 (refinamentos)
 
 - `SubscriptionNameNormalizer` — descrições sujas de cartão (ex.: `RENE*NETFLIX`, `SFTY*SPOTIFY`).
 - Duplicidade em cartões/contas diferentes com `duplicateGroup`, `suspectedIds`, `potentialMonthlySaving`.
 - Money leak com `trend` e elevação de prioridade após 3 meses de crescimento consecutivo.
 - `AdvisorActionGuardrailService` — backend gera catálogo; LLM não inventa `actionId`.
-- Dismiss de recomendações (`PENDING` / `DISMISSED` / `CLICKED`) — **Sprint 10**.
-
 ## Limitações / Sprint 10
 
 - IA não executa ações (apenas recomenda).
 - Sem envio Telegram automático nesta sprint.
-- Dismiss de recomendações ignoradas (hash + 30 dias).
 - Detecção de assinaturas baseada em recorrências ativas (não analisa extrato linha a linha de todos os cartões).
 - `ask` + `aggregate` podem consultar o motor duas vezes (otimização futura).
 

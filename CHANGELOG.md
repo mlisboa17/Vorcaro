@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added — Sprint 9.5A (Memória do Advisor)
+
+- Modelo `AdvisorRecommendationState` + enums `AdvisorRecommendationStatus`, `DismissReason`; migration `20260604120000_advisor_recommendation_state_sprint95a`.
+- `AdvisorRecommendationHashService` (SHA-256 determinístico, sem texto de IA) injetado em cada `AdvisorAction`.
+- Memória: dismiss oculta 30 dias; click incrementa contador sem esconder card; filtro na consulta.
+- APIs: `POST /api/advisor/actions/:hash/dismiss|click|reactivate` com guardrails multi-tenant (403 cross-user, 400 hash inválido).
+- `ObjectiveMetric` + linguagem objetiva quantificada; guardrail de linguagem no LLM.
+
 ### Added — Sprint 9.5 (Consultor Financeiro Inteligente)
 
 - Módulo `financial-consultant` — `AdvisorAction`, detectores (assinaturas duplicadas, gastos invisíveis, raio-X de gastos), score 0–100, top 3 economias.

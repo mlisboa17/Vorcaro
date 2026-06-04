@@ -7,13 +7,13 @@ import type { AdvisorConsultationResponse } from "@/types/advisor-consultant";
 import { HEALTH_SCORE_LABELS } from "@/types/advisor-consultant";
 import {
   AlertTriangle,
-  ArrowRight,
   Loader2,
   Send,
   Sparkles,
   TrendingDown,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AdvisorActionRow } from "@/components/advisor/advisor-action-row";
 import { cn } from "@/lib/utils/cn";
 
 type ChatEntry = {
@@ -240,22 +240,20 @@ export function AdvisorDashboard() {
             ) : consultation && consultation.actions.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {consultation.actions.slice(0, 8).map((action) => (
-                  <li
-                    key={action.id}
-                    className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm"
-                  >
-                    <p className="font-medium text-slate-900">{action.title}</p>
-                    <p className="mt-1 text-xs text-slate-600 line-clamp-2">{action.description}</p>
-                    {action.target ? (
-                      <Link
-                        href={action.target}
-                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
-                      >
-                        Abrir
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    ) : null}
-                  </li>
+                  <AdvisorActionRow
+                    key={action.recommendationHash}
+                    action={action}
+                    onDismissed={(hash) =>
+                      setConsultation((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              actions: prev.actions.filter((a) => a.recommendationHash !== hash),
+                            }
+                          : prev,
+                      )
+                    }
+                  />
                 ))}
               </ul>
             ) : (

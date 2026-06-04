@@ -223,6 +223,15 @@ Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9.5).
 | **Tipos** | `AdvisorAction`, score, savings, duplicidades, money leaks |
 | **Status** | **Concluído (Sprint 9.5)** |
 
+### Memória do Advisor (Sprint 9.5A)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Dismiss 30 dias, click sem ocultar card, recomendações quantificadas (`ObjectiveMetric`) |
+| **Tabela** | `AdvisorRecommendationState` |
+| **Rotas API** | `POST /api/advisor/actions/:recommendationHash/dismiss`, `click`, `reactivate` |
+| **Status** | **Concluído (Sprint 9.5A)** — aguardando tag `sprint-9.5-stable` |
+
 ### Inbox Intelligence (evolução pós-7.4)
 
 | Campo | Detalhe |

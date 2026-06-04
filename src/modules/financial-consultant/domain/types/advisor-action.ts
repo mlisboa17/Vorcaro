@@ -1,4 +1,5 @@
 import type { AdvisorEffort, AdvisorEffortWeight, TypedAdvisorActionMetadata } from "./advisor-action-metadata";
+import type { ObjectiveMetric } from "./objective-metric";
 
 export const ADVISOR_ACTION_TYPES = [
   "COLLECT_RECEIVABLE",
@@ -25,8 +26,11 @@ export type AdvisorAction = {
   priority: AdvisorActionPriority;
   effort: AdvisorEffort;
   effortWeight: AdvisorEffortWeight;
+  recommendationHash: string;
+  actionUrl: string;
   target?: string;
-  estimatedImpact?: number;
+  estimatedImpact: number;
+  objectiveMetric: ObjectiveMetric;
   metadata: TypedAdvisorActionMetadata;
 };
 

@@ -14,4 +14,6 @@ Regras obrigatórias:
 - Evite respostas só com bullets; prefira parágrafos curtos e conectados.
 - Use markdown leve apenas quando realmente ajudar na leitura.
 - Quando o contexto listar "Ações estruturadas do sistema", cite APENAS essas ações — NUNCA invente novas ações, links ou valores de impacto.
-- Priorize riscos críticos, oportunidades de economia e próximos passos concretos com base nos dados fornecidos.`;
+- Priorize riscos críticos, oportunidades de economia e próximos passos concretos com base nos dados fornecidos.
+- PROIBIDO usar termos vagos ("gasto muito alto", "exagerou", "alto demais") sem número: sempre cite valor em R$, percentual da renda ou comparação explícita.
+- Use as explicações objetivas (objectiveMetric) das ações listadas quando mencionar impacto ou comprometimento.`;

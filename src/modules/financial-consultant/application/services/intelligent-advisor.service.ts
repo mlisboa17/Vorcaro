@@ -10,7 +10,9 @@ import type { FinancialAlertRecord } from "@/modules/financial-alerts/domain/typ
 import type { AdvisorConsultation, AdvisorRisk } from "../../domain/types/advisor-action";
 import { AdvisorActionBuilderService } from "./advisor-action-builder.service";
 import { FinancialHealthScoreService } from "./financial-health-score.service";
+import { AdvisorActionEnrichmentService } from "./advisor-action-enrichment.service";
 import { AdvisorActionGuardrailService } from "./advisor-action-guardrail.service";
+import { AdvisorRecommendationMemoryService } from "./advisor-recommendation-memory.service";
 import {
   MoneyLeakDetectorService,
   type MonthlySpendPoint,
@@ -34,8 +36,12 @@ export class IntelligentAdvisorService {
   private readonly savingsService = new SmartSavingsOpportunitiesService();
   private readonly actionBuilder = new AdvisorActionBuilderService();
   private readonly guardrail = new AdvisorActionGuardrailService();
+  private readonly enrichment = new AdvisorActionEnrichmentService();
+  private readonly memory: AdvisorRecommendationMemoryService;
 
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) {
+    this.memory = new AdvisorRecommendationMemoryService(prisma);
+  }
 
   async consult(userId: string): Promise<AdvisorConsultation> {
     const now = new Date();
@@ -120,7 +126,15 @@ export class IntelligentAdvisorService {
       moneyLeaks,
     });
 
-    const actions = this.guardrail.validateActions(rawActions);
+    const validated = this.guardrail.validateActions(rawActions);
+    const enriched = this.enrichment.enrich(userId, validated, {
+      monthIncome: income,
+      commitmentPercent,
+      subscriptionDuplicates,
+      moneyLeaks,
+      spendingHealth,
+    });
+    const actions = await this.memory.filterVisibleActions(userId, enriched);
 
     const savingsOpportunities = this.savingsService.build(
       actions,

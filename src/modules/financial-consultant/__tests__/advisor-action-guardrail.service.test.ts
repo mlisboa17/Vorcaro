@@ -1,18 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { AdvisorActionGuardrailService } from "../application/services/advisor-action-guardrail.service";
 import type { AdvisorAction } from "../domain/types/advisor-action";
+import { mockAdvisorAction } from "./test-helpers";
 
-const validAction = (overrides: Partial<AdvisorAction> = {}): AdvisorAction => ({
-  id: "collect-r1",
-  type: "COLLECT_RECEIVABLE",
-  title: "Cobrar",
-  description: "Desc",
-  priority: "HIGH",
-  effort: "MEDIUM",
-  effortWeight: 2,
-  metadata: { receivableId: "r1", value: 100 },
-  ...overrides,
-});
+const validAction = (overrides: Partial<AdvisorAction> = {}): AdvisorAction =>
+  mockAdvisorAction(overrides);
 
 describe("AdvisorActionGuardrailService", () => {
   const guardrail = new AdvisorActionGuardrailService();

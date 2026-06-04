@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SmartSavingsOpportunitiesService } from "../application/services/smart-savings-opportunities.service";
+import { mockAdvisorAction } from "./test-helpers";
 import type { AdvisorAction } from "../domain/types/advisor-action";
 
 describe("SmartSavingsOpportunitiesService", () => {
@@ -7,23 +8,15 @@ describe("SmartSavingsOpportunitiesService", () => {
 
   it("ordena Top 3 por maior impacto ajustado por esforço (priorityScore)", () => {
     const actions: AdvisorAction[] = [
-      {
+      mockAdvisorAction({
         id: "collect-r1",
-        type: "COLLECT_RECEIVABLE",
-        title: "Cobrar",
-        description: "D",
-        priority: "HIGH",
-        effort: "MEDIUM",
-        effortWeight: 2,
         estimatedImpact: 200,
         metadata: { receivableId: "r1", value: 200 },
-      },
-      {
+      }),
+      mockAdvisorAction({
         id: "dup-netflix",
         type: "REVIEW_SUBSCRIPTIONS",
         title: "Assinatura",
-        description: "D",
-        priority: "HIGH",
         effort: "LOW",
         effortWeight: 1,
         estimatedImpact: 90,
@@ -33,7 +26,7 @@ describe("SmartSavingsOpportunitiesService", () => {
           potentialMonthlySaving: 90,
           normalizedName: "Netflix",
         },
-      },
+      }),
     ];
 
     const top = service.build(

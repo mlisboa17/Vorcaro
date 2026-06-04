@@ -3,6 +3,7 @@ import { AiRouterService } from "@/modules/ai/application/services/ai-router.ser
 import { AiRouterExhaustedError } from "@/modules/ai/domain/errors/ai-provider.error";
 import { IntelligentAdvisorService } from "@/modules/financial-consultant/application/services/intelligent-advisor.service";
 import { AdvisorActionGuardrailService } from "@/modules/financial-consultant/application/services/advisor-action-guardrail.service";
+import { AdvisorLanguageGuardrailService } from "@/modules/financial-consultant/application/services/advisor-language-guardrail.service";
 import type { AdvisorAskResponse, AdvisorConfidence } from "@/types/financial-advisor";
 import { ADVISOR_SYSTEM_PROMPT, INSUFFICIENT_DATA_MESSAGE } from "../../domain/constants";
 import { FinancialDataAggregatorService } from "./financial-data-aggregator.service";
@@ -18,6 +19,7 @@ export class FinancialAdvisorService {
   private readonly consultant: IntelligentAdvisorService;
   private readonly aiRouter: AiRouterService;
   private readonly guardrail = new AdvisorActionGuardrailService();
+  private readonly languageGuardrail = new AdvisorLanguageGuardrailService();
 
   constructor(
     prisma: PrismaClient,
@@ -51,7 +53,7 @@ export class FinancialAdvisorService {
       .slice(0, 15)
       .map(
         (a) =>
-          `- [id:${a.id}] [${a.priority}] ${a.title} (${a.type}, esforço ${a.effort}) → ${a.target ?? "n/a"}${a.estimatedImpact ? ` · impacto ~R$ ${a.estimatedImpact.toFixed(2)}` : ""}`,
+          `- [id:${a.id}] [${a.priority}] ${a.title} (${a.type}, esforço ${a.effort}) → ${a.actionUrl || "n/a"} · ${a.objectiveMetric.explanation}${a.estimatedImpact > 0 ? ` · impacto ~R$ ${a.estimatedImpact.toFixed(2)}` : ""}`,
       )
       .join("\n");
 
@@ -83,6 +85,7 @@ ${question}`;
         : result.text;
 
       answer = this.guardrail.sanitizeLlmAnswer(answer, safeActions);
+      answer = this.languageGuardrail.enrichAnswerWithObjectiveMetrics(answer, safeActions);
 
       return {
         answer,

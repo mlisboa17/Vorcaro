@@ -37,7 +37,8 @@ model User {
   telegramConnectCodes TelegramConnectCode[]
   financialGoals       FinancialGoal[]
   receivables          Receivable[]
-  financialAlerts      FinancialAlert[]
+  financialAlerts              FinancialAlert[]
+  advisorRecommendationStates  AdvisorRecommendationState[]
 }
 
 model Account {
@@ -762,4 +763,39 @@ model FinancialAlert {
   @@index([userId, type])
   @@index([userId, severity])
   @@index([createdAt])
+}
+
+// ─── Consultor Financeiro — memória de recomendações (Sprint 9.5A) ───────────
+
+enum AdvisorRecommendationStatus {
+  PENDING
+  DISMISSED
+  CLICKED
+}
+
+enum DismissReason {
+  NOT_RELEVANT
+  ALREADY_HANDLED
+  ACCEPTED_SPENDING
+  REMIND_LATER
+}
+
+model AdvisorRecommendationState {
+  id                 String                      @id @default(cuid())
+  userId             String
+  recommendationHash String
+  actionType         String
+  status             AdvisorRecommendationStatus @default(PENDING)
+  dismissReason      DismissReason?
+  dismissedUntil     DateTime?
+  clickedAt          DateTime?
+  clickCount         Int                         @default(0)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recommendationHash])
+  @@index([userId, status])
+  @@index([userId, dismissedUntil])
 }

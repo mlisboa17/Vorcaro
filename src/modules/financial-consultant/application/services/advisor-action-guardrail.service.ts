@@ -19,6 +19,7 @@ export class AdvisorActionGuardrailService {
       if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(action.priority)) return false;
       if (!["LOW", "MEDIUM", "HIGH"].includes(action.effort)) return false;
       if (![1, 2, 3].includes(action.effortWeight)) return false;
+      if (typeof action.estimatedImpact !== "number") return false;
       if (seen.has(action.id)) return false;
       seen.add(action.id);
       return true;
