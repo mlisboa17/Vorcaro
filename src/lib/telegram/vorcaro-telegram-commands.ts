@@ -44,12 +44,21 @@ export function normalizeVorcaroFreeText(text: string): string {
   return text.trim().replace(/^vorcaro[,\s]*/i, "");
 }
 
+import {
+  isLikelyActionConfirmationMessage,
+} from "@/modules/vorcaro/actions/domain/services/vorcaro-action-confirmation-patterns";
+
 export function shouldRouteToVorcaroChat(text: string): boolean {
-  return parseVorcaroTelegramCommand(text) != null || isVorcaroFreeTextQuestion(text);
+  return (
+    parseVorcaroTelegramCommand(text) != null ||
+    isVorcaroFreeTextQuestion(text) ||
+    isLikelyActionConfirmationMessage(text)
+  );
 }
 
 export function resolveVorcaroTelegramQuestion(text: string): string {
   const commandQuestion = parseVorcaroTelegramCommand(text);
   if (commandQuestion) return commandQuestion;
+  if (isLikelyActionConfirmationMessage(text)) return text.trim();
   return normalizeVorcaroFreeText(text);
 }

@@ -6,17 +6,24 @@ import { AdvisorLanguageGuardrailService } from "@/modules/financial-consultant/
 import { IntelligentAdvisorService } from "@/modules/financial-consultant/application/services/intelligent-advisor.service";
 import { deriveVorcaroCriticalFromConsultation } from "@/modules/vorcaro/domain/derive-vorcaro-critical-context";
 import { VorcaroMessagingService } from "@/modules/vorcaro/application/services/vorcaro-messaging.service";
+import { VorcaroActionError } from "@/modules/vorcaro/actions/domain/errors/vorcaro-action.error";
+import type { VorcaroActionProposalRecord } from "@/modules/vorcaro/actions/domain/types/vorcaro-action";
+import { VorcaroActionInterpreterService } from "@/modules/vorcaro/actions/application/services/vorcaro-action-interpreter.service";
+import { VorcaroActionProposalService } from "@/modules/vorcaro/actions/application/services/vorcaro-action-proposal.service";
+import { PrismaVorcaroActionProposalRepository } from "@/modules/vorcaro/actions/infrastructure/repositories/prisma-vorcaro-action-proposal.repository";
+import { VorcaroToolCallingService } from "@/modules/vorcaro/intent/application/services/vorcaro-tool-calling.service";
+import { vorcaroIntentObservability } from "@/modules/vorcaro/intent/application/services/vorcaro-intent-observability.service";
 import {
   VORCARO_CHAT_RATE_LIMIT_TELEGRAM_PER_HOUR,
   VORCARO_CHAT_RATE_LIMIT_WEB_PER_HOUR,
+  type VorcaroChatActionExecutionDto,
+  type VorcaroChatActionProposalDto,
   type VorcaroChatResponse,
   type VorcaroConversationChannel,
   type VorcaroConversationRecord,
   type VorcaroMessageRecord,
 } from "../../domain/types/vorcaro-conversation";
 import { PrismaVorcaroConversationRepository } from "../../infrastructure/repositories/prisma-vorcaro-conversation.repository";
-import { VorcaroToolCallingService } from "@/modules/vorcaro/intent/application/services/vorcaro-tool-calling.service";
-import { vorcaroIntentObservability } from "@/modules/vorcaro/intent/application/services/vorcaro-intent-observability.service";
 import { VorcaroContextAggregatorService } from "./vorcaro-context-aggregator.service";
 import { VorcaroConversationMemoryService } from "./vorcaro-conversation-memory.service";
 import { VorcaroPromptBuilderService } from "./vorcaro-prompt-builder.service";
@@ -28,6 +35,8 @@ export class VorcaroConversationService {
   private readonly memory = new VorcaroConversationMemoryService();
   private readonly promptBuilder = new VorcaroPromptBuilderService();
   private readonly toolCalling: VorcaroToolCallingService;
+  private readonly actionProposals: VorcaroActionProposalService;
+  private readonly actionInterpreter: VorcaroActionInterpreterService;
   private readonly guardrail = new VorcaroChatGuardrailService();
   private readonly vorcaro: VorcaroMessagingService;
   private readonly consultant: IntelligentAdvisorService;
@@ -41,6 +50,9 @@ export class VorcaroConversationService {
     this.vorcaro = new VorcaroMessagingService(prisma);
     this.consultant = new IntelligentAdvisorService(prisma);
     this.toolCalling = new VorcaroToolCallingService(prisma);
+    const actionRepo = new PrismaVorcaroActionProposalRepository(prisma);
+    this.actionProposals = new VorcaroActionProposalService(actionRepo);
+    this.actionInterpreter = new VorcaroActionInterpreterService(actionRepo);
     this.aiRouter = aiRouter ?? new AiRouterService();
   }
 
@@ -101,6 +113,18 @@ export class VorcaroConversationService {
     const aggregated = await this.aggregator.aggregate(input.userId, activeTopic);
     const confidence = this.guardrail.resolveConfidence(aggregated.dataScore, aggregated.usedSources);
 
+    if (this.actionInterpreter.isInterpretable(input.message)) {
+      const handled = await this.tryHandleActionInterpretation({
+        userId: input.userId,
+        message: input.message,
+        conversation,
+        confidence,
+        usedSources: aggregated.usedSources,
+        activeTopic,
+      });
+      if (handled) return handled;
+    }
+
     if (this.guardrail.shouldBlockInsufficientData(aggregated.dataScore, aggregated.usedSources)) {
       const answer = this.guardrail.insufficientDataMessage;
       const saved = await this.persistAssistantMessage(conversation.id, answer, {
@@ -147,6 +171,7 @@ export class VorcaroConversationService {
         responseMode: "tool",
         intent: toolResult.detection.primary,
         toolsUsed: toolResult.tools,
+        actionProposals: toolResult.actionProposals?.map(toProposalDto),
       };
     }
 
@@ -258,6 +283,118 @@ ${actionsBlock || "- Nenhuma ação pendente"}`;
     });
   }
 
+  private async tryHandleActionInterpretation(input: {
+    userId: string;
+    message: string;
+    conversation: VorcaroConversationRecord;
+    confidence: "LOW" | "MEDIUM" | "HIGH";
+    usedSources: string[];
+    activeTopic: string | null;
+  }): Promise<VorcaroChatResponse | null> {
+    const interpretation = this.actionInterpreter.interpret(input.message);
+    if (!interpretation) return null;
+
+    const pending = await this.actionInterpreter.findEligiblePendingProposal(input.userId);
+    if (!pending) {
+      const answer =
+        "Não há ação pendente para confirmar. Peça uma análise ao Vorcaro ou use o painel de ações.";
+      const saved = await this.persistAssistantMessage(input.conversation.id, answer, {
+        confidence: input.confidence,
+        provider: "deterministic",
+        model: "action-interpreter",
+        responseMode: "action",
+      });
+      await this.repo.touch(input.conversation.id, input.userId);
+      return {
+        conversationId: input.conversation.id,
+        messageId: saved.id,
+        answer,
+        provider: "deterministic",
+        model: "action-interpreter",
+        confidence: input.confidence,
+        usedSources: input.usedSources,
+        activeTopic: input.activeTopic,
+        responseMode: "action",
+      };
+    }
+
+    try {
+      if (interpretation === "REJECT") {
+        await this.actionProposals.rejectProposal(input.userId, pending.id);
+        const answer = `Ok, não vou abrir **${pending.title}**.`;
+        const saved = await this.persistAssistantMessage(input.conversation.id, answer, {
+          confidence: input.confidence,
+          provider: "deterministic",
+          model: "action-interpreter",
+          proposalId: pending.id,
+          responseMode: "action",
+        });
+        await this.repo.touch(input.conversation.id, input.userId);
+        return {
+          conversationId: input.conversation.id,
+          messageId: saved.id,
+          answer,
+          provider: "deterministic",
+          model: "action-interpreter",
+          confidence: input.confidence,
+          usedSources: input.usedSources,
+          activeTopic: input.activeTopic,
+          responseMode: "action",
+        };
+      }
+
+      const { result } = await this.actionProposals.approveAndExecute(
+        input.userId,
+        pending.id,
+      );
+      const answer = formatExecutionAnswer(pending, result);
+      const saved = await this.persistAssistantMessage(input.conversation.id, answer, {
+        confidence: input.confidence,
+        provider: "deterministic",
+        model: "action-interpreter",
+        proposalId: pending.id,
+        responseMode: "action",
+        targetUrl: result.targetUrl,
+      });
+      await this.repo.touch(input.conversation.id, input.userId);
+      return {
+        conversationId: input.conversation.id,
+        messageId: saved.id,
+        answer,
+        provider: "deterministic",
+        model: "action-interpreter",
+        confidence: input.confidence,
+        usedSources: input.usedSources,
+        activeTopic: input.activeTopic,
+        responseMode: "action",
+        actionExecution: result,
+      };
+    } catch (error) {
+      const answer =
+        error instanceof VorcaroActionError
+          ? error.message
+          : "Não foi possível processar a confirmação da ação.";
+      const saved = await this.persistAssistantMessage(input.conversation.id, answer, {
+        confidence: "LOW",
+        provider: "deterministic",
+        model: "action-interpreter",
+        responseMode: "action",
+      });
+      await this.repo.touch(input.conversation.id, input.userId);
+      return {
+        conversationId: input.conversation.id,
+        messageId: saved.id,
+        answer,
+        provider: "deterministic",
+        model: "action-interpreter",
+        confidence: "LOW",
+        usedSources: input.usedSources,
+        activeTopic: input.activeTopic,
+        responseMode: "action",
+      };
+    }
+  }
+
   private async assertRateLimit(userId: string, channel: VorcaroConversationChannel) {
     const since = new Date(Date.now() - 3600_000);
     const limit =
@@ -269,4 +406,26 @@ ${actionsBlock || "- Nenhuma ação pendente"}`;
       throw new Error("RATE_LIMIT_EXCEEDED");
     }
   }
+}
+
+function toProposalDto(p: VorcaroActionProposalRecord): VorcaroChatActionProposalDto {
+  return {
+    id: p.id,
+    actionType: p.actionType,
+    title: p.title,
+    description: p.description,
+    status: p.status,
+    expiresAt: p.expiresAt.toISOString(),
+  };
+}
+
+function formatExecutionAnswer(
+  proposal: VorcaroActionProposalRecord,
+  result: VorcaroChatActionExecutionDto,
+): string {
+  if (result.status === "FAILED") {
+    return `Não consegui concluir **${proposal.title}**: ${result.message}`;
+  }
+  const url = result.targetUrl ? `\n\nAbra no app: ${result.targetUrl}` : "";
+  return `**${result.title}** — ${result.message}${url}`;
 }

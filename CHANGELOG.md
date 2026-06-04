@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added — Sprint 13 (Execução Assistida do Vorcaro)
+
+- Modelo `VorcaroActionProposal` + enum `VorcaroActionStatus`; migration `20260607120000_vorcaro_action_proposals_sprint13`.
+- Padrão **Assist → Confirm → Execute**: propostas `PENDING` (15 min), confirmação chat/Telegram/API, execução = navegação (`targetUrl` / `navigationPayload`).
+- Módulo `src/modules/vorcaro/actions/` — `VorcaroActionProposalService`, `VorcaroActionInterpreterService`, `VorcaroActionExecutorService`, deduplicação por `payload.fingerprint`.
+- Catálogo `VorcaroActionType` (11 tipos) — sem mutação de dados financeiros.
+- APIs: `GET /api/vorcaro/actions`, `GET /api/vorcaro/actions/:id`, `POST .../approve|reject|execute`.
+- UI `/dashboard/vorcaro/actions` — gestão de propostas por status.
+- Integração: Tool Calling cria propostas + CTA; chat/Telegram entendem `sim`/`não` (janela 5 min no interpreter).
+- Observabilidade: `action_proposal_*`, `action_executed`, `action_failed`.
+- Doc: [`docs/sprint-13-assisted-execution.md`](docs/sprint-13-assisted-execution.md).
+
 ### Added — Sprint 12 (Memória Financeira Longitudinal)
 
 - Modelos `FinancialTimelineEvent`, `FinancialMetricSnapshot`, `FinancialAchievement` (ids `cuid`); migration `20260606120000_financial_memory_sprint12`.

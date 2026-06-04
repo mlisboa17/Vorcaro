@@ -1,6 +1,19 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-06 (Sprint 12).
+Documento de inventário técnico. Última revisão: 2026-06-07 (Sprint 13).
+
+## Sprint 13 — Execução Assistida do Vorcaro
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Assist → Confirm → Execute — propostas de navegação com confirmação explícita |
+| **Módulo** | `src/modules/vorcaro/actions/` |
+| **Rotas UI** | `/dashboard/vorcaro/actions` |
+| **Rotas API** | `GET /api/vorcaro/actions`, `GET /api/vorcaro/actions/:id`, `POST .../approve|reject|execute` |
+| **Tabelas** | `VorcaroActionProposal` |
+| **Serviços** | `VorcaroActionProposalService`, `VorcaroActionInterpreterService`, `VorcaroActionExecutorService` |
+| **Integração** | Tool Calling → propostas; chat/Telegram → confirmação `sim`/`não` |
+| **Status** | Concluída |
 
 ## Sprint 12 — Memória Financeira Longitudinal
 

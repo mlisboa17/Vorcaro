@@ -16,9 +16,30 @@ export const vorcaroChatResponseSchema = z.object({
   confidence: z.enum(["LOW", "MEDIUM", "HIGH"]),
   usedSources: z.array(z.string()),
   activeTopic: z.string().nullable(),
-  responseMode: z.enum(["tool", "llm"]).optional(),
+  responseMode: z.enum(["tool", "llm", "action"]).optional(),
   intent: z.string().optional(),
   toolsUsed: z.array(z.string()).optional(),
+  actionProposals: z
+    .array(
+      z.object({
+        id: z.string(),
+        actionType: z.string(),
+        title: z.string(),
+        description: z.string(),
+        status: z.string(),
+        expiresAt: z.string(),
+      }),
+    )
+    .optional(),
+  actionExecution: z
+    .object({
+      status: z.enum(["EXECUTED", "FAILED"]),
+      targetUrl: z.string().optional(),
+      navigationPayload: z.record(z.unknown()).optional(),
+      title: z.string(),
+      message: z.string(),
+    })
+    .optional(),
 });
 
 export type VorcaroChatResponseDto = z.infer<typeof vorcaroChatResponseSchema>;

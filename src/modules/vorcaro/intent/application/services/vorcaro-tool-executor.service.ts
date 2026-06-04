@@ -134,6 +134,8 @@ export class VorcaroToolExecutorService {
       this.alerts.summary(userId),
     ]);
     const critical = c.risks.filter((r) => r.severity === "critical");
+    const firstCritical =
+      open.items.find((a) => a.severity === "CRITICAL") ?? open.items[0];
     return {
       intent: "ALERTS",
       title: "Alertas financeiros",
@@ -142,7 +144,11 @@ export class VorcaroToolExecutorService {
         ...open.items.slice(0, 5).map((a) => `[${a.severity}] ${a.title}`),
         ...critical.slice(0, 3).map((r) => `Crítico: ${r.title}`),
       ],
-      metrics: { open: summary.totalOpen, critical: critical.length },
+      metrics: {
+        open: summary.totalOpen,
+        critical: critical.length,
+        firstCriticalAlertId: firstCritical?.id,
+      },
       recommendations: critical.length > 0 ? ["Resolva alertas críticos hoje."] : ["Mantenha alertas revisados semanalmente."],
     };
   }
@@ -163,7 +169,11 @@ export class VorcaroToolExecutorService {
       title: "Recebíveis",
       summary: `${overdue.length} recebível(is) atrasado(s), total pendente R$ ${totalPending.toFixed(2)}.`,
       facts: overdue.slice(0, 5).map((r) => `${r.descricao}: R$ ${r.valorPendente.toFixed(2)}`),
-      metrics: { overdueCount: overdue.length, totalPending },
+      metrics: {
+        overdueCount: overdue.length,
+        totalPending,
+        firstOverdueReceivableId: overdue[0]?.id,
+      },
       recommendations:
         overdue.length > 0
           ? ["Priorize cobrança dos recebíveis atrasados esta semana."]
@@ -190,7 +200,11 @@ export class VorcaroToolExecutorService {
           ? `${atRisk.length} meta(s) em risco ou atrasada(s).`
           : "Metas dentro do esperado ou sem metas ativas.",
       facts: atRisk.slice(0, 5).map((g) => g.nome),
-      metrics: { atRisk: atRisk.length, total: goals.length },
+      metrics: {
+        atRisk: atRisk.length,
+        total: goals.length,
+        firstAtRiskGoalId: atRisk[0]?.id,
+      },
       recommendations: c.recommendations.filter((r) => /meta/i.test(r)).slice(0, 3),
     };
   }
@@ -278,7 +292,10 @@ export class VorcaroToolExecutorService {
       title: "Notificações",
       summary: `${summary.unreadCount} notificação(ões) não lida(s).`,
       facts: list.items.slice(0, 5).map((n) => n.title),
-      metrics: { unread: summary.unreadCount },
+      metrics: {
+        unread: summary.unreadCount,
+        firstNotificationId: list.items[0]?.id,
+      },
       recommendations: summary.unreadCount > 0 ? ["Revise a central de notificações."] : [],
     };
   }

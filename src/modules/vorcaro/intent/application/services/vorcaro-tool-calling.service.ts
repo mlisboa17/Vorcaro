@@ -1,4 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
+import type { VorcaroActionProposalRecord } from "@/modules/vorcaro/actions/domain/types/vorcaro-action";
+import { VorcaroActionProposalService } from "@/modules/vorcaro/actions/application/services/vorcaro-action-proposal.service";
+import {
+  deriveSuggestedActionsFromToolResults,
+  formatProposalCtaBlock,
+} from "@/modules/vorcaro/actions/application/helpers/vorcaro-tool-action-suggestions";
+import { PrismaVorcaroActionProposalRepository } from "@/modules/vorcaro/actions/infrastructure/repositories/prisma-vorcaro-action-proposal.repository";
 import type { VorcaroIntentDetection, VorcaroToolResult } from "../../domain/types/vorcaro-intent";
 import { VorcaroIntentCacheService } from "./vorcaro-intent-cache.service";
 import { VorcaroIntentEngineService } from "./vorcaro-intent-engine.service";
@@ -13,6 +20,7 @@ export type VorcaroToolCallingResult = {
   results: VorcaroToolResult[];
   answer: string;
   responseMode: "tool" | "llm";
+  actionProposals?: VorcaroActionProposalRecord[];
 };
 
 export class VorcaroToolCallingService {
@@ -20,6 +28,7 @@ export class VorcaroToolCallingService {
   private readonly resolver = new VorcaroToolResolverService();
   private readonly executor: VorcaroToolExecutorService;
   private readonly formatter = new VorcaroIntentResponseFormatter();
+  private readonly actionProposals: VorcaroActionProposalService;
 
   constructor(
     prisma: PrismaClient,
@@ -27,6 +36,9 @@ export class VorcaroToolCallingService {
     private readonly observability: VorcaroIntentObservabilityService = new VorcaroIntentObservabilityService(),
   ) {
     this.executor = new VorcaroToolExecutorService(prisma);
+    this.actionProposals = new VorcaroActionProposalService(
+      new PrismaVorcaroActionProposalRepository(prisma),
+    );
   }
 
   detect(message: string, activeTopic?: string | null): VorcaroIntentDetection {
@@ -97,10 +109,27 @@ export class VorcaroToolCallingService {
       this.observability.recordToolCalled();
     }
 
-    const answer = this.formatter.format(
+    let answer = this.formatter.format(
       results,
       detection.primary === "STATUS" ? "Situação financeira" : undefined,
     );
+
+    const suggested = deriveSuggestedActionsFromToolResults(results);
+    const proposals: VorcaroActionProposalRecord[] = [];
+    for (const action of suggested) {
+      const proposal = await this.actionProposals.createProposal({
+        userId: input.userId,
+        type: action.type,
+        title: action.title,
+        description: action.description,
+        payload: action.payload,
+      });
+      proposals.push(proposal);
+    }
+    if (proposals.length > 0) {
+      answer += formatProposalCtaBlock(proposals);
+    }
+
     this.observability.recordToolOnlyResponse();
 
     return {
@@ -109,6 +138,7 @@ export class VorcaroToolCallingService {
       results,
       answer,
       responseMode: "tool",
+      actionProposals: proposals.length > 0 ? proposals : undefined,
     };
   }
 }

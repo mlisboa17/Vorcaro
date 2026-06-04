@@ -45,6 +45,8 @@ export type VorcaroToolName =
   | "financial_achievements"
   | "financial_trends";
 
+import type { VorcaroToolAction } from "@/modules/vorcaro/actions/domain/types/vorcaro-action";
+
 export type VorcaroToolResult = {
   intent: VorcaroIntent;
   title: string;
@@ -52,6 +54,7 @@ export type VorcaroToolResult = {
   facts: string[];
   metrics: Record<string, unknown>;
   recommendations: string[];
+  suggestedActions?: VorcaroToolAction[];
 };
 
 export type VorcaroIntentObservabilitySnapshot = {

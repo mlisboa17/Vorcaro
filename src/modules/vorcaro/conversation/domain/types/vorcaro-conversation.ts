@@ -23,6 +23,23 @@ export type VorcaroMessageRecord = {
   createdAt: Date;
 };
 
+export type VorcaroChatActionProposalDto = {
+  id: string;
+  actionType: string;
+  title: string;
+  description: string;
+  status: string;
+  expiresAt: string;
+};
+
+export type VorcaroChatActionExecutionDto = {
+  status: "EXECUTED" | "FAILED";
+  targetUrl?: string;
+  navigationPayload?: Record<string, unknown>;
+  title: string;
+  message: string;
+};
+
 export type VorcaroChatResponse = {
   conversationId: string;
   messageId: string;
@@ -32,9 +49,11 @@ export type VorcaroChatResponse = {
   confidence: "LOW" | "MEDIUM" | "HIGH";
   usedSources: string[];
   activeTopic: string | null;
-  responseMode?: "tool" | "llm";
+  responseMode?: "tool" | "llm" | "action";
   intent?: string;
   toolsUsed?: string[];
+  actionProposals?: VorcaroChatActionProposalDto[];
+  actionExecution?: VorcaroChatActionExecutionDto;
 };
 
 export const VORCARO_CHAT_TOPICS = [

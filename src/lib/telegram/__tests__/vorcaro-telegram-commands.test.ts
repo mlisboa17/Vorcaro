@@ -21,6 +21,13 @@ describe("vorcaro-telegram-commands", () => {
     expect(shouldRouteToVorcaroChat("comprovante uber 32,50")).toBe(false);
   });
 
+  it("roteia confirmação/rejeição de ação (Sprint 13)", () => {
+    expect(shouldRouteToVorcaroChat("sim")).toBe(true);
+    expect(shouldRouteToVorcaroChat("não")).toBe(true);
+    expect(shouldRouteToVorcaroChat("confirmar")).toBe(true);
+    expect(resolveVorcaroTelegramQuestion("sim")).toBe("sim");
+  });
+
   it("normaliza pergunta livre", () => {
     expect(resolveVorcaroTelegramQuestion("Vorcaro, estou bem?")).toBe("estou bem?");
   });

@@ -5,7 +5,7 @@ Convenções:
 - **Auth:** Obrigatório = sessão Auth.js (`session.user.id`), exceto onde indicado.
 - **Multitenancy:** `userId` nunca é aceito no body/query para escopo de dados.
 
-Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados separadamente).
+Total de **operações HTTP documentadas: 66** (rotas únicas; métodos listados separadamente).
 
 ---
 
@@ -33,7 +33,7 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
-## Vorcaro (Sprint 10.5 / 11 / 11.1 / 12)
+## Vorcaro (Sprint 10.5 / 11 / 11.1 / 12 / 13)
 
 ### `GET/PATCH` — `/api/vorcaro/preferences`
 
@@ -45,7 +45,7 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 **Descrição:** Enviar mensagem ao Vorcaro Chat Engine; persiste conversa. Fluxo Sprint 11.1: Intent Engine → Tool Calling → resposta FIA determinística; fallback LLM para perguntas estratégicas.  
 **Auth:** Obrigatório. Rate limit 60/h (WEB).  
 **Body:** `{ message: string, conversationId?: string }`  
-**Resposta (campos extras):** `responseMode` (`tool` | `llm`), `intent`, `toolsUsed`
+**Resposta (campos extras):** `responseMode` (`tool` | `llm` | `action`), `intent`, `toolsUsed`, `actionProposals`, `actionExecution`
 
 ### `GET/POST` — `/api/vorcaro/conversations`
 
@@ -55,6 +55,31 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 ### `GET` — `/api/vorcaro/conversations/[id]`
 
 **Descrição:** Conversa + mensagens (ownership validado).  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/actions` (Sprint 13)
+
+**Descrição:** Lista propostas de execução assistida. Query opcional `?status=PENDING|APPROVED|...`.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/actions/[id]` (Sprint 13)
+
+**Descrição:** Detalhe de proposta (ownership).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/vorcaro/actions/[id]/approve` (Sprint 13)
+
+**Descrição:** Aprova proposta `PENDING` não expirada.  
+**Auth:** Obrigatório. `410` se expirada; `404` se outro usuário.
+
+### `POST` — `/api/vorcaro/actions/[id]/reject` (Sprint 13)
+
+**Descrição:** Rejeita proposta `PENDING`.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/vorcaro/actions/[id]/execute` (Sprint 13)
+
+**Descrição:** Executa proposta `APPROVED`; retorna `execution` com `targetUrl` / `navigationPayload`.  
 **Auth:** Obrigatório.
 
 ### `GET` — `/api/vorcaro/timeline` (Sprint 12)

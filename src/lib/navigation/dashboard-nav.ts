@@ -16,6 +16,7 @@ import {
   Sparkles,
   Target,
   WalletCards,
+  Zap,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -39,6 +40,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
       { href: "/dashboard/notifications", label: "Notificações", icon: BellRing, badgeKey: "notifications" },
       { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
       { href: "/dashboard/vorcaro/chat", label: "Vorcaro Chat", icon: MessageCircle },
+      { href: "/dashboard/vorcaro/actions", label: "Ações Vorcaro", icon: Zap },
       { href: "/dashboard/vorcaro/timeline", label: "Memória Financeira", icon: History },
       { href: "/dashboard/advisor", label: "Vorcaro Insights", icon: Sparkles },
     ],

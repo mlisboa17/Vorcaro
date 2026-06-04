@@ -57,16 +57,26 @@ src/
 | **Dependências** | `financial-consultant`, `patrimony`, `financial-planning`, `executive-dashboard`, Prisma |
 | **Observabilidade** | `timeline_events_created`, `evolution_queries`, `achievement_unlocked`, `trend_detected` |
 
-### `vorcaro` (Sprint 10.5 / 11 / 11.1 / 12)
+### `vorcaro` (Sprint 10.5 / 11 / 11.1 / 12 / 13)
 
 | Aspecto | Detalhe |
 |---------|---------|
-| **Serviços** | `VorcaroMessagingService`, `VorcaroConversationService`, `VorcaroContextAggregatorService`, `VorcaroConversationMemoryService`, `VorcaroPromptBuilderService`, **`VorcaroIntentEngineService`**, **`VorcaroToolResolverService`**, **`VorcaroToolCallingService`**, **`RulesAutomationTool`** |
-| **Fluxo chat** | Pergunta → Intent Engine → Tool Resolver → ferramentas internas → Formatter FIA; fallback LLM para análise estratégica |
-| **Repositórios** | `PrismaVorcaroConversationRepository`, `PrismaVorcaroMessageHistoryRepository`, `PrismaVorcaroPreferenceRepository` |
-| **Endpoints** | `POST /api/vorcaro/chat`, `/api/vorcaro/conversations`, `/api/vorcaro/preferences` |
+| **Serviços** | `VorcaroMessagingService`, `VorcaroConversationService`, `VorcaroContextAggregatorService`, `VorcaroConversationMemoryService`, `VorcaroPromptBuilderService`, **`VorcaroIntentEngineService`**, **`VorcaroToolResolverService`**, **`VorcaroToolCallingService`**, **`RulesAutomationTool`**, **`VorcaroActionProposalService`**, **`VorcaroActionInterpreterService`**, **`VorcaroActionExecutorService`** |
+| **Fluxo chat** | Confirmação de proposta (Sprint 13) → Intent Engine → Tool Resolver → ferramentas → propostas PENDING + Formatter FIA; fallback LLM |
+| **Execução assistida** | Assist → Confirm → Execute; execução = `targetUrl` apenas (sem mutação financeira) |
+| **Repositórios** | `PrismaVorcaroConversationRepository`, `PrismaVorcaroMessageHistoryRepository`, `PrismaVorcaroPreferenceRepository`, **`PrismaVorcaroActionProposalRepository`** |
+| **Endpoints** | `POST /api/vorcaro/chat`, `/api/vorcaro/conversations`, `/api/vorcaro/preferences`, **`/api/vorcaro/actions`** |
 | **Dependências** | `ai`, `financial-advisor`, `financial-consultant`, `notifications`, `financial-inbox` (regras), Prisma |
-| **Observabilidade** | Métricas in-process: `intent_detected`, `tool_called`, `tool_only_response`, `llm_called`, `fallback_to_llm` |
+| **Observabilidade** | Intent: `intent_detected`, `tool_called`, … — Ações: `action_proposal_*`, `action_executed`, `action_failed` |
+
+### `vorcaro/actions` (Sprint 13)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Persistência** | `VorcaroActionProposal` — status, `expiresAt` 15 min, `payload.fingerprint` |
+| **Endpoints** | `GET/POST /api/vorcaro/actions/:id/approve|reject|execute` |
+| **UI** | `/dashboard/vorcaro/actions` |
+| **Telegram** | `sim`/`não`/etc. via mesmo fluxo de chat |
 
 ### `cashflow`
 

@@ -47,6 +47,7 @@ model User {
   financialTimelineEvents      FinancialTimelineEvent[]
   financialMetricSnapshots     FinancialMetricSnapshot[]
   financialAchievements        FinancialAchievement[]
+  vorcaroActionProposals       VorcaroActionProposal[]
 }
 
 model Account {
@@ -1034,4 +1035,39 @@ model FinancialAchievement {
 
   @@unique([userId, achievementKey])
   @@index([userId, unlockedAt])
+}
+
+// ─── Execução Assistida Vorcaro — Sprint 13 ───────────────────────────────────
+
+enum VorcaroActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED
+  FAILED
+  EXPIRED
+}
+
+model VorcaroActionProposal {
+  id            String              @id @default(cuid())
+  userId        String
+  actionType    String
+  title         String
+  description   String
+  payload       Json
+  status        VorcaroActionStatus @default(PENDING)
+
+  approvedAt    DateTime?
+  executedAt    DateTime?
+  failedAt      DateTime?
+  expiresAt     DateTime
+
+  failureReason String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
