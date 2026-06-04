@@ -33,7 +33,7 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
-## Vorcaro (Sprint 10.5 / 11 / 11.1)
+## Vorcaro (Sprint 10.5 / 11 / 11.1 / 12)
 
 ### `GET/PATCH` — `/api/vorcaro/preferences`
 
@@ -56,6 +56,26 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 **Descrição:** Conversa + mensagens (ownership validado).  
 **Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/timeline` (Sprint 12)
+
+**Descrição:** Engine idempotente + linha do tempo paginada (`page`, `pageSize`).  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/evolution` (Sprint 12)
+
+**Descrição:** Perfil de evolução calculado sob demanda + comparações 30/90/180/365d.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/achievements` (Sprint 12)
+
+**Descrição:** Conquistas desbloqueadas (paginação).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/cron/financial-timeline` (Sprint 12)
+
+**Descrição:** Engine de timeline para todos os usuários.  
+**Auth:** `Bearer CRON_SECRET`.
 
 ---
 

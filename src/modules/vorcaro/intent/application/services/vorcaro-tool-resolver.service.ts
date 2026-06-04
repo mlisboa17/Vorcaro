@@ -13,6 +13,10 @@ const INTENT_TO_TOOLS: Record<VorcaroIntent, VorcaroToolName[]> = {
   HEALTH_SCORE: ["financial_health"],
   NOTIFICATIONS: ["notification_query"],
   RULES_AUTOMATIONS: ["rules_automation"],
+  TIMELINE: ["financial_timeline"],
+  EVOLUTION: ["financial_evolution"],
+  ACHIEVEMENTS: ["financial_achievements"],
+  TRENDS: ["financial_trends"],
   GENERAL_CHAT: [],
   UNKNOWN: [],
 };

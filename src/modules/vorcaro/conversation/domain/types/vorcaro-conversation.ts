@@ -46,6 +46,10 @@ export const VORCARO_CHAT_TOPICS = [
   "alerts",
   "savings",
   "patrimony",
+  "timeline",
+  "evolution",
+  "achievements",
+  "trends",
   "general",
 ] as const;
 

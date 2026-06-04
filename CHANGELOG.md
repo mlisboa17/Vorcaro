@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added — Sprint 12 (Memória Financeira Longitudinal)
+
+- Modelos `FinancialTimelineEvent`, `FinancialMetricSnapshot`, `FinancialAchievement` (ids `cuid`); migration `20260606120000_financial_memory_sprint12`.
+- Fingerprint `{userId}:{eventType}:{periodo}` — engine idempotente, deduplicação por mês/entidade.
+- `FinancialEvolutionProfileService` calculado sob demanda (sem tabela).
+- `FinancialTimelineEngineService` — engine idempotente (patrimônio, caixa, dívida, metas, money leak, gastos).
+- `FinancialComparisonService` — comparações 30/90/180/365 dias; `EvolutionHealthScoreService`; `FinancialAchievementService`.
+- APIs: `GET /api/vorcaro/timeline|evolution|achievements`, `POST /api/cron/financial-timeline`.
+- Vorcaro: intenções `TIMELINE`, `EVOLUTION`, `ACHIEVEMENTS`, `TRENDS` + guardrail de histórico mínimo 30 dias.
+- UI `/dashboard/vorcaro/timeline` — linha do tempo, tendências e conquistas.
+- Observabilidade: `timeline_events_created`, `evolution_queries`, `achievement_unlocked`, `trend_detected`.
+- Doc: [`docs/sprint-12-financial-memory.md`](docs/sprint-12-financial-memory.md).
+
 ### Added — Sprint 11.1 (Vorcaro Intent Engine e Tool Calling)
 
 - **Intent Engine:** `VorcaroIntentEngineService` com enum `VorcaroIntent` (STATUS, ALERTS, RECEIVABLES, GOALS, EXPENSES, CASHFLOW, COMMITMENTS, SUBSCRIPTIONS, MONEY_LEAK, HEALTH_SCORE, NOTIFICATIONS, RULES_AUTOMATIONS, GENERAL_CHAT, UNKNOWN).

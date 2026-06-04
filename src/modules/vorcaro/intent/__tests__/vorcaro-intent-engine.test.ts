@@ -33,6 +33,14 @@ describe("VorcaroIntentEngineService", () => {
     expect(result.requiresLlm).toBe(true);
   });
 
+  it("detecta TIMELINE e EVOLUTION sem LLM", () => {
+    expect(engine.detect("Mostre minha linha do tempo financeira").primary).toBe("TIMELINE");
+    expect(engine.detect("Como foi minha evolução?").primary).toBe("EVOLUTION");
+    expect(engine.detect("Quais conquistas tenho?").primary).toBe("ACHIEVEMENTS");
+    expect(engine.detect("Qual a tendência dos meus gastos?").primary).toBe("TRENDS");
+    expect(engine.detect("Comparar minha evolução nos últimos meses").requiresLlm).toBe(false);
+  });
+
   it("mapeia comandos slash", () => {
     expect(engine.detect("/status").primary).toBe("STATUS");
     expect(engine.detect("/alertas").primary).toBe("ALERTS");
@@ -52,6 +60,13 @@ describe("VorcaroToolResolverService", () => {
 
   it("resolve RULES_AUTOMATIONS", () => {
     expect(resolver.resolve("RULES_AUTOMATIONS")).toEqual(["rules_automation"]);
+  });
+
+  it("resolve EVOLUTION e TRENDS com tools dedicadas", () => {
+    expect(resolver.resolve("EVOLUTION")).toEqual(["financial_evolution"]);
+    expect(resolver.resolve("TRENDS")).toEqual(["financial_trends"]);
+    expect(resolver.resolve("TIMELINE")).toEqual(["financial_timeline"]);
+    expect(resolver.resolve("ACHIEVEMENTS")).toEqual(["financial_achievements"]);
   });
 });
 

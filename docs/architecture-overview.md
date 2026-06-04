@@ -46,7 +46,18 @@ src/
 | **Endpoints** | `POST /api/advisor/ask`, `GET /api/advisor/insights`, `GET /api/advisor/consultation` |
 | **Dependências** | `ai`, `financial-consultant`, `cashflow`, `financial-planning`, `financial-alerts`, `commitments`, Prisma |
 
-### `vorcaro` (Sprint 10.5 / 11 / 11.1)
+### `financial-memory` (Sprint 12)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `FinancialTimelineEngineService`, `FinancialComparisonService`, `FinancialEvolutionProfileService`, `FinancialAchievementService`, `EvolutionHealthScoreService`, `FinancialMemoryQueryService` |
+| **Persistência** | `FinancialTimelineEvent` (fingerprint), `FinancialMetricSnapshot`, `FinancialAchievement` |
+| **Perfil evolução** | `FinancialEvolutionProfileService` — somente leitura/cálculo, sem tabela |
+| **Endpoints** | `GET /api/vorcaro/timeline`, `evolution`, `achievements`; `POST /api/cron/financial-timeline` |
+| **Dependências** | `financial-consultant`, `patrimony`, `financial-planning`, `executive-dashboard`, Prisma |
+| **Observabilidade** | `timeline_events_created`, `evolution_queries`, `achievement_unlocked`, `trend_detected` |
+
+### `vorcaro` (Sprint 10.5 / 11 / 11.1 / 12)
 
 | Aspecto | Detalhe |
 |---------|---------|

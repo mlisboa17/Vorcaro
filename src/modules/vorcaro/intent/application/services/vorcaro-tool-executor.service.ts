@@ -9,6 +9,11 @@ import { FinancialAlertQueryService } from "@/modules/financial-alerts/applicati
 import { NotificationQueryService } from "@/modules/notifications/application/services/notification-query.service";
 import { isReceivableOpenStatus } from "@/modules/receivables/domain/services/receivable.service";
 import type { VorcaroIntent, VorcaroToolName, VorcaroToolResult } from "../../domain/types/vorcaro-intent";
+import { FinancialTimelineTool } from "@/modules/financial-memory/application/tools/financial-timeline-tool";
+import { FinancialEvolutionTool } from "@/modules/financial-memory/application/tools/financial-evolution-tool";
+import { FinancialAchievementTool } from "@/modules/financial-memory/application/tools/financial-achievement-tool";
+import { FinancialTrendTool } from "@/modules/financial-memory/application/tools/financial-trend-tool";
+import { FinancialMemoryQueryService } from "@/modules/financial-memory/application/services/financial-memory-query.service";
 import { RulesAutomationTool } from "../tools/rules-automation-tool";
 
 function monthKey(d: Date): string {
@@ -27,6 +32,10 @@ const TOOL_TO_INTENT: Record<VorcaroToolName, VorcaroIntent> = {
   notification_query: "NOTIFICATIONS",
   spending_analysis: "EXPENSES",
   rules_automation: "RULES_AUTOMATIONS",
+  financial_timeline: "TIMELINE",
+  financial_evolution: "EVOLUTION",
+  financial_achievements: "ACHIEVEMENTS",
+  financial_trends: "TRENDS",
 };
 
 export class VorcaroToolExecutorService {
@@ -34,12 +43,22 @@ export class VorcaroToolExecutorService {
   private readonly alerts: FinancialAlertQueryService;
   private readonly notifications: NotificationQueryService;
   private readonly rulesTool: RulesAutomationTool;
+  private readonly memoryQuery: FinancialMemoryQueryService;
+  private readonly timelineTool: FinancialTimelineTool;
+  private readonly evolutionTool: FinancialEvolutionTool;
+  private readonly achievementTool: FinancialAchievementTool;
+  private readonly trendTool: FinancialTrendTool;
 
   constructor(private readonly prisma: PrismaClient) {
     this.consultant = new IntelligentAdvisorService(prisma);
     this.alerts = new FinancialAlertQueryService(prisma);
     this.notifications = new NotificationQueryService(prisma);
     this.rulesTool = new RulesAutomationTool(prisma);
+    this.memoryQuery = new FinancialMemoryQueryService(prisma);
+    this.timelineTool = new FinancialTimelineTool(prisma);
+    this.evolutionTool = new FinancialEvolutionTool(prisma);
+    this.achievementTool = new FinancialAchievementTool(prisma);
+    this.trendTool = new FinancialTrendTool(prisma);
   }
 
   async executeTool(
@@ -71,6 +90,14 @@ export class VorcaroToolExecutorService {
         return this.buildSpending(consultation);
       case "rules_automation":
         return this.rulesTool.execute(userId, question);
+      case "financial_timeline":
+        return this.timelineTool.execute(userId);
+      case "financial_evolution":
+        return this.evolutionTool.execute(userId);
+      case "financial_achievements":
+        return this.achievementTool.execute(userId);
+      case "financial_trends":
+        return this.trendTool.execute(userId);
       default:
         return {
           intent: TOOL_TO_INTENT[toolName] ?? "UNKNOWN",
@@ -266,5 +293,9 @@ export class VorcaroToolExecutorService {
       metrics: { categories: top.length },
       recommendations: c.recommendations.filter((r) => /gast/i.test(r)).slice(0, 3),
     };
+  }
+
+  async ensureMemoryRefreshed(userId: string): Promise<void> {
+    await this.memoryQuery.refresh(userId);
   }
 }

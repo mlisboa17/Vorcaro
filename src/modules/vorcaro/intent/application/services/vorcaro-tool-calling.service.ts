@@ -71,6 +71,16 @@ export class VorcaroToolCallingService {
     const consultation = await this.executor.loadConsultation(input.userId);
     const results: VorcaroToolResult[] = [];
 
+    const memoryTools = new Set([
+      "financial_timeline",
+      "financial_evolution",
+      "financial_achievements",
+      "financial_trends",
+    ]);
+    if (tools.some((t) => memoryTools.has(t))) {
+      await this.executor.ensureMemoryRefreshed(input.userId);
+    }
+
     for (const toolName of tools) {
       const toolCacheKey = this.cache.buildToolKey(input.userId, toolName);
       let result = this.cache.getToolResult(toolCacheKey);

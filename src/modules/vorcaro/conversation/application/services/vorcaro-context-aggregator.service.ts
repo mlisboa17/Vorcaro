@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { FinancialDataAggregatorService } from "@/modules/financial-advisor/application/services/financial-data-aggregator.service";
 import { IntelligentAdvisorService } from "@/modules/financial-consultant/application/services/intelligent-advisor.service";
 import { NotificationQueryService } from "@/modules/notifications/application/services/notification-query.service";
+import { FinancialMemoryQueryService } from "@/modules/financial-memory/application/services/financial-memory-query.service";
 import {
   VORCARO_CONTEXT_CACHE_TTL_MS,
   type VorcaroChatTopic,
@@ -26,11 +27,13 @@ export class VorcaroContextAggregatorService {
   private readonly financialAggregator: FinancialDataAggregatorService;
   private readonly consultant: IntelligentAdvisorService;
   private readonly notifications: NotificationQueryService;
+  private readonly financialMemory: FinancialMemoryQueryService;
 
   constructor(private readonly prisma: PrismaClient) {
     this.financialAggregator = new FinancialDataAggregatorService(prisma);
     this.consultant = new IntelligentAdvisorService(prisma);
     this.notifications = new NotificationQueryService(prisma);
+    this.financialMemory = new FinancialMemoryQueryService(prisma);
   }
 
   async aggregate(userId: string, topic?: VorcaroChatTopic | null): Promise<VorcaroAggregatedContext> {
@@ -38,10 +41,15 @@ export class VorcaroContextAggregatorService {
     const hit = cache.get(cacheKey);
     if (hit && hit.expiresAt > Date.now()) return hit.value;
 
-    const [base, consultation, notificationSummary] = await Promise.all([
+    const [base, consultation, notificationSummary, memoryTrends] = await Promise.all([
       this.financialAggregator.aggregate(userId),
       this.consultant.consult(userId),
       this.notifications.getSummary(userId).catch(() => ({ unreadCount: 0, byStatus: {} })),
+      this.financialMemory.getTrendsSummary(userId).catch(() => ({
+        hasSufficientHistory: false,
+        profile: null,
+        summary: "",
+      })),
     ]);
 
     const sections = [base.markdown];
@@ -93,6 +101,14 @@ export class VorcaroContextAggregatorService {
       `- Não lidas: ${notificationSummary.unreadCount ?? 0}`,
     );
 
+    sections.push(
+      "",
+      "## Memória financeira longitudinal (Sprint 12)",
+      memoryTrends.hasSufficientHistory
+        ? memoryTrends.summary
+        : "Histórico insuficiente para análise comparativa (< 30 dias).",
+    );
+
     if (topic === "cashflow" && consultation.risks.some((r) => r.id === "risk-cashflow")) {
       sections.push("", "### Foco: fluxo de caixa", consultation.summary);
     }
@@ -104,6 +120,7 @@ export class VorcaroContextAggregatorService {
         "notificacoes",
         "money_leak_detector",
         "subscription_detector",
+        "financial_memory",
       ]),
     ];
 

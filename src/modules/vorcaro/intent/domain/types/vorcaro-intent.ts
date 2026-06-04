@@ -11,6 +11,10 @@ export const VORCARO_INTENTS = [
   "HEALTH_SCORE",
   "NOTIFICATIONS",
   "RULES_AUTOMATIONS",
+  "TIMELINE",
+  "EVOLUTION",
+  "ACHIEVEMENTS",
+  "TRENDS",
   "GENERAL_CHAT",
   "UNKNOWN",
 ] as const;
@@ -35,7 +39,11 @@ export type VorcaroToolName =
   | "money_leak_detector"
   | "notification_query"
   | "spending_analysis"
-  | "rules_automation";
+  | "rules_automation"
+  | "financial_timeline"
+  | "financial_evolution"
+  | "financial_achievements"
+  | "financial_trends";
 
 export type VorcaroToolResult = {
   intent: VorcaroIntent;

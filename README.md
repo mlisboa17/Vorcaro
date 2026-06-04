@@ -45,6 +45,7 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **10.5** | Identidade Vorcaro (tons, templates, anti-repetição) | Concluída |
 | **11** | Vorcaro Conversacional (chat LOGOS + Telegram) | Concluída |
 | **11.1** | Vorcaro Intent Engine e Tool Calling | Concluída |
+| **12** | Memória Financeira Longitudinal | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
 Sprint 11: [`docs/sprint-11-vorcaro-conversacional.md`](docs/sprint-11-vorcaro-conversacional.md).  

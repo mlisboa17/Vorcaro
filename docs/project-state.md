@@ -1,6 +1,17 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-05 (Sprint 11.1).
+Documento de inventário técnico. Última revisão: 2026-06-06 (Sprint 12).
+
+## Sprint 12 — Memória Financeira Longitudinal
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Trajetória, evolução e tendências financeiras ao longo do tempo |
+| **Módulo** | `src/modules/financial-memory/` |
+| **Rotas UI** | `/dashboard/vorcaro/timeline` |
+| **Rotas API** | `GET /api/vorcaro/timeline|evolution|achievements`, `POST /api/cron/financial-timeline` |
+| **Tabelas** | `FinancialTimelineEvent`, `FinancialMetricSnapshot`, `FinancialAchievement` (perfil de evolução sob demanda) |
+| **Status** | Concluída |
 
 ## Sprint 11.1 — Vorcaro Intent Engine e Tool Calling
 

@@ -13,6 +13,10 @@ const TOPIC_PATTERNS: Array<{ topic: VorcaroChatTopic; patterns: RegExp[] }> = [
   { topic: "alerts", patterns: [/alerta/i, /risco/i, /resolver hoje/i, /prioridade/i] },
   { topic: "savings", patterns: [/econom/i, /delivery/i, /desperd/i, /perdendo dinheiro/i, /vazamento/i] },
   { topic: "patrimony", patterns: [/patrim[oô]nio/i, /invest/i, /ativo/i, /passivo/i] },
+  { topic: "timeline", patterns: [/linha do tempo/i, /timeline/i, /hist[oó]rico financeiro/i] },
+  { topic: "evolution", patterns: [/evolu[cç][aã]o/i, /trajet[oó]ria/i, /como evolu/i] },
+  { topic: "achievements", patterns: [/conquista/i, /recorde/i, /marcos/i] },
+  { topic: "trends", patterns: [/tend[eê]ncia/i, /trend/i] },
 ];
 
 const CONTINUATION_PATTERNS = [
