@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "seed:categories": "npx tsx scripts/seed-categories-taxonomy.ts",
+    "seed:rules": "npx tsx scripts/seed-default-user-rules.ts",
     "db:studio": "prisma studio",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

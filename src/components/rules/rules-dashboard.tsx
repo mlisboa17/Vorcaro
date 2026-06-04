@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cpu, Loader2, Plus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { isSystemDefaultRuleDescription } from "@/lib/rules/default-categorization-rules";
 import { CreateRuleModal } from "./create-rule-modal";
 import { LearningPatternsList } from "./learning-patterns-list";
 import { ManualRulesList } from "./manual-rules-list";
@@ -114,6 +115,10 @@ export function RulesDashboard() {
     }
   }
 
+  const systemRulesCount =
+    data?.rules.filter((r) => isSystemDefaultRuleDescription(r.description)).length ?? 0;
+  const userRulesCount = (data?.rules.length ?? 0) - systemRulesCount;
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -166,14 +171,23 @@ export function RulesDashboard() {
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <article className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <article className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
           <div className="flex items-center gap-2 text-blue-800">
             <Cpu className="h-4 w-4" />
-            <span className="text-sm font-semibold">Regras manuais</span>
+            <span className="text-sm font-semibold">Suas regras</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-blue-900">{data?.rules.length ?? 0}</p>
-          <p className="text-xs text-blue-700/80">Controle determinístico com prioridade</p>
+          <p className="mt-2 text-2xl font-bold text-blue-900">{userRulesCount}</p>
+          <p className="text-xs text-blue-700/80">Prioridade máxima na classificação</p>
+        </article>
+
+        <article className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+          <div className="flex items-center gap-2 text-emerald-800">
+            <Cpu className="h-4 w-4" />
+            <span className="text-sm font-semibold">Regras do sistema</span>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-emerald-900">{systemRulesCount}</p>
+          <p className="text-xs text-emerald-700/80">Pré-definidas · prioridade 50</p>
         </article>
 
         <article className="rounded-xl border border-violet-100 bg-violet-50/50 p-4">
@@ -182,7 +196,7 @@ export function RulesDashboard() {
             <span className="text-sm font-semibold">Padrões aprendidos</span>
           </div>
           <p className="mt-2 text-2xl font-bold text-violet-900">{data?.patterns.length ?? 0}</p>
-          <p className="text-xs text-violet-700/80">Memória evolutiva da IA</p>
+          <p className="text-xs text-violet-700/80">Memória adaptativa (após suas regras)</p>
         </article>
       </div>
 

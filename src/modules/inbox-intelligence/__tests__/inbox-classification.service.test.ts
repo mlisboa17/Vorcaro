@@ -10,8 +10,10 @@ const USER_B = "user-b";
 const categories = [
   { id: "cat-food", name: "Alimentação", parentCategoryId: null },
   { id: "cat-rest", name: "Restaurantes", parentCategoryId: "cat-food" },
+  { id: "cat-delivery", name: "Delivery", parentCategoryId: "cat-food" },
   { id: "cat-transport", name: "Transporte", parentCategoryId: null },
   { id: "cat-fuel", name: "Combustível", parentCategoryId: "cat-transport" },
+  { id: "cat-mobility", name: "Uber e Aplicativos", parentCategoryId: "cat-transport" },
   { id: "cat-health", name: "Saúde", parentCategoryId: null },
   { id: "cat-pharmacy", name: "Farmácia", parentCategoryId: "cat-health" },
 ];
@@ -75,6 +77,83 @@ function createMockAiRouter(): AiRouterService {
 }
 
 describe("InboxClassificationService", () => {
+  it("prioriza UserRule sobre histórico aprendido", async () => {
+    const patterns = [
+      {
+        patternType: "categorization_preference",
+        inputSignal: { keyword: "outback" },
+        outputSignal: { categoryId: "cat-rest", category: "Restaurantes", type: "EXPENSE" },
+        occurrences: 20,
+        confidence: 1,
+      },
+    ];
+
+    const db = {
+      userLearningPattern: { findMany: vi.fn().mockResolvedValue(patterns) },
+      category: { findMany: vi.fn().mockResolvedValue(categories) },
+      userRule: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "rule-1",
+            name: "Outback transporte",
+            priority: 80,
+            isActive: true,
+            condition: { operator: "contains", field: "description", value: "outback" },
+            action: { set: "category", value: "cat-mobility" },
+          },
+        ]),
+      },
+      transaction: { findMany: vi.fn().mockResolvedValue([]) },
+      financialInbox: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaClient;
+
+    const ai = createMockAiRouter();
+    const service = new InboxClassificationService(db, ai);
+
+    const result = await service.classify({
+      userId: USER_A,
+      description: "OUTBACK TACARUNA SHOPP",
+    });
+
+    expect(result.source).toBe("rule");
+    expect(result.categoryId).toBe("cat-mobility");
+    expect(ai.generateJson).not.toHaveBeenCalled();
+  });
+
+  it("classifica UBER EATS como delivery e UBER TRIP como mobilidade", async () => {
+    const db = createMockDb(USER_B);
+    const ai = createMockAiRouter();
+    const service = new InboxClassificationService(db, ai);
+
+    const eats = await service.classify({
+      userId: USER_B,
+      description: "UBER EATS *PEDIDO",
+    });
+    expect(eats.subcategoriaId).toBe("cat-delivery");
+    expect(eats.source).toBe("rule");
+
+    const trip = await service.classify({
+      userId: USER_B,
+      description: "UBER TRIP SAO PAULO",
+    });
+    expect(trip.subcategoriaId).toBe("cat-mobility");
+    expect(trip.source).toBe("rule");
+
+    const food99 = await service.classify({
+      userId: USER_B,
+      description: "99FOOD DELIVERY",
+    });
+    expect(food99.subcategoriaId).toBe("cat-delivery");
+
+    const app99 = await service.classify({
+      userId: USER_B,
+      description: "99APP CORRIDA",
+    });
+    expect(app99.subcategoriaId).toBe("cat-mobility");
+
+    expect(ai.generateJson).not.toHaveBeenCalled();
+  });
+
   it("prioriza histórico do usuário com alta confiança (95–100)", async () => {
     const db = createMockDb(USER_A);
     const service = new InboxClassificationService(db, createMockAiRouter());

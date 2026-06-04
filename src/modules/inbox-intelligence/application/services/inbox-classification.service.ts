@@ -21,6 +21,11 @@ import { bestMerchantMatch, normalizeMerchantText } from "../../domain/services/
 import { detectPossibleDuplicate } from "../../domain/services/detect-possible-duplicate";
 import { detectPotentialReimbursement } from "../../domain/services/detect-potential-reimbursement";
 import { buildInstallmentClassificationHint } from "../../domain/services/installment-classification-hint";
+import {
+  isAmbiguousKeywordBlocked,
+  ruleMatchesSearchText,
+  sortRulesForMatching,
+} from "@/lib/rules/rule-match-guards";
 
 const KEYWORD_RULES: Array<{
   keyword: RegExp;
@@ -37,11 +42,32 @@ const KEYWORD_RULES: Array<{
     reason: "Regra por palavra-chave IFOOD.",
   },
   {
-    keyword: /\b(uber|99app|99\s+taxi)\b/i,
+    keyword: /\buber\s*eats\b/i,
+    categoriaPrincipal: "Alimentação",
+    subcategoria: "Delivery",
+    confidence: 88,
+    reason: "Regra por palavra-chave UBER EATS.",
+  },
+  {
+    keyword: /\b99\s*food\b|\b99food\b/i,
+    categoriaPrincipal: "Alimentação",
+    subcategoria: "Delivery",
+    confidence: 87,
+    reason: "Regra por palavra-chave 99FOOD.",
+  },
+  {
+    keyword: /\b(99app|99pop|99\s+taxi|99\s+pop)\b/i,
     categoriaPrincipal: "Transporte",
-    subcategoria: "Uber",
+    subcategoria: "Uber e Aplicativos",
     confidence: 86,
-    reason: "Regra por palavra-chave UBER.",
+    reason: "Regra por palavra-chave 99 (mobilidade).",
+  },
+  {
+    keyword: /\buber(?!\s*eats)\b/i,
+    categoriaPrincipal: "Transporte",
+    subcategoria: "Uber e Aplicativos",
+    confidence: 86,
+    reason: "Regra por palavra-chave UBER (mobilidade).",
   },
   {
     keyword: /\b(posto|shell|ipiranga|combust[ií]vel)\b/i,
@@ -181,13 +207,13 @@ export class InboxClassificationService {
     });
 
     const history = this.matchHistory(patterns, searchable, keyword, categories);
-    if (history) return enrich(history);
-
     const similarity = this.matchSimilarity(patterns, text, categories);
-    if (similarity) return enrich(similarity);
 
     const userRule = this.matchUserRules(userRules, text, input.rawContent ?? text, categories);
     if (userRule) return enrich(userRule);
+
+    if (history) return enrich(history);
+    if (similarity) return enrich(similarity);
 
     const keywordRule = this.matchKeywordRule(text, categories);
     if (keywordRule) return enrich(keywordRule);
@@ -377,26 +403,24 @@ export class InboxClassificationService {
   }
 
   private matchUserRules(
-    rules: Array<{ name: string; condition: unknown; action: unknown }>,
+    rules: Array<{ name: string; condition: unknown; action: unknown; priority: number; createdAt?: Date }>,
     description: string,
     rawContent: string,
     categories: CategoryRow[],
   ): InboxClassificationSuggestion | null {
-    const context = {
-      description: description.toLowerCase(),
-      rawContent: rawContent.toLowerCase(),
-      category: "",
-      paymentMethod: "",
-    };
+    const sorted = sortRulesForMatching(rules);
 
-    for (const rule of rules) {
+    for (const rule of sorted) {
       const condition = parseRuleCondition(rule.condition);
       const action = parseRuleAction(rule.action);
       if (!condition || !action || action.set !== "category") continue;
-      if (!this.matchesRuleCondition(condition, context)) continue;
+      if (isAmbiguousKeywordBlocked(condition.value, description, rawContent)) continue;
+      if (!ruleMatchesSearchText(condition, description, rawContent)) continue;
 
       const categoryValue = String(action.value);
-      const resolved = this.resolveCategory(categories, null, categoryValue, null, null);
+      const resolved = categories.some((c) => c.id === categoryValue)
+        ? this.resolveCategory(categories, categoryValue, null, null, null)
+        : this.resolveCategory(categories, null, categoryValue, null, null);
       if (!resolved.categoryId) continue;
 
       return this.buildSuggestion({
@@ -409,20 +433,6 @@ export class InboxClassificationService {
     }
 
     return null;
-  }
-
-  private matchesRuleCondition(
-    condition: { operator: string; field: string; value: string },
-    context: { description: string; rawContent: string; category: string; paymentMethod: string },
-  ): boolean {
-    const fieldValue = context[condition.field as keyof typeof context] ?? "";
-    const needle = condition.value.toLowerCase();
-
-    if (condition.operator === "equals") {
-      return fieldValue === needle;
-    }
-
-    return fieldValue.includes(needle);
   }
 
   private matchKeywordRule(
