@@ -26,14 +26,22 @@ src/
 | **Endpoints** | Indireto via `financial-advisor` |
 | **Dependências** | Variáveis de ambiente (`GROQ_*`, `GEMINI_*`, `OPENROUTER_*`) |
 
+### `financial-consultant` (Sprint 9.5)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `IntelligentAdvisorService`, detectores (subscription, money leak, spending health), `FinancialHealthScoreService`, `AdvisorActionBuilderService` |
+| **Endpoints** | `GET /api/advisor/consultation` |
+| **Dependências** | `financial-alerts`, `receivables`, `commitments`, `financial-planning`, `cashflow`, Prisma |
+
 ### `financial-advisor`
 
 | Aspecto | Detalhe |
 |---------|---------|
 | **Serviços** | `FinancialAdvisorService`, `FinancialDataAggregatorService`, `FinancialInsightsService` |
 | **Repositórios** | Prisma direto no agregador |
-| **Endpoints** | `POST /api/advisor/ask`, `GET /api/advisor/insights` |
-| **Dependências** | `ai`, `cashflow`, `financial-planning`, `financial-alerts`, `commitments`, Prisma |
+| **Endpoints** | `POST /api/advisor/ask`, `GET /api/advisor/insights`, `GET /api/advisor/consultation` |
+| **Dependências** | `ai`, `financial-consultant`, `cashflow`, `financial-planning`, `financial-alerts`, `commitments`, Prisma |
 
 ### `cashflow`
 

@@ -42,6 +42,20 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
+## Consultor Financeiro (Sprint 9.5)
+
+### `GET` — `/api/advisor/consultation`
+
+**Descrição:** Consulta determinística — `summary`, `risks`, `recommendations`, `actions`, `healthScore`, `savingsOpportunities`, detectores.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/advisor/insights`
+
+**Descrição:** Mesmo payload da consulta + array `insights` (compatibilidade UI).  
+**Auth:** Obrigatório.
+
+---
+
 ## Alertas Financeiros (Sprint 9)
 
 ### `GET` — `/api/alerts`

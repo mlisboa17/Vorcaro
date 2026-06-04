@@ -2,6 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { FinancialDataAggregatorService } from "../application/services/financial-data-aggregator.service";
 import { InstallmentReadModelService } from "@/modules/installments/application/services/installment-read-model.service";
 
+vi.mock("@/modules/financial-consultant/application/services/intelligent-advisor.service", () => ({
+  IntelligentAdvisorService: class {
+    consult = vi.fn().mockResolvedValue({
+      summary: "ok",
+      risks: [],
+      recommendations: [],
+      actions: [],
+      healthScore: { score: 80, classification: "SAUDAVEL", factors: [] },
+      savingsOpportunities: [],
+      subscriptionDuplicates: [],
+      moneyLeaks: [],
+      spendingHealth: [],
+      generatedAt: new Date().toISOString(),
+    });
+  },
+}));
+
 vi.mock("@/lib/api/monthly-commitments", () => ({
   buildMonthlyCommitmentsUseCases: () => ({
     getMonthly: vi.fn().mockResolvedValue({

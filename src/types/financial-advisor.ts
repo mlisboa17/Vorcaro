@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AiProviderName } from "@/modules/ai/domain/ports/ai-provider.port";
+import { advisorConsultationResponseSchema } from "./advisor-consultant";
 
 export type AdvisorConfidence = "LOW" | "MEDIUM" | "HIGH";
 
@@ -29,11 +30,17 @@ export const advisorInsightSchema = z.object({
   model: z.string().optional(),
 });
 
-export const advisorInsightsResponseSchema = z.object({
+export const advisorInsightsResponseSchema = advisorConsultationResponseSchema.extend({
   insights: z.array(advisorInsightSchema),
-  generatedAt: z.string(),
 });
 
 export type AdvisorInsight = z.infer<typeof advisorInsightSchema>;
+
+/** Reexport — consulta completa Sprint 9.5 */
+export {
+  advisorConsultationResponseSchema,
+  type AdvisorConsultationResponse,
+  HEALTH_SCORE_LABELS,
+} from "./advisor-consultant";
 
 export type { AiProviderName };

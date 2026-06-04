@@ -1,11 +1,38 @@
 import { describe, expect, it, vi } from "vitest";
 import { FinancialAdvisorService } from "../application/services/financial-advisor.service";
 import { FinancialDataAggregatorService } from "../application/services/financial-data-aggregator.service";
+import { IntelligentAdvisorService } from "@/modules/financial-consultant/application/services/intelligent-advisor.service";
 import { INSUFFICIENT_DATA_MESSAGE } from "../domain/constants";
 import type { AiRouterService } from "@/modules/ai/application/services/ai-router.service";
 
+const mockConsultation = {
+  summary: "Resumo consultor",
+  risks: [],
+  recommendations: [],
+  actions: [
+    {
+      id: "a1",
+      type: "REDUCE_EXPENSES" as const,
+      title: "Reduzir despesas",
+      description: "Fluxo negativo",
+      priority: "CRITICAL" as const,
+      effort: "HIGH" as const,
+      effortWeight: 3 as const,
+      target: "/dashboard/cashflow",
+      metadata: { category: "GERAL", currentSpending: 0, targetSpending: 0 },
+    },
+  ],
+  healthScore: { score: 75, classification: "SAUDAVEL" as const, factors: [] },
+  savingsOpportunities: [],
+  subscriptionDuplicates: [],
+  moneyLeaks: [],
+  spendingHealth: [],
+  generatedAt: new Date().toISOString(),
+};
+
 describe("FinancialAdvisorService", () => {
   it("retorna LOW e mensagem padrão sem dados suficientes", async () => {
+    vi.spyOn(IntelligentAdvisorService.prototype, "consult").mockResolvedValue(mockConsultation);
     vi.spyOn(FinancialDataAggregatorService.prototype, "aggregate").mockResolvedValue({
       markdown: "# vazio",
       usedSources: [],
@@ -25,6 +52,7 @@ describe("FinancialAdvisorService", () => {
   });
 
   it("chama IA quando há contexto suficiente", async () => {
+    vi.spyOn(IntelligentAdvisorService.prototype, "consult").mockResolvedValue(mockConsultation);
     vi.spyOn(FinancialDataAggregatorService.prototype, "aggregate").mockResolvedValue({
       markdown: "## contas\n- conta 1",
       usedSources: ["contas", "transacoes", "recorrencias"],

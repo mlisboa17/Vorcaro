@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added — Sprint 9.5 (Consultor Financeiro Inteligente)
+
+- Módulo `financial-consultant` — `AdvisorAction`, detectores (assinaturas duplicadas, gastos invisíveis, raio-X de gastos), score 0–100, top 3 economias.
+- **Aditivo 9.5:** metadata tipado por ação, `effort`/`effortWeight`, `SubscriptionNameNormalizer`, duplicidade cross-cartão, tendência em money leak, Top 3 por `priorityScore`, `AdvisorActionGuardrailService`.
+- `IntelligentAdvisorService` + `GET /api/advisor/consultation`; `GET /api/advisor/insights` estendido com `summary`, `risks`, `recommendations`, `actions`, `healthScore`.
+- IA Financeira consome apenas ações geradas pelo backend (guardrail + prompt reforçado).
+- Card **Próximas Ações Recomendadas** no dashboard executivo; UI do advisor com score e economias.
+- Mapeamento de ações → rotas (`/dashboard/receivables`, `/dashboard/planning`, etc.).
+
 ### Added — Sprint 9 (Alertas Financeiros Inteligentes)
 
 - Modelo `FinancialAlert` + enums (`FinancialAlertType`, `FinancialAlertSeverity`, `FinancialAlertStatus`); migration `20260603120000_financial_alerts_sprint9`.

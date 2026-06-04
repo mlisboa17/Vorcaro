@@ -1,6 +1,6 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9).
+Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9.5).
 
 **Princípios transversais**
 
@@ -211,6 +211,17 @@ Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9).
 | **Agendamento** | Cron `0 6 * * *` via `npm run alerts:engine` ou endpoint cron com `CRON_SECRET` |
 | **Integrações** | Dashboard executivo (`ExecutiveAlertsCard`), Advisor (`alertas_financeiros`), `TelegramAlertFormatter` (preparação Sprint 10) |
 | **Status** | **Concluído (Sprint 9)** |
+
+### Consultor Financeiro Inteligente (Sprint 9.5)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Recomendações estruturadas, score de saúde, detectores de desperdício — IA não executa ações |
+| **Rotas UI** | `/dashboard/advisor`, card ações no dashboard executivo |
+| **Rotas API** | `GET /api/advisor/consultation`, `GET /api/advisor/insights` (payload estendido) |
+| **Módulo** | `src/modules/financial-consultant` |
+| **Tipos** | `AdvisorAction`, score, savings, duplicidades, money leaks |
+| **Status** | **Concluído (Sprint 9.5)** |
 
 ### Inbox Intelligence (evolução pós-7.4)
 

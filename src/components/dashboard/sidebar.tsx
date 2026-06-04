@@ -3,51 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import {
-  Bell,
-  CalendarClock,
-  Cpu,
-  Handshake,
-  HandCoins,
-  History,
-  Inbox,
-  Landmark,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  RefreshCw,
-  Settings,
-  Sparkles,
-  Target,
-  WalletCards,
-  X,
-} from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DASHBOARD_NAV_GROUPS } from "@/lib/navigation/dashboard-nav";
 import { cn } from "@/lib/utils/cn";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: typeof Inbox;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
-  { href: "/dashboard/advisor", label: "IA Financeira", icon: Sparkles },
-  { href: "/dashboard/planning", label: "Planejamento", icon: Target },
-  { href: "/dashboard/installments", label: "Parcelamentos", icon: WalletCards },
-  { href: "/dashboard/inbox", label: "Caixa Financeira", icon: Inbox },
-  { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
-  { href: "/dashboard/commitments", label: "Compromissos Recorrentes", icon: CalendarClock },
-  { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
-  { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
-  { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
-  { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
-  { href: "/dashboard/consorcios", label: "Consórcios", icon: Handshake },
-  { href: "/dashboard/cashflow", label: "Fluxo de Caixa Futuro", icon: CalendarClock },
-  { href: "/dashboard/recurring", label: "Lançamentos Recorrentes", icon: RefreshCw },
-  { href: "/dashboard/rules", label: "Cérebro & Automações", icon: Cpu },
-];
 
 interface SidebarProps {
   userEmail: string;
@@ -93,28 +52,46 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
         ) : null}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV_ITEMS.map((item) => {
-          const active = isActiveRoute(pathname, item.href);
-          const Icon = item.icon;
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {DASHBOARD_NAV_GROUPS.map((group, groupIndex) => (
+          <div
+            key={group.title}
+            className={cn(groupIndex > 0 && "mt-6 border-t border-white/10 pt-5")}
+          >
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              {group.title}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const active = isActiveRoute(pathname, item.href);
+                const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",
-                active
-                  ? "border-l-2 border-emerald-400 bg-white/10 pl-[10px] text-white"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white",
-              )}
-            >
-              <Icon className={cn("h-5 w-5 shrink-0", active ? "text-emerald-400" : "text-slate-400")} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",
+                        active
+                          ? "border-l-2 border-emerald-400 bg-white/10 pl-[10px] text-white"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white",
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          active ? "text-emerald-400" : "text-slate-400",
+                        )}
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-white/10 px-4 py-4">

@@ -1,6 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 import { AiRouterService } from "@/modules/ai/application/services/ai-router.service";
 import { AiRouterExhaustedError } from "@/modules/ai/domain/errors/ai-provider.error";
+import { IntelligentAdvisorService } from "@/modules/financial-consultant/application/services/intelligent-advisor.service";
+import { AdvisorActionGuardrailService } from "@/modules/financial-consultant/application/services/advisor-action-guardrail.service";
 import type { AdvisorAskResponse, AdvisorConfidence } from "@/types/financial-advisor";
 import { ADVISOR_SYSTEM_PROMPT, INSUFFICIENT_DATA_MESSAGE } from "../../domain/constants";
 import { FinancialDataAggregatorService } from "./financial-data-aggregator.service";
@@ -13,18 +15,24 @@ function resolveConfidence(dataScore: number, usedSources: string[]): AdvisorCon
 
 export class FinancialAdvisorService {
   private readonly aggregator: FinancialDataAggregatorService;
+  private readonly consultant: IntelligentAdvisorService;
   private readonly aiRouter: AiRouterService;
+  private readonly guardrail = new AdvisorActionGuardrailService();
 
   constructor(
     prisma: PrismaClient,
     aiRouter?: AiRouterService,
   ) {
     this.aggregator = new FinancialDataAggregatorService(prisma);
+    this.consultant = new IntelligentAdvisorService(prisma);
     this.aiRouter = aiRouter ?? new AiRouterService();
   }
 
   async ask(userId: string, question: string): Promise<AdvisorAskResponse> {
-    const context = await this.aggregator.aggregate(userId);
+    const [context, consultation] = await Promise.all([
+      this.aggregator.aggregate(userId),
+      this.consultant.consult(userId),
+    ]);
     const confidence = resolveConfidence(context.dataScore, context.usedSources);
 
     if (confidence === "LOW") {
@@ -37,7 +45,30 @@ export class FinancialAdvisorService {
       };
     }
 
-    const prompt = `${context.markdown}\n\n---\n\nPergunta do usuário:\n${question}`;
+    const safeActions = this.guardrail.validateActions(consultation.actions);
+
+    const actionsBlock = safeActions
+      .slice(0, 15)
+      .map(
+        (a) =>
+          `- [id:${a.id}] [${a.priority}] ${a.title} (${a.type}, esforço ${a.effort}) → ${a.target ?? "n/a"}${a.estimatedImpact ? ` · impacto ~R$ ${a.estimatedImpact.toFixed(2)}` : ""}`,
+      )
+      .join("\n");
+
+    const prompt = `${context.markdown}
+
+## Consultor financeiro (dados determinísticos)
+Resumo: ${consultation.summary}
+Score de saúde: ${consultation.healthScore.score}/100 (${consultation.healthScore.classification})
+Top economias: ${consultation.savingsOpportunities.map((s) => s.title).join("; ") || "nenhuma"}
+
+### Ações estruturadas do sistema (use APENAS estas)
+${actionsBlock || "- Nenhuma ação pendente"}
+
+---
+
+Pergunta do usuário:
+${question}`;
 
     try {
       const result = await this.aiRouter.generateText({
@@ -47,9 +78,11 @@ export class FinancialAdvisorService {
         maxTokens: 1500,
       });
 
-      const answer = result.text.includes(INSUFFICIENT_DATA_MESSAGE)
+      let answer = result.text.includes(INSUFFICIENT_DATA_MESSAGE)
         ? INSUFFICIENT_DATA_MESSAGE
         : result.text;
+
+      answer = this.guardrail.sanitizeLlmAnswer(answer, safeActions);
 
       return {
         answer,

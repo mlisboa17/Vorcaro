@@ -1,7 +1,9 @@
 "use client";
 
-import { CalendarClock, Loader2, Search } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Loader2, RefreshCw, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DASHBOARD_RECURRING_ROUTE } from "@/lib/navigation/dashboard-nav";
 import {
   COMMITMENT_ORIGIN_LABELS,
   COMMITMENT_STATUS_LABELS,
@@ -80,14 +82,23 @@ function CommitmentsDashboardInner() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
-          <CalendarClock className="h-6 w-6 text-emerald-600" />
-          Compromissos Recorrentes
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Visão mensal consolidada de saídas comprometidas, entradas previstas e vencimentos.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <CalendarClock className="h-6 w-6 text-emerald-600" />
+            Compromissos Recorrentes
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Visão mensal consolidada de saídas comprometidas, entradas previstas e vencimentos.
+          </p>
+        </div>
+        <Link
+          href={DASHBOARD_RECURRING_ROUTE}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-emerald-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Gerenciar recorrências
+        </Link>
       </header>
 
       {data ? (

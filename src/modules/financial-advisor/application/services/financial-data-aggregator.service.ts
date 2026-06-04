@@ -359,6 +359,39 @@ export class FinancialDataAggregatorService {
     }
 
     try {
+      const { IntelligentAdvisorService } = await import(
+        "@/modules/financial-consultant/application/services/intelligent-advisor.service"
+      );
+      const brief = await new IntelligentAdvisorService(this.prisma).consult(userId);
+      usedSources.push("consultor_financeiro");
+      dataScore += 2;
+      sections.push(
+        "## Consultor financeiro (motor determinístico)",
+        `- ${brief.summary}`,
+        `- Score: ${brief.healthScore.score}/100 (${brief.healthScore.classification})`,
+        `- Ações estruturadas (${brief.actions.length}):`,
+        ...brief.actions.slice(0, 6).map(
+          (a) => `  - [${a.priority}] ${a.title} → ${a.target ?? "—"}`,
+        ),
+        `- Top economias:`,
+        ...brief.savingsOpportunities.map(
+          (s) => `  - ${s.rank}. ${s.title} (+R$ ${s.estimatedMonthlySavings.toFixed(2)}/mês)`,
+        ),
+      );
+      if (brief.subscriptionDuplicates.length > 0) {
+        sections.push(
+          `- Assinaturas duplicadas: ${brief.subscriptionDuplicates.map((d) => d.brand).join(", ")}`,
+        );
+      }
+      if (brief.moneyLeaks.length > 0) {
+        const leak = brief.moneyLeaks[0];
+        sections.push(`- Gastos invisíveis: R$ ${leak.monthlyTotal.toFixed(2)}/mês`);
+      }
+    } catch {
+      /* consultor opcional */
+    }
+
+    try {
       const cashflow = buildCashflowProjectionService(this.prisma);
       const projection = await cashflow.execute(userId);
       if (projection.eventos.length > 0 || projection.previsao30Dias !== 0) {

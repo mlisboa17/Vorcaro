@@ -40,9 +40,11 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **7.5** | Contas a Receber e Reembolsos (ativo, cobrança, integrações) | Concluída |
 | **8** | Central de Compromissos Recorrentes (read model mensal) | Concluída |
 | **9** | Alertas Financeiros Inteligentes (motor persistido + dashboard) | Concluída |
+| **9.5** | Consultor Financeiro Inteligente (ações, score, detectores) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
 Fechamento Sprint 9: [`docs/sprint-9-closure-report.md`](docs/sprint-9-closure-report.md).  
+Sprint 9.5: [`docs/sprint-9.5-consultor-financeiro-inteligente.md`](docs/sprint-9.5-consultor-financeiro-inteligente.md).  
 Fechamento Sprint 8: [`docs/sprint-8-closure-report.md`](docs/sprint-8-closure-report.md).  
 Fechamento Sprint 7.5: [`docs/sprint-7.5-closure-report.md`](docs/sprint-7.5-closure-report.md).
 
@@ -338,6 +340,18 @@ Motor proativo com persistência, idempotência (`fingerprint`) e auto-resoluç�
 | Motor | `src/modules/financial-alerts` |
 
 Regras: pagamento próximo (7d), recebível atrasado, risco cartão (>30% renda), alto comprometimento (>80%), meta em risco, reembolso atrasado (>15d), fluxo negativo (15d).
+
+## Consultor Financeiro Inteligente (Sprint 9.5)
+
+Motor determinístico que gera ações, riscos, score de saúde (0–100) e top 3 economias. A IA **só recomenda** ações já geradas pelo backend.
+
+| Recurso | Caminho |
+|---------|---------|
+| IA Financeira | `/dashboard/advisor` |
+| API consulta | `GET /api/advisor/consultation` |
+| Insights estendidos | `GET /api/advisor/insights` |
+
+Detectores: assinaturas duplicadas, gastos invisíveis, raio-X de gastos (delivery, streaming, taxas…).
 
 ### Operação local / produção
 
