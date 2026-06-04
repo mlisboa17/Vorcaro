@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Added — Sprint 11.1 (Vorcaro Intent Engine e Tool Calling)
+
+- **Intent Engine:** `VorcaroIntentEngineService` com enum `VorcaroIntent` (STATUS, ALERTS, RECEIVABLES, GOALS, EXPENSES, CASHFLOW, COMMITMENTS, SUBSCRIPTIONS, MONEY_LEAK, HEALTH_SCORE, NOTIFICATIONS, RULES_AUTOMATIONS, GENERAL_CHAT, UNKNOWN).
+- **Tool Resolver:** `VorcaroToolResolverService` mapeia intenção → ferramentas internas.
+- **Tool Calling:** `VorcaroToolCallingService` executa múltiplas ferramentas (ex.: STATUS → health + alertas + metas + money leak + compromissos).
+- **RulesAutomationTool:** explica regras, padrões aprendidos e taxonomia — somente leitura (sem CRUD automático).
+- **Contrato:** `VorcaroToolResult` (title, summary, facts, metrics, recommendations).
+- **Respostas sem IA:** perguntas simples e comandos `/status`, `/alertas`, etc. respondem via formatter FIA determinístico.
+- **Fallback IA:** perguntas estratégicas/abertas continuam no LLM com métrica `fallback_to_llm`.
+- **Observabilidade:** `intent_detected`, `tool_called`, `tool_only_response`, `llm_called`, `fallback_to_llm`.
+- **Cache:** intent + tool result, TTL 60s.
+- Doc: [`docs/sprint-11.1-intent-engine.md`](docs/sprint-11.1-intent-engine.md).
+
+### Added — Sprint 11 (Vorcaro Conversacional)
+
+- Modelos `VorcaroConversation` e `VorcaroMessage`; migration `20260605120000_vorcaro_conversational_sprint11`.
+- **Vorcaro Chat Engine:** `VorcaroConversationService`, agregador unificado, memória de tópico, prompt builder, health score conversacional.
+- UI `/dashboard/vorcaro/chat` — chat persistente com tom configurável (Sprint 10.5).
+- APIs: `POST /api/vorcaro/chat`, `GET/POST /api/vorcaro/conversations`, `GET /api/vorcaro/conversations/[id]`.
+- Telegram conversacional: comandos `/status`, `/alertas`, `/gastos`, `/metas`, `/oportunidades`, `/recebiveis`, `/vorcaro` e perguntas `Vorcaro, ...`.
+- Guardrails, rate limit (60/h WEB, 30/h Telegram), multitenancy, cache de contexto 60s.
+- Doc: [`docs/sprint-11-vorcaro-conversacional.md`](docs/sprint-11-vorcaro-conversacional.md).
+
 ### Added — Sprint 10 (Central de Notificações Inteligentes)
 
 - Modelos `Notification` e `NotificationPreference`; migration `20260604120000_notification_center_sprint10`.

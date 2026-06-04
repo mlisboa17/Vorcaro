@@ -1,6 +1,35 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9.5).
+Documento de inventário técnico. Última revisão: 2026-06-05 (Sprint 11.1).
+
+## Sprint 11.1 — Vorcaro Intent Engine e Tool Calling
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Chat orientado por intenções e ferramentas internas; LLM apenas quando necessário |
+| **Módulo** | `src/modules/vorcaro/intent/` |
+| **Serviços** | `VorcaroIntentEngineService`, `VorcaroToolResolverService`, `VorcaroToolCallingService`, `VorcaroToolExecutorService`, `RulesAutomationTool`, cache e observabilidade |
+| **Integração** | `VorcaroConversationService.sendMessage()` — tool-first, fallback LLM |
+| **Status** | Concluída |
+
+## Sprint 11 — Vorcaro Conversacional
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Chat conversacional LOGOS + Telegram com dados reais |
+| **Rotas UI** | `/dashboard/vorcaro/chat` |
+| **Rotas API** | `POST /api/vorcaro/chat`, `GET/POST /api/vorcaro/conversations`, `GET /api/vorcaro/conversations/[id]` |
+| **Tabelas Prisma** | `VorcaroConversation`, `VorcaroMessage` |
+| **Serviços** | `VorcaroConversationService`, `VorcaroContextAggregatorService`, `VorcaroConversationMemoryService`, `VorcaroPromptBuilderService` |
+| **Status** | Concluída |
+
+**Princípios transversais**
+
+- **Multitenancy:** `userId` nunca vem do frontend; sempre `session.user.id` (Auth.js).
+- **Monetário:** valores persistidos com `Decimal` no Prisma (nunca `float`/`number` no banco).
+- **Determinismo:** motores de cálculo e IA usam apenas dados locais (`logos_financeiro`).
+
+---
 
 **Princípios transversais**
 

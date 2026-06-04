@@ -12,6 +12,12 @@ import {
   type TelegramMessage,
 } from "@/adapters/telegram/types/telegram-update";
 import { parseConnectCommand } from "@/lib/telegram/connect-command";
+import {
+  parseVorcaroTelegramCommand,
+  resolveVorcaroTelegramQuestion,
+  shouldRouteToVorcaroChat,
+} from "@/lib/telegram/vorcaro-telegram-commands";
+import { VorcaroConversationService } from "@/modules/vorcaro/conversation/application/services/vorcaro-conversation.service";
 import { detectReceivableTelegramHint } from "@/lib/telegram/detect-receivable-hint";
 import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegram-bot.client";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
@@ -43,7 +49,7 @@ export class ProcessTelegramUpdateService {
     if (text && (isStartCommand(text) || isHelpCommand(text))) {
       await this.safeReply(
         chatId,
-        "Olá! Vorcaro Finance Control.\n\n1) Em <b>Cadastros → Integrações</b>, gere um código.\n2) Envie aqui: <code>/connect SEUCODIGO</code>\n3) Depois envie texto, áudio ou foto de comprovante.",
+        "Olá! Vorcaro Finance Control.\n\n1) Em <b>Cadastros → Integrações</b>, gere um código.\n2) Envie aqui: <code>/connect SEUCODIGO</code>\n3) Envie comprovantes ou converse com o Vorcaro.\n\nComandos: /status /alertas /gastos /metas /oportunidades /recebiveis\nOu: <code>Vorcaro, como estou financeiramente?</code>",
       );
       return { ok: true, handled: "command" };
     }
@@ -133,6 +139,33 @@ export class ProcessTelegramUpdateService {
 
     if (!text) {
       return { ok: true, skipped: "empty_message" };
+    }
+
+    if (shouldRouteToVorcaroChat(text)) {
+      const helpText = parseVorcaroTelegramCommand(text);
+      if (text.trim().toLowerCase().startsWith("/help_vorcaro") && helpText) {
+        await this.safeReply(chatId, helpText);
+        return { ok: true, handled: "vorcaro_help" };
+      }
+
+      try {
+        const question = resolveVorcaroTelegramQuestion(text);
+        const chatService = new VorcaroConversationService(this.prisma);
+        const result = await chatService.sendMessage({
+          userId,
+          message: question,
+          channel: "TELEGRAM",
+        });
+        await this.safeReply(chatId, result.answer.slice(0, 3900));
+        return { ok: true, handled: "vorcaro_chat" };
+      } catch (error) {
+        const msg =
+          error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED"
+            ? "Limite de perguntas ao Vorcaro atingido. Tente novamente em breve."
+            : "Não foi possível consultar o Vorcaro agora. Tente mais tarde.";
+        await this.safeReply(chatId, msg);
+        return { ok: true, handled: "vorcaro_chat_failed" };
+      }
     }
 
     const receivableHint = detectReceivableTelegramHint(text);

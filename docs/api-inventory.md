@@ -33,6 +33,32 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
+## Vorcaro (Sprint 10.5 / 11 / 11.1)
+
+### `GET/PATCH` — `/api/vorcaro/preferences`
+
+**Descrição:** Preferência de tom Vorcaro (`vorcaroTone`).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/vorcaro/chat`
+
+**Descrição:** Enviar mensagem ao Vorcaro Chat Engine; persiste conversa. Fluxo Sprint 11.1: Intent Engine → Tool Calling → resposta FIA determinística; fallback LLM para perguntas estratégicas.  
+**Auth:** Obrigatório. Rate limit 60/h (WEB).  
+**Body:** `{ message: string, conversationId?: string }`  
+**Resposta (campos extras):** `responseMode` (`tool` | `llm`), `intent`, `toolsUsed`
+
+### `GET/POST` — `/api/vorcaro/conversations`
+
+**Descrição:** Listar ou criar conversas WEB.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/vorcaro/conversations/[id]`
+
+**Descrição:** Conversa + mensagens (ownership validado).  
+**Auth:** Obrigatório.
+
+---
+
 ## Cashflow
 
 ### `GET` — `/api/cashflow/projection`

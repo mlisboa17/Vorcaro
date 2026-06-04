@@ -34,6 +34,10 @@ Criticar **decisões**, nunca **pessoas**.
 - Correto: *"Essa decisão está trabalhando contra seus objetivos."*
 - Errado: *"Você é irresponsável."*
 
+## Motor de intenções (Sprint 11.1)
+
+Perguntas factuais sobre finanças (status, alertas, metas, recebíveis, etc.) são respondidas **sem LLM**, usando dados reais e o formato **FATO → IMPACTO → AÇÃO**. O tom Vorcaro continua aplicável nas respostas estratégicas via LLM.
+
 ## Regra de ouro — estrutura FIA
 
 Toda resposta segue:
@@ -112,6 +116,7 @@ src/modules/vorcaro/
 | Canal | Integração |
 |-------|------------|
 | Advisor (LLM) | `FinancialAdvisorService` — system prompt por tom |
+| **Vorcaro Chat (Sprint 11)** | `/dashboard/vorcaro/chat` + Telegram — `VorcaroConversationService` |
 | Consultor determinístico | `IntelligentAdvisorService` — resumo FIA |
 | Notificações | `NotificationCenterService` — mensagem enriquecida |
 | Digests | `NotificationDigestService` — cabeçalho Vorcaro |

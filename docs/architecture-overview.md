@@ -46,6 +46,17 @@ src/
 | **Endpoints** | `POST /api/advisor/ask`, `GET /api/advisor/insights`, `GET /api/advisor/consultation` |
 | **Dependências** | `ai`, `financial-consultant`, `cashflow`, `financial-planning`, `financial-alerts`, `commitments`, Prisma |
 
+### `vorcaro` (Sprint 10.5 / 11 / 11.1)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `VorcaroMessagingService`, `VorcaroConversationService`, `VorcaroContextAggregatorService`, `VorcaroConversationMemoryService`, `VorcaroPromptBuilderService`, **`VorcaroIntentEngineService`**, **`VorcaroToolResolverService`**, **`VorcaroToolCallingService`**, **`RulesAutomationTool`** |
+| **Fluxo chat** | Pergunta → Intent Engine → Tool Resolver → ferramentas internas → Formatter FIA; fallback LLM para análise estratégica |
+| **Repositórios** | `PrismaVorcaroConversationRepository`, `PrismaVorcaroMessageHistoryRepository`, `PrismaVorcaroPreferenceRepository` |
+| **Endpoints** | `POST /api/vorcaro/chat`, `/api/vorcaro/conversations`, `/api/vorcaro/preferences` |
+| **Dependências** | `ai`, `financial-advisor`, `financial-consultant`, `notifications`, `financial-inbox` (regras), Prisma |
+| **Observabilidade** | Métricas in-process: `intent_detected`, `tool_called`, `tool_only_response`, `llm_called`, `fallback_to_llm` |
+
 ### `cashflow`
 
 | Aspecto | Detalhe |

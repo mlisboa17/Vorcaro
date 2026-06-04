@@ -11,6 +11,7 @@ import {
   Landmark,
   LayoutDashboard,
   LineChart,
+  MessageCircle,
   Settings,
   Sparkles,
   Target,
@@ -37,7 +38,8 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
       { href: "/dashboard/notifications", label: "Notificações", icon: BellRing, badgeKey: "notifications" },
       { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
-      { href: "/dashboard/advisor", label: "Vorcaro", icon: Sparkles },
+      { href: "/dashboard/vorcaro/chat", label: "Vorcaro Chat", icon: MessageCircle },
+      { href: "/dashboard/advisor", label: "Vorcaro Insights", icon: Sparkles },
     ],
   },
   {
