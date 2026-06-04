@@ -49,7 +49,7 @@ export function ExecutiveRecommendedActionsCard() {
           href="/dashboard/advisor"
           className="text-xs font-medium text-emerald-600 hover:underline"
         >
-          Ver consultor
+          Ver Vorcaro
         </Link>
       </div>
 

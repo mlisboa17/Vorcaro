@@ -15,6 +15,8 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { AdvisorActionRow } from "@/components/advisor/advisor-action-row";
 import { cn } from "@/lib/utils/cn";
+import { VORCARO_TONE_LABELS, type VorcaroTone } from "@/modules/vorcaro/domain/types/vorcaro-personality";
+import { getVorcaroTagline } from "@/modules/vorcaro/domain/vorcaro-profile";
 
 type ChatEntry = {
   id: string;
@@ -39,6 +41,19 @@ export function AdvisorDashboard() {
   const [loading, setLoading] = useState(false);
   const [loadingConsultation, setLoadingConsultation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vorcaroTone, setVorcaroTone] = useState<VorcaroTone>("PROFESSIONAL");
+  const [savingTone, setSavingTone] = useState(false);
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      const res = await fetch("/api/vorcaro/preferences");
+      if (!res.ok) return;
+      const data = (await res.json()) as { vorcaroTone: VorcaroTone };
+      setVorcaroTone(data.vorcaroTone);
+    } catch {
+      /* mantém default */
+    }
+  }, []);
 
   const loadConsultation = useCallback(async () => {
     setLoadingConsultation(true);
@@ -56,7 +71,26 @@ export function AdvisorDashboard() {
 
   useEffect(() => {
     void loadConsultation();
-  }, [loadConsultation]);
+    void loadPreferences();
+  }, [loadConsultation, loadPreferences]);
+
+  async function handleToneChange(next: VorcaroTone) {
+    setSavingTone(true);
+    try {
+      const res = await fetch("/api/vorcaro/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vorcaroTone: next }),
+      });
+      if (!res.ok) throw new Error("Falha ao salvar tom");
+      const data = (await res.json()) as { vorcaroTone: VorcaroTone };
+      setVorcaroTone(data.vorcaroTone);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar tom");
+    } finally {
+      setSavingTone(false);
+    }
+  }
 
   async function handleAsk(event: React.FormEvent) {
     event.preventDefault();
@@ -106,10 +140,27 @@ export function AdvisorDashboard() {
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <Sparkles className="h-5 w-5 text-violet-600" />
-                Consultor Financeiro
+                Vorcaro
               </h2>
+              <p className="mt-1 text-xs italic text-slate-500">{getVorcaroTagline()}</p>
               <p className="mt-2 max-w-2xl text-sm text-slate-700">{consultation.summary}</p>
             </div>
+            <div className="flex flex-col items-end gap-3">
+              <label className="text-xs text-slate-500">
+                Tom de comunicação
+                <select
+                  value={vorcaroTone}
+                  disabled={savingTone}
+                  onChange={(e) => void handleToneChange(e.target.value as VorcaroTone)}
+                  className="mt-1 block rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800"
+                >
+                  {(Object.keys(VORCARO_TONE_LABELS) as VorcaroTone[]).map((tone) => (
+                    <option key={tone} value={tone}>
+                      {VORCARO_TONE_LABELS[tone]}
+                    </option>
+                  ))}
+                </select>
+              </label>
             <div className="text-center">
               <p
                 className={cn(
@@ -123,6 +174,7 @@ export function AdvisorDashboard() {
               <p className="text-sm font-medium text-slate-800">
                 {HEALTH_SCORE_LABELS[consultation.healthScore.classification]}
               </p>
+            </div>
             </div>
           </div>
 
@@ -154,7 +206,7 @@ export function AdvisorDashboard() {
           <div className="min-h-[360px] rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             {chat.length === 0 ? (
               <p className="text-sm text-slate-500">
-                Faça uma pergunta sobre suas finanças. O consultor usa apenas dados e ações geradas
+                Faça uma pergunta sobre suas finanças. O Vorcaro usa apenas dados e ações geradas
                 pelo sistema.
               </p>
             ) : (
@@ -168,7 +220,7 @@ export function AdvisorDashboard() {
                     )}
                   >
                     <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      {entry.role === "user" ? "Você" : "Consultor"}
+                      {entry.role === "user" ? "Você" : "Vorcaro"}
                     </p>
                     {entry.role === "assistant" ? (
                       <AdvisorMarkdown text={entry.content} />

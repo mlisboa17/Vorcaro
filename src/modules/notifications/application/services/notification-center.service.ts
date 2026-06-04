@@ -11,6 +11,7 @@ import type {
 import { TELEGRAM_IMMEDIATE_TYPES } from "../../domain/types/notification";
 import { PrismaNotificationPreferenceRepository } from "../../infrastructure/repositories/prisma-notification-preference.repository";
 import { PrismaNotificationRepository } from "../../infrastructure/repositories/prisma-notification.repository";
+import { VorcaroMessagingService } from "@/modules/vorcaro/application/services/vorcaro-messaging.service";
 import { NotificationTelegramDeliveryService } from "./notification-telegram-delivery.service";
 
 export type PublishResult = {
@@ -34,11 +35,13 @@ export class NotificationCenterService {
   private readonly notifications: PrismaNotificationRepository;
   private readonly preferences: PrismaNotificationPreferenceRepository;
   private readonly telegram: NotificationTelegramDeliveryService;
+  private readonly vorcaro: VorcaroMessagingService;
 
   constructor(private readonly db: PrismaClient) {
     this.notifications = new PrismaNotificationRepository(db);
     this.preferences = new PrismaNotificationPreferenceRepository(db);
     this.telegram = new NotificationTelegramDeliveryService(db);
+    this.vorcaro = new VorcaroMessagingService(db);
   }
 
   mapAlertType(alertType: FinancialAlertType): NotificationType {
@@ -61,6 +64,14 @@ export class NotificationCenterService {
       ...(input.actionUrl ? { actionUrl: input.actionUrl } : {}),
     };
 
+    const message = await this.vorcaro.enhanceNotificationMessage({
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      actionUrl: input.actionUrl,
+    });
+
     if (pref.dashboardEnabled) {
       const fp = buildDeliveryFingerprint(input.type, input.userId, input.entityKey, "DASHBOARD");
       const { record, created } = await this.notifications.create({
@@ -68,7 +79,7 @@ export class NotificationCenterService {
         type: input.type,
         severity: input.severity,
         title: input.title,
-        message: input.message,
+        message,
         channel: "DASHBOARD",
         fingerprint: fp,
         payload,
@@ -93,7 +104,7 @@ export class NotificationCenterService {
         type: input.type,
         severity: input.severity,
         title: input.title,
-        message: input.message,
+        message,
         channel: "TELEGRAM",
         fingerprint: fp,
         payload,

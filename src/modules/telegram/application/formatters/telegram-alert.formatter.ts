@@ -1,4 +1,5 @@
 import type { FinancialAlertRecord } from "@/modules/financial-alerts/domain/types/financial-alert";
+import { getVorcaroDisplayName } from "@/modules/vorcaro/domain/vorcaro-profile";
 import { ALERT_SEVERITY_LABELS, ALERT_TYPE_LABELS } from "@/types/financial-alerts";
 
 export type TelegramAlertPayload = {
@@ -32,7 +33,7 @@ export class TelegramAlertFormatter {
     const critical = alerts.filter((a) => a.severity === "CRITICAL");
     const warning = alerts.filter((a) => a.severity === "WARNING");
 
-    const header = escapeMarkdownV2("Alertas financeiros Vorcaro");
+    const header = escapeMarkdownV2(`${getVorcaroDisplayName()} — alertas financeiros`);
     const parts = [header, ""];
 
     if (critical.length > 0) {

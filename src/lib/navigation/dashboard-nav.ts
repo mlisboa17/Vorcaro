@@ -37,7 +37,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
       { href: "/dashboard/notifications", label: "Notificações", icon: BellRing, badgeKey: "notifications" },
       { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
-      { href: "/dashboard/advisor", label: "IA Financeira", icon: Sparkles },
+      { href: "/dashboard/advisor", label: "Vorcaro", icon: Sparkles },
     ],
   },
   {

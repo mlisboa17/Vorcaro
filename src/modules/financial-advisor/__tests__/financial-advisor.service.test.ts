@@ -5,6 +5,18 @@ import { IntelligentAdvisorService } from "@/modules/financial-consultant/applic
 import { INSUFFICIENT_DATA_MESSAGE } from "../domain/constants";
 import type { AiRouterService } from "@/modules/ai/application/services/ai-router.service";
 
+vi.mock("@/modules/vorcaro/application/services/vorcaro-messaging.service", () => ({
+  VorcaroMessagingService: vi.fn().mockImplementation(() => ({
+    inferCategoryFromCriticalContext: vi.fn().mockReturnValue("GENERAL"),
+    buildLlmPromptContext: vi.fn().mockResolvedValue({
+      preferredTone: "PROFESSIONAL",
+      effectiveTone: "PROFESSIONAL",
+      category: "GENERAL",
+      system: "Vorcaro system prompt",
+    }),
+  })),
+}));
+
 const mockConsultation = {
   summary: "Resumo consultor",
   risks: [],

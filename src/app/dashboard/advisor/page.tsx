@@ -12,9 +12,9 @@ export default async function AdvisorPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">IA Financeira</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Vorcaro</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Consultor com dados reais do Vorcaro — Groq, Gemini e OpenRouter com fallback automático.
+          Consultor financeiro inteligente — transforma renda em patrimônio com dados reais do LOGOS.
         </p>
       </header>
       <AdvisorDashboard />

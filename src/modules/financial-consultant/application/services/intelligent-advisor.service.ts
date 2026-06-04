@@ -8,6 +8,8 @@ import { FinancialPlanningService } from "@/modules/financial-planning/applicati
 import { isReceivableOpenStatus } from "@/modules/receivables/domain/services/receivable.service";
 import type { FinancialAlertRecord } from "@/modules/financial-alerts/domain/types/financial-alert";
 import type { AdvisorConsultation, AdvisorRisk } from "../../domain/types/advisor-action";
+import { VorcaroMessagingService } from "@/modules/vorcaro/application/services/vorcaro-messaging.service";
+import type { VorcaroTemplateCategory } from "@/modules/vorcaro/domain/types/vorcaro-personality";
 import { AdvisorActionBuilderService } from "./advisor-action-builder.service";
 import { FinancialHealthScoreService } from "./financial-health-score.service";
 import { AdvisorActionEnrichmentService } from "./advisor-action-enrichment.service";
@@ -38,9 +40,11 @@ export class IntelligentAdvisorService {
   private readonly guardrail = new AdvisorActionGuardrailService();
   private readonly enrichment = new AdvisorActionEnrichmentService();
   private readonly memory: AdvisorRecommendationMemoryService;
+  private readonly vorcaro: VorcaroMessagingService;
 
   constructor(private readonly prisma: PrismaClient) {
     this.memory = new AdvisorRecommendationMemoryService(prisma);
+    this.vorcaro = new VorcaroMessagingService(prisma);
   }
 
   async consult(userId: string): Promise<AdvisorConsultation> {
@@ -145,7 +149,7 @@ export class IntelligentAdvisorService {
 
     const risks = this.buildRisks(openAlerts.items, cashflow.primeiraDataNegativa, overdueReceivables);
     const recommendations = this.buildRecommendations(actions, savingsOpportunities);
-    const summary = this.buildSummary({
+    const summary = await this.buildVorcaroSummary(userId, {
       healthScore,
       savingsOpportunities,
       overdueTotal: overdueReceivables.reduce((s, r) => s + r.valorPendente, 0),
@@ -301,6 +305,140 @@ export class IntelligentAdvisorService {
       if (!recs.includes(a.description)) recs.push(a.description);
     }
     return recs.slice(0, 8);
+  }
+
+  private async buildVorcaroSummary(
+    userId: string,
+    input: {
+      healthScore: AdvisorConsultation["healthScore"];
+      savingsOpportunities: AdvisorConsultation["savingsOpportunities"];
+      overdueTotal: number;
+      subscriptionDuplicates: AdvisorConsultation["subscriptionDuplicates"];
+      moneyLeaks: AdvisorConsultation["moneyLeaks"];
+      negativeDays: string | null;
+      goalsAtRisk: number;
+    },
+  ): Promise<string> {
+    const fallback = this.buildSummary(input);
+    const insight = this.resolvePrimaryInsight(input);
+    if (!insight) return fallback;
+
+    try {
+      const totalSavings = input.savingsOpportunities.reduce(
+        (s, o) => s + o.estimatedMonthlySavings,
+        0,
+      );
+      const negativeCashflowDays = input.negativeDays
+        ? Math.max(
+            0,
+            Math.ceil(
+              (new Date(`${input.negativeDays}T12:00:00.000Z`).getTime() - Date.now()) /
+                86400000,
+            ),
+          )
+        : undefined;
+
+      const composed = await this.vorcaro.composeCompactText({
+        userId,
+        category: insight.category,
+        fact: insight.fact,
+        impact: insight.impact,
+        action: insight.action,
+        criticalContext: {
+          negativeCashflowDays,
+          overdueReceivableAmount: input.overdueTotal,
+          goalsAtRisk: input.goalsAtRisk,
+          savingsOpportunityMonthly: totalSavings,
+          severeNegativeFlow: negativeCashflowDays != null && negativeCashflowDays <= 14,
+        },
+      });
+      return `${composed}\n\nScore de saúde financeira: ${input.healthScore.score}/100 (${input.healthScore.classification}).`;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private resolvePrimaryInsight(input: {
+    savingsOpportunities: AdvisorConsultation["savingsOpportunities"];
+    overdueTotal: number;
+    subscriptionDuplicates: AdvisorConsultation["subscriptionDuplicates"];
+    moneyLeaks: AdvisorConsultation["moneyLeaks"];
+    negativeDays: string | null;
+    goalsAtRisk: number;
+  }): { category: VorcaroTemplateCategory; fact: string; impact: string; action: string } | null {
+    if (input.negativeDays) {
+      const days = Math.max(
+        0,
+        Math.ceil(
+          (new Date(`${input.negativeDays}T12:00:00.000Z`).getTime() - Date.now()) / 86400000,
+        ),
+      );
+      return {
+        category: "NEGATIVE_CASHFLOW",
+        fact:
+          days > 0
+            ? `Fluxo de caixa negativo em aproximadamente ${days} dias.`
+            : "Fluxo de caixa projetado está negativo.",
+        impact: "Liquidez em risco nos próximos dias.",
+        action: "Revise despesas e compromissos imediatos em /dashboard/cashflow.",
+      };
+    }
+
+    if (input.subscriptionDuplicates.length > 0) {
+      const dup = input.subscriptionDuplicates[0];
+      return {
+        category: "DUPLICATE_STREAMING",
+        fact: `Assinatura duplicada detectada (${dup.brand}).`,
+        impact: `Custo recorrente duplicado de R$ ${dup.monthlyTotal.toFixed(2)}/mês.`,
+        action: "Cancele a assinatura redundante em /dashboard/commitments.",
+      };
+    }
+
+    if (input.overdueTotal > 0) {
+      return {
+        category: "OVERDUE_RECEIVABLE",
+        fact: `Recebíveis atrasados totalizam R$ ${input.overdueTotal.toFixed(2)}.`,
+        impact: "Capital temporariamente fora do seu fluxo.",
+        action: "Acione cobranças em /dashboard/receivables.",
+      };
+    }
+
+    if (input.goalsAtRisk > 0) {
+      return {
+        category: "GOAL_AT_RISK",
+        fact:
+          input.goalsAtRisk === 1
+            ? "Uma meta financeira está em risco."
+            : `${input.goalsAtRisk} metas financeiras estão em risco.`,
+        impact: "Aportes atuais não sustentam o prazo definido.",
+        action: "Ajuste aportes ou prazo em /dashboard/planning.",
+      };
+    }
+
+    const leak = input.moneyLeaks[0];
+    if (leak) {
+      return {
+        category: "MONEY_LEAK",
+        fact: `Gastos invisíveis recorrentes: R$ ${leak.monthlyTotal.toFixed(2)}/mês.`,
+        impact: "Vazamento silencioso no fluxo mensal.",
+        action: "Revise recorrências em /dashboard/commitments.",
+      };
+    }
+
+    const totalSavings = input.savingsOpportunities.reduce(
+      (s, o) => s + o.estimatedMonthlySavings,
+      0,
+    );
+    if (totalSavings > 0) {
+      return {
+        category: "GENERAL",
+        fact: `Economia potencial identificada: R$ ${totalSavings.toFixed(2)}/mês.`,
+        impact: "Capital pode ser realocado para patrimônio.",
+        action: "Execute as ações recomendadas no dashboard.",
+      };
+    }
+
+    return null;
   }
 
   private buildSummary(input: {

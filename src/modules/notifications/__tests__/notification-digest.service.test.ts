@@ -6,7 +6,14 @@ describe("NotificationDigestService", () => {
   it("gera digest diário idempotente por fingerprint", async () => {
     const notifications: Array<Record<string, unknown>> = [];
     const db = {
-      user: { findMany: vi.fn().mockResolvedValue([{ id: "user-1" }]) },
+      user: {
+        findMany: vi.fn().mockResolvedValue([{ id: "user-1" }]),
+        findUnique: vi.fn().mockResolvedValue({ vorcaroTone: "PROFESSIONAL" }),
+      },
+      vorcaroMessageHistory: {
+        create: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       notification: {
         findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn(async ({ where }: { where: { userId_fingerprint: { fingerprint: string } } }) =>
@@ -48,7 +55,14 @@ describe("NotificationDigestService", () => {
 
   it("gera digest semanal", async () => {
     const db = {
-      user: { findMany: vi.fn().mockResolvedValue([{ id: "user-1" }]) },
+      user: {
+        findMany: vi.fn().mockResolvedValue([{ id: "user-1" }]),
+        findUnique: vi.fn().mockResolvedValue({ vorcaroTone: "PROFESSIONAL" }),
+      },
+      vorcaroMessageHistory: {
+        create: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       notification: {
         findMany: vi.fn().mockResolvedValue([]),
         create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({

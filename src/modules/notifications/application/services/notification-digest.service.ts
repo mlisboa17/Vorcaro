@@ -3,6 +3,7 @@ import { buildDigestFingerprint } from "../../domain/services/notification-finge
 import type { NotificationType } from "../../domain/types/notification";
 import { PrismaNotificationPreferenceRepository } from "../../infrastructure/repositories/prisma-notification-preference.repository";
 import { PrismaNotificationRepository } from "../../infrastructure/repositories/prisma-notification.repository";
+import { VorcaroMessagingService } from "@/modules/vorcaro/application/services/vorcaro-messaging.service";
 import { NotificationTelegramDeliveryService } from "./notification-telegram-delivery.service";
 
 export type DigestRunStats = {
@@ -29,11 +30,13 @@ export class NotificationDigestService {
   private readonly notifications: PrismaNotificationRepository;
   private readonly preferences: PrismaNotificationPreferenceRepository;
   private readonly telegram: NotificationTelegramDeliveryService;
+  private readonly vorcaro: VorcaroMessagingService;
 
   constructor(private readonly db: PrismaClient) {
     this.notifications = new PrismaNotificationRepository(db);
     this.preferences = new PrismaNotificationPreferenceRepository(db);
     this.telegram = new NotificationTelegramDeliveryService(db);
+    this.vorcaro = new VorcaroMessagingService(db);
   }
 
   async runDailyDigestForUser(userId: string, referenceDate = new Date()): Promise<DigestRunStats> {
@@ -67,8 +70,9 @@ export class NotificationDigestService {
     const goals = items.filter((i) => i.type === "GOAL_AT_RISK");
     const savings = items.filter((i) => i.type === "MONEY_LEAK");
 
+    const header = await this.vorcaro.buildDigestHeader(userId, "daily");
     const lines = [
-      "Resumo diário Vorcaro",
+      header,
       "",
       `Alertas críticos: ${critical.length}`,
       ...critical.slice(0, 3).map((i) => `• ${i.title}`),
@@ -153,8 +157,9 @@ export class NotificationDigestService {
     );
     const alerts = items.filter((i) => i.severity !== "INFO");
 
+    const header = await this.vorcaro.buildDigestHeader(userId, "weekly");
     const lines = [
-      "Resumo semanal Vorcaro",
+      header,
       "",
       `Principais alertas: ${alerts.length}`,
       ...alerts.slice(0, 5).map((i) => `• ${i.title}`),

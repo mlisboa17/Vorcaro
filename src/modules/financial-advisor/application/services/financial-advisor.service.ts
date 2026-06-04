@@ -5,7 +5,9 @@ import { IntelligentAdvisorService } from "@/modules/financial-consultant/applic
 import { AdvisorActionGuardrailService } from "@/modules/financial-consultant/application/services/advisor-action-guardrail.service";
 import { AdvisorLanguageGuardrailService } from "@/modules/financial-consultant/application/services/advisor-language-guardrail.service";
 import type { AdvisorAskResponse, AdvisorConfidence } from "@/types/financial-advisor";
-import { ADVISOR_SYSTEM_PROMPT, INSUFFICIENT_DATA_MESSAGE } from "../../domain/constants";
+import { VorcaroMessagingService } from "@/modules/vorcaro/application/services/vorcaro-messaging.service";
+import { deriveVorcaroCriticalFromConsultation } from "@/modules/vorcaro/domain/derive-vorcaro-critical-context";
+import { INSUFFICIENT_DATA_MESSAGE } from "../../domain/constants";
 import { FinancialDataAggregatorService } from "./financial-data-aggregator.service";
 
 function resolveConfidence(dataScore: number, usedSources: string[]): AdvisorConfidence {
@@ -20,6 +22,7 @@ export class FinancialAdvisorService {
   private readonly aiRouter: AiRouterService;
   private readonly guardrail = new AdvisorActionGuardrailService();
   private readonly languageGuardrail = new AdvisorLanguageGuardrailService();
+  private readonly vorcaro: VorcaroMessagingService;
 
   constructor(
     prisma: PrismaClient,
@@ -28,6 +31,7 @@ export class FinancialAdvisorService {
     this.aggregator = new FinancialDataAggregatorService(prisma);
     this.consultant = new IntelligentAdvisorService(prisma);
     this.aiRouter = aiRouter ?? new AiRouterService();
+    this.vorcaro = new VorcaroMessagingService(prisma);
   }
 
   async ask(userId: string, question: string): Promise<AdvisorAskResponse> {
@@ -73,8 +77,16 @@ Pergunta do usuário:
 ${question}`;
 
     try {
+      const criticalContext = deriveVorcaroCriticalFromConsultation(consultation);
+      const category = this.vorcaro.inferCategoryFromCriticalContext(criticalContext);
+      const llmContext = await this.vorcaro.buildLlmPromptContext({
+        userId,
+        category,
+        criticalContext,
+      });
+
       const result = await this.aiRouter.generateText({
-        system: ADVISOR_SYSTEM_PROMPT,
+        system: llmContext.system,
         prompt,
         temperature: 0.2,
         maxTokens: 1500,
