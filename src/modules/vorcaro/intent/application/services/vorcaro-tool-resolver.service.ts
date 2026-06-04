@@ -17,6 +17,7 @@ const INTENT_TO_TOOLS: Record<VorcaroIntent, VorcaroToolName[]> = {
   EVOLUTION: ["financial_evolution"],
   ACHIEVEMENTS: ["financial_achievements"],
   TRENDS: ["financial_trends"],
+  FOLLOWUPS: ["follow_ups"],
   GENERAL_CHAT: [],
   UNKNOWN: [],
 };

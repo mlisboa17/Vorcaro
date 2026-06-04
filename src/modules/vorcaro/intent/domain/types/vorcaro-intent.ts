@@ -15,6 +15,7 @@ export const VORCARO_INTENTS = [
   "EVOLUTION",
   "ACHIEVEMENTS",
   "TRENDS",
+  "FOLLOWUPS",
   "GENERAL_CHAT",
   "UNKNOWN",
 ] as const;
@@ -43,7 +44,8 @@ export type VorcaroToolName =
   | "financial_timeline"
   | "financial_evolution"
   | "financial_achievements"
-  | "financial_trends";
+  | "financial_trends"
+  | "follow_ups";
 
 import type { VorcaroToolAction } from "@/modules/vorcaro/actions/domain/types/vorcaro-action";
 

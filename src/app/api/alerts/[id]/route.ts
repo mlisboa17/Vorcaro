@@ -43,5 +43,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
+  if (parsed.data.status === "RESOLVED") {
+    const { getVorcaroEntityStateChangedHandler } = await import("@/lib/api/vorcaro-followups");
+    await getVorcaroEntityStateChangedHandler().onEntityStateChanged({
+      userId: session.user.id,
+      entityType: "ALERT",
+      entityId: id,
+      newStatus: "RESOLVED",
+    });
+  }
+
   return NextResponse.json(serializeFinancialAlert(updated));
 }

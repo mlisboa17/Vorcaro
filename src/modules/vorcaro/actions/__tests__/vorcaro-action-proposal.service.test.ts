@@ -1,4 +1,11 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
+
+vi.mock("@/lib/api/vorcaro-followups", () => ({
+  getVorcaroActionExecutedHandler: () => ({
+    onActionExecuted: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 import { VorcaroActionProposalService } from "../application/services/vorcaro-action-proposal.service";
 import { vorcaroActionObservability } from "../application/services/vorcaro-action-observability.service";
 import type { VorcaroActionProposalRecord } from "../domain/types/vorcaro-action";

@@ -87,6 +87,17 @@ const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
     patterns: [/notifica[cç][aã]/i, /avisos/i, /central de notifica/i],
   },
   {
+    intent: "FOLLOWUPS",
+    patterns: [
+      /pend[eê]ncias/i,
+      /acompanhamento/i,
+      /tenho algo parado/i,
+      /follow.?up/i,
+      /o que ficou pendente/i,
+      /mostre meus acompanhamentos/i,
+    ],
+  },
+  {
     intent: "HEALTH_SCORE",
     patterns: [/sa[uú]de financeira/i, /score financeiro/i],
   },
@@ -127,6 +138,7 @@ const TOPIC_TO_INTENT: Record<string, VorcaroIntent> = {
   evolution: "EVOLUTION",
   achievements: "ACHIEVEMENTS",
   trends: "TRENDS",
+  followups: "FOLLOWUPS",
   general: "GENERAL_CHAT",
 };
 

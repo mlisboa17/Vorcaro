@@ -99,7 +99,17 @@ export class FinancialPlanningService {
       data: this.toPrismaUpdate(input),
     });
     const goals = await this.getGoals(userId);
-    return goals.find((g) => g.id === goalId)!;
+    const goal = goals.find((g) => g.id === goalId)!;
+    if (input.status === "ACHIEVED") {
+      const { getVorcaroEntityStateChangedHandler } = await import("@/lib/api/vorcaro-followups");
+      await getVorcaroEntityStateChangedHandler().onEntityStateChanged({
+        userId,
+        entityType: "GOAL",
+        entityId: goalId,
+        newStatus: "ACHIEVED",
+      });
+    }
+    return goal;
   }
 
   async deleteGoal(userId: string, goalId: string) {

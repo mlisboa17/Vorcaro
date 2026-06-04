@@ -12,6 +12,7 @@ import {
   type VorcaroActionType,
 } from "../../domain/types/vorcaro-action";
 import { PrismaVorcaroActionProposalRepository } from "../../infrastructure/repositories/prisma-vorcaro-action-proposal.repository";
+import { getVorcaroActionExecutedHandler } from "@/lib/api/vorcaro-followups";
 import { VorcaroActionExecutorService } from "./vorcaro-action-executor.service";
 import { vorcaroActionObservability } from "./vorcaro-action-observability.service";
 
@@ -130,6 +131,14 @@ export class VorcaroActionProposalService {
         failureReason: null,
       });
       vorcaroActionObservability.recordExecuted();
+      await getVorcaroActionExecutedHandler().onActionExecuted({
+        userId: proposal.userId,
+        proposalId: proposal.id,
+        actionType: proposal.actionType,
+        title: proposal.title,
+        description: proposal.description,
+        payload: proposal.payload,
+      });
       return { proposal: updated, result: execution };
     }
 

@@ -167,6 +167,16 @@ export class CollectReceivableUseCase {
       throw new ReceivableError("Falha ao atualizar conta a receber.", "BUSINESS_RULE");
     }
 
+    if (mapped.status === "RECEIVED") {
+      const { getVorcaroEntityStateChangedHandler } = await import("@/lib/api/vorcaro-followups");
+      await getVorcaroEntityStateChangedHandler().onEntityStateChanged({
+        userId: input.userId,
+        entityType: "RECEIVABLE",
+        entityId: mapped.id,
+        newStatus: "RECEIVED",
+      });
+    }
+
     return { receivable: mapped, transactionId: result.transactionId };
   }
 }

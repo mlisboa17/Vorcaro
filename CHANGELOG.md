@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added — Sprint 14 (Follow-up Inteligente e Pendências Ativas)
+
+- Modelo `VorcaroFollowUp` + enum `VorcaroFollowUpStatus`; migration `20260608120000_vorcaro_followups_sprint14`.
+- Handlers `VorcaroActionExecutedHandler` e `VorcaroEntityStateChangedHandler` (invocação direta, sem Event Bus).
+- `VorcaroFollowUpSchedulerService` — backoff (+1d / +3d / +7d), teto de 5 lembretes → `EXPIRED`, cron `POST /api/cron/vorcaro-followups`.
+- Auto-complete reativo: recebível `RECEIVED`, meta `ACHIEVED`, alerta `RESOLVED`.
+- Intenção `FOLLOWUPS` + tool `follow_ups` (resposta determinística, sem LLM).
+- APIs `GET /api/vorcaro/followups`, `POST .../:id/dismiss`; UI `/dashboard/vorcaro/followups`.
+- Doc: [`docs/sprint-14-followups.md`](docs/sprint-14-followups.md).
+
 ### Added — Sprint 13 (Execução Assistida do Vorcaro)
 
 - Modelo `VorcaroActionProposal` + enum `VorcaroActionStatus`; migration `20260607120000_vorcaro_action_proposals_sprint13`.

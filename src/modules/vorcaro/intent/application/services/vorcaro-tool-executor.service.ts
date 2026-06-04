@@ -15,6 +15,7 @@ import { FinancialAchievementTool } from "@/modules/financial-memory/application
 import { FinancialTrendTool } from "@/modules/financial-memory/application/tools/financial-trend-tool";
 import { FinancialMemoryQueryService } from "@/modules/financial-memory/application/services/financial-memory-query.service";
 import { RulesAutomationTool } from "../tools/rules-automation-tool";
+import { buildFollowUpTool } from "@/lib/api/vorcaro-followups";
 
 function monthKey(d: Date): string {
   return d.toISOString().slice(0, 7);
@@ -36,6 +37,7 @@ const TOOL_TO_INTENT: Record<VorcaroToolName, VorcaroIntent> = {
   financial_evolution: "EVOLUTION",
   financial_achievements: "ACHIEVEMENTS",
   financial_trends: "TRENDS",
+  follow_ups: "FOLLOWUPS",
 };
 
 export class VorcaroToolExecutorService {
@@ -48,6 +50,7 @@ export class VorcaroToolExecutorService {
   private readonly evolutionTool: FinancialEvolutionTool;
   private readonly achievementTool: FinancialAchievementTool;
   private readonly trendTool: FinancialTrendTool;
+  private readonly followUpTool = buildFollowUpTool();
 
   constructor(private readonly prisma: PrismaClient) {
     this.consultant = new IntelligentAdvisorService(prisma);
@@ -98,6 +101,8 @@ export class VorcaroToolExecutorService {
         return this.achievementTool.execute(userId);
       case "financial_trends":
         return this.trendTool.execute(userId);
+      case "follow_ups":
+        return this.followUpTool.execute(userId);
       default:
         return {
           intent: TOOL_TO_INTENT[toolName] ?? "UNKNOWN",

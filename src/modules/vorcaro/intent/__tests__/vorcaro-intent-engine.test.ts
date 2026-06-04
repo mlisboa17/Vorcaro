@@ -24,6 +24,11 @@ describe("VorcaroIntentEngineService", () => {
     expect(engine.detect("Quem está me devendo?").primary).toBe("RECEIVABLES");
   });
 
+  it("detecta FOLLOWUPS", () => {
+    expect(engine.detect("Quais pendências tenho?").primary).toBe("FOLLOWUPS");
+    expect(engine.detect("Tenho algo parado?").requiresLlm).toBe(false);
+  });
+
   it("detecta RULES_AUTOMATIONS", () => {
     expect(engine.detect("Quais regras existem?").primary).toBe("RULES_AUTOMATIONS");
   });
@@ -67,6 +72,10 @@ describe("VorcaroToolResolverService", () => {
     expect(resolver.resolve("TRENDS")).toEqual(["financial_trends"]);
     expect(resolver.resolve("TIMELINE")).toEqual(["financial_timeline"]);
     expect(resolver.resolve("ACHIEVEMENTS")).toEqual(["financial_achievements"]);
+  });
+
+  it("resolve FOLLOWUPS para follow_ups", () => {
+    expect(resolver.resolve("FOLLOWUPS")).toEqual(["follow_ups"]);
   });
 });
 
