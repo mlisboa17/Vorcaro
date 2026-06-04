@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { USER_RULE_DEFAULT_PRIORITY } from "@/lib/rules/rule-priorities";
 import {
   parseRuleAction,
   parseRuleCondition,
@@ -97,7 +98,7 @@ export class PrismaUserRuleRepository implements UserRuleRepositoryPort {
         description: input.description,
         condition,
         action,
-        priority: input.priority ?? 0,
+        priority: input.priority ?? USER_RULE_DEFAULT_PRIORITY,
         isActive: true,
       },
     });

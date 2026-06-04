@@ -69,7 +69,7 @@ export const DEFAULT_CATEGORIZATION_RULE_GROUPS: readonly DefaultCategorizationR
       groupLabel: "Mobilidade",
       rootCategory: "Transporte",
       subcategory: "Uber e Aplicativos",
-      keywords: ["UBER TRIP", "UBER*TRIP", "99APP", "99 POP", "99TAXI", "CABIFY", "BUSER"],
+      keywords: ["UBER TRIP", "UBER*TRIP", "UBER PENDING", "99APP", "99 POP", "99TAXI", "CABIFY", "BUSER"],
     },
     {
       groupId: "cloud",

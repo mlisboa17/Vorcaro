@@ -39,6 +39,8 @@ model User {
   receivables          Receivable[]
   financialAlerts              FinancialAlert[]
   advisorRecommendationStates  AdvisorRecommendationState[]
+  notifications                Notification[]
+  notificationPreferences      NotificationPreference[]
 }
 
 model Account {
@@ -798,4 +800,80 @@ model AdvisorRecommendationState {
   @@unique([userId, recommendationHash])
   @@index([userId, status])
   @@index([userId, dismissedUntil])
+}
+
+// ─── Central de Notificações (Sprint 10) ────────────────────────────────────
+
+enum NotificationType {
+  ALERT_CREATED
+  RECOMMENDATION_CREATED
+  RECEIVABLE_OVERDUE
+  GOAL_AT_RISK
+  CASHFLOW_WARNING
+  HIGH_COMMITMENT_MONTH
+  DUPLICATE_SUBSCRIPTION
+  MONEY_LEAK
+  DAILY_DIGEST
+  WEEKLY_DIGEST
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  READ
+  DISMISSED
+  FAILED
+}
+
+enum NotificationChannel {
+  DASHBOARD
+  TELEGRAM
+  DIGEST
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  userId      String
+  type        NotificationType
+  severity    NotificationSeverity
+  status      NotificationStatus   @default(PENDING)
+  title       String
+  message     String               @db.Text
+  channel     NotificationChannel
+  fingerprint String
+  payload     Json?
+  createdAt   DateTime             @default(now())
+  sentAt      DateTime?
+  readAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+  @@index([userId, channel])
+  @@index([userId, type])
+  @@index([userId, severity])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id                String           @id @default(cuid())
+  userId            String
+  notificationType  NotificationType
+  dashboardEnabled  Boolean          @default(true)
+  telegramEnabled   Boolean          @default(false)
+  digestEnabled     Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@index([userId])
 }

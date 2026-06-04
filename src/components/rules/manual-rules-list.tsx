@@ -1,13 +1,13 @@
 "use client";
 
 import type { UserRuleItem } from "@/types/rules";
-import { isSystemDefaultRuleDescription } from "@/lib/rules/default-categorization-rules";
 import { Cpu, Loader2, Shield, Sliders, Trash2, User } from "lucide-react";
 
 interface ManualRulesListProps {
   rules: UserRuleItem[];
   deletingId: string | null;
   onDelete: (ruleId: string) => void;
+  variant: "user" | "system";
 }
 
 function RuleCard({
@@ -94,109 +94,36 @@ function RuleCard({
   );
 }
 
-function RulesSection({
-  title,
-  description,
-  icon: Icon,
-  tone,
-  rules,
-  deletingId,
-  onDelete,
-  variant,
-  emptyMessage,
-}: {
-  title: string;
-  description: string;
-  icon: typeof User;
-  tone: "blue" | "emerald";
-  rules: UserRuleItem[];
-  deletingId: string | null;
-  onDelete: (ruleId: string) => void;
-  variant: "user" | "system";
-  emptyMessage: string;
-}) {
-  const headerTone =
-    tone === "blue"
-      ? "border-blue-200 bg-blue-50/60 text-blue-900"
-      : "border-emerald-200 bg-emerald-50/60 text-emerald-900";
-
-  return (
-    <section className="space-y-3">
-      <div className={`rounded-lg border px-4 py-3 ${headerTone}`}>
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 shrink-0" />
-          <div>
-            <h2 className="text-sm font-semibold">{title}</h2>
-            <p className="text-xs opacity-80">{description}</p>
-          </div>
-          <span className="ml-auto rounded-full bg-white/70 px-2 py-0.5 text-xs font-medium">
-            {rules.length}
-          </span>
-        </div>
-      </div>
-
-      {rules.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-4 py-6 text-center text-xs text-slate-500">
-          {emptyMessage}
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {rules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              deletingId={deletingId}
-              onDelete={onDelete}
-              variant={variant}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-export function ManualRulesList({ rules, deletingId, onDelete }: ManualRulesListProps) {
-  const userRules = rules.filter((r) => !isSystemDefaultRuleDescription(r.description));
-  const systemRules = rules.filter((r) => isSystemDefaultRuleDescription(r.description));
+export function ManualRulesList({ rules, deletingId, onDelete, variant }: ManualRulesListProps) {
+  const isSystem = variant === "system";
 
   if (rules.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
         <Sliders className="mx-auto h-8 w-8 text-slate-300" />
-        <p className="mt-3 text-sm font-medium text-slate-700">Nenhuma regra manual ainda</p>
+        <p className="mt-3 text-sm font-medium text-slate-700">
+          {isSystem ? "Nenhuma regra de sistema instalada" : "Nenhuma regra personalizada ainda"}
+        </p>
         <p className="mt-1 text-xs text-slate-500">
-          Crie regras rígidas para automatizar categorização e métodos de pagamento.
+          {isSystem
+            ? "Execute npm run seed:rules para popular as regras pré-definidas."
+            : "Use “Nova Regra” para automatizar categorização e métodos de pagamento."}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <RulesSection
-        title="Suas regras"
-        description="Prioridade máxima na classificação — você controla e pode excluir."
-        icon={User}
-        tone="blue"
-        rules={userRules}
-        deletingId={deletingId}
-        onDelete={onDelete}
-        variant="user"
-        emptyMessage="Nenhuma regra personalizada. Use “Nova Regra” para criar."
-      />
-
-      <RulesSection
-        title="Regras do sistema"
-        description="Pré-definidas pelo Vorcaro (prioridade 50). Protegidas contra exclusão acidental."
-        icon={Shield}
-        tone="emerald"
-        rules={systemRules}
-        deletingId={deletingId}
-        onDelete={onDelete}
-        variant="system"
-        emptyMessage="Nenhuma regra de sistema instalada. Execute npm run seed:rules para popular."
-      />
+    <div className="space-y-3">
+      {rules.map((rule) => (
+        <RuleCard
+          key={rule.id}
+          rule={rule}
+          deletingId={deletingId}
+          onDelete={onDelete}
+          variant={variant}
+        />
+      ))}
     </div>
   );
 }

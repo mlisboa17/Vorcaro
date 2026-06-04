@@ -14,6 +14,21 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+function useNotificationBadgeCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/notifications/summary", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { unreadCount?: number } | null) => {
+        setCount(data?.unreadCount ?? 0);
+      })
+      .catch(() => setCount(0));
+  }, []);
+
+  return count;
+}
+
 function isActiveRoute(pathname: string, href: string): boolean {
   if (href === "/dashboard") {
     return pathname === "/dashboard";
@@ -23,6 +38,7 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const unreadNotifications = useNotificationBadgeCount();
 
   return (
     <aside
@@ -84,7 +100,12 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
                           active ? "text-emerald-400" : "text-slate-400",
                         )}
                       />
-                      <span>{item.label}</span>
+                      <span className="flex-1">{item.label}</span>
+                      {item.badgeKey === "notifications" && unreadNotifications > 0 ? (
+                        <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 );

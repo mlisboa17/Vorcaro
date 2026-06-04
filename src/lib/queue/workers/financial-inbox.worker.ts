@@ -80,6 +80,9 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
           userId,
           description: result.extraction.description ?? item.rawContent,
           rawContent: item.rawContent,
+          descricaoBase: result.extraction.descricaoBase,
+          category: result.extraction.category,
+          paymentMethod: result.extraction.paymentMethod,
         });
         const merged = mergeClassificationIntoExtraction(result.extraction, suggestion);
         const extractionRepo = new PrismaExtractionResultRepository(prisma);

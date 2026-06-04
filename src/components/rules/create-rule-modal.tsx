@@ -8,6 +8,7 @@ import {
   TRANSACTION_TYPE_OPTIONS,
 } from "@/types/rules";
 import type { RuleAction, RuleCondition } from "@/modules/financial-inbox/domain/schemas/user-rule.schema";
+import { USER_RULE_DEFAULT_PRIORITY } from "@/lib/rules/rule-priorities";
 import { buildRuleNameFromForm } from "@/lib/utils/rule-labels";
 import { cn } from "@/lib/utils/cn";
 import { Loader2, Plus, Sliders, X } from "lucide-react";
@@ -26,7 +27,7 @@ const DEFAULT_FORM: CreateRuleFormValues = {
   conditionValue: "",
   actionField: "category",
   actionValue: "",
-  priority: 50,
+  priority: USER_RULE_DEFAULT_PRIORITY,
 };
 
 function buildPayload(form: CreateRuleFormValues): {

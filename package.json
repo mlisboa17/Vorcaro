@@ -22,6 +22,8 @@
     "telegram:webhook": "node scripts/register-telegram-webhook.mjs",
     "worker:inbox": "npx tsx src/lib/queue/workers/financial-inbox.worker.ts",
     "alerts:engine": "npx tsx scripts/run-financial-alerts-engine.ts",
+    "notifications:digest-daily": "npx tsx scripts/run-notification-digest-daily.ts",
+    "notifications:digest-weekly": "npx tsx scripts/run-notification-digest-weekly.ts",
     "inbox:reset-stuck": "npx tsx scripts/reset-stuck-inbox.ts",
     "test": "vitest",
     "test:foundation": "npx tsx scripts/validate-foundation.ts"

@@ -1,4 +1,5 @@
 import type { FinancialAlertType, PrismaClient } from "@prisma/client";
+import { NotificationEventBridgeService } from "@/modules/notifications/application/services/notification-event-bridge.service";
 import { FinancialAlertRulesEvaluator } from "../../domain/services/financial-alert-rules.evaluator";
 import { FINANCIAL_ALERT_TYPES } from "../../domain/types/financial-alert";
 import { PrismaFinancialAlertRepository } from "../../infrastructure/repositories/prisma-financial-alert.repository";
@@ -35,10 +36,12 @@ function logEngine(event: string, payload: Record<string, unknown>) {
 export class FinancialAlertEngineService {
   private readonly repo: PrismaFinancialAlertRepository;
   private readonly evaluator: FinancialAlertRulesEvaluator;
+  private readonly notifications: NotificationEventBridgeService;
 
   constructor(private readonly prisma: PrismaClient) {
     this.repo = new PrismaFinancialAlertRepository(prisma);
     this.evaluator = new FinancialAlertRulesEvaluator(prisma);
+    this.notifications = new NotificationEventBridgeService(prisma);
   }
 
   async runForUser(userId: string, referenceDate = new Date()): Promise<AlertEngineRunStats> {
@@ -64,8 +67,19 @@ export class FinancialAlertEngineService {
           metadata: c.metadata,
           actionUrl: c.actionUrl,
         });
-        if (result.created) created += 1;
-        else if (result.record.status === "DISMISSED") dismissedSkipped += 1;
+        if (result.created) {
+          created += 1;
+          await this.notifications.onFinancialAlertCreated({
+            userId,
+            alertType: c.type,
+            severity: c.severity,
+            title: c.title,
+            description: c.description,
+            fingerprint: c.fingerprint,
+            actionUrl: c.actionUrl,
+            metadata: c.metadata ?? null,
+          }).catch(() => undefined);
+        } else if (result.record.status === "DISMISSED") dismissedSkipped += 1;
         else if (result.record.status === "OPEN") updated += 1;
       } else {
         const didResolve = await this.repo.resolveByFingerprint(userId, c.fingerprint);

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added — Sprint 10 (Central de Notificações Inteligentes)
+
+- Modelos `Notification` e `NotificationPreference`; migration `20260604120000_notification_center_sprint10`.
+- `NotificationCenterService` — publicação multi-canal, deduplicação por fingerprint, entrega Dashboard/Telegram.
+- Preferências por tipo: Dashboard ON, Telegram OFF, Digest ON (padrão).
+- UI `/dashboard/notifications` + badge no menu lateral.
+- Telegram: envio real MarkdownV2; rate limit 3/h; tipos imediatos (recebível, fluxo, meta, comprometimento).
+- Digest diário (08:00) e semanal (segunda 08:00) via cron + scripts npm.
+- Integração: `FinancialAlertEngineService` → notificação ao criar alerta.
+- Testes: deduplicação, preferências, Telegram rate limit, digest diário/semanal.
+
 ### Added — Sprint 9.5A (Memória do Advisor)
 
 - Modelo `AdvisorRecommendationState` + enums `AdvisorRecommendationStatus`, `DismissReason`; migration `20260604120000_advisor_recommendation_state_sprint95a`.

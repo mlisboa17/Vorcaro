@@ -31,10 +31,11 @@ export interface RulesListResponse {
   patterns: LearningPatternItem[];
 }
 
-export type RulesTab = "manual" | "memory";
+export type RulesTab = "user" | "system" | "memory";
 
 export const RULES_TABS: { value: RulesTab; label: string }[] = [
-  { value: "manual", label: "Regras Manuais" },
+  { value: "user", label: "Regras do Usuário" },
+  { value: "system", label: "Regras do Sistema" },
   { value: "memory", label: "Memória do Sistema" },
 ];
 

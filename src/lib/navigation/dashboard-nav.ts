@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  BellRing,
   CalendarClock,
   Cpu,
   Handshake,
@@ -20,6 +21,7 @@ export type DashboardNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  badgeKey?: "notifications";
 };
 
 export type DashboardNavGroup = {
@@ -33,6 +35,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     title: "Visão Executiva",
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutDashboard },
+      { href: "/dashboard/notifications", label: "Notificações", icon: BellRing, badgeKey: "notifications" },
       { href: "/dashboard/alerts", label: "Alertas Financeiros", icon: Bell },
       { href: "/dashboard/advisor", label: "IA Financeira", icon: Sparkles },
     ],

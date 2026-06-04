@@ -41,8 +41,10 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **8** | Central de Compromissos Recorrentes (read model mensal) | Concluída |
 | **9** | Alertas Financeiros Inteligentes (motor persistido + dashboard) | Concluída |
 | **9.5** | Consultor Financeiro Inteligente (ações, score, detectores) | Concluída |
+| **10** | Central de Notificações Inteligentes (Dashboard, Telegram, digest) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
+Fechamento Sprint 10: [`docs/sprint-10-closure-report.md`](docs/sprint-10-closure-report.md).  
 Fechamento Sprint 9: [`docs/sprint-9-closure-report.md`](docs/sprint-9-closure-report.md).  
 Sprint 9.5: [`docs/sprint-9.5-consultor-financeiro-inteligente.md`](docs/sprint-9.5-consultor-financeiro-inteligente.md).  
 Fechamento Sprint 8: [`docs/sprint-8-closure-report.md`](docs/sprint-8-closure-report.md).  

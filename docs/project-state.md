@@ -232,6 +232,17 @@ Documento de inventário técnico. Última revisão: 2026-06-03 (Sprint 9.5).
 | **Rotas API** | `POST /api/advisor/actions/:recommendationHash/dismiss`, `click`, `reactivate` |
 | **Status** | **Concluído (Sprint 9.5A)** — aguardando tag `sprint-9.5-stable` |
 
+### Central de Notificações (Sprint 10)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Comunicação proativa multi-canal (Dashboard, Telegram, digest) |
+| **Rotas UI** | `/dashboard/notifications` + badge no menu |
+| **Rotas API** | `GET /api/notifications`, `GET /api/notifications/summary`, `PATCH /api/notifications/[id]`, `GET/PATCH /api/notifications/preferences`, cron digests |
+| **Tabelas Prisma** | `Notification`, `NotificationPreference` (migration `20260604120000_notification_center_sprint10`) |
+| **Integrações** | Alert engine → notificação ao criar alerta; bridge para advisor/detectores |
+| **Status** | **Concluído (Sprint 10)** |
+
 ### Inbox Intelligence (evolução pós-7.4)
 
 | Campo | Detalhe |
@@ -267,6 +278,9 @@ Preparação Sprint 7: `docs/sprint-7-impact-analysis.md`, `docs/installments-re
 | `20260602163707_telegram_connections` | Telegram |
 | `20260602190420_financial_goals` | Planejamento (Sprint 6) |
 | `20260603010000_receivables_sprint75` | Contas a Receber (Sprint 7.5) |
+| `20260603120000_financial_alerts_sprint9` | Alertas Financeiros (Sprint 9) |
+| `20260604120000_advisor_recommendation_state_sprint95a` | Memória Advisor (Sprint 9.5A) |
+| `20260604120000_notification_center_sprint10` | Central de Notificações (Sprint 10) |
 
 Legado arquivado: `prisma/migrations_archived_legacy/`, inventário em `docs/migrations-legacy-inventory.md`.
 

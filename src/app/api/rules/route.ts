@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { USER_RULE_DEFAULT_PRIORITY } from "@/lib/rules/rule-priorities";
 import {
   formatPatternTargetLabel,
   formatPatternTypeLabel,
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
       description: parsed.data.description,
       condition: parsed.data.condition,
       action: parsed.data.action,
-      priority: parsed.data.priority,
+      priority: parsed.data.priority ?? USER_RULE_DEFAULT_PRIORITY,
     });
 
     return NextResponse.json(

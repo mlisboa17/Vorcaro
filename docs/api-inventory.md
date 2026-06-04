@@ -87,6 +87,41 @@ Total de **operações HTTP documentadas: 61** (rotas únicas; métodos listados
 
 ---
 
+## Central de Notificações (Sprint 10)
+
+### `GET` — `/api/notifications`
+
+**Descrição:** Lista paginada de notificações (Dashboard por padrão).  
+**Auth:** Obrigatório.  
+**Query:** `page`, `pageSize`, `status` (`UNREAD` | `ALL` | status enum), `type`, `channel`, `severity`.
+
+### `GET` — `/api/notifications/summary`
+
+**Descrição:** Contador de não lidas e totais por status.  
+**Auth:** Obrigatório.
+
+### `PATCH` — `/api/notifications/[id]`
+
+**Descrição:** `action: read | dismiss`.  
+**Auth:** Obrigatório.
+
+### `GET/PATCH` — `/api/notifications/preferences`
+
+**Descrição:** Preferências por tipo (Dashboard, Telegram, Digest).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/cron/notification-digest-daily`
+
+**Descrição:** Digest diário 08:00 para todos os usuários.  
+**Auth:** `Authorization: Bearer <CRON_SECRET>`.
+
+### `POST` — `/api/cron/notification-digest-weekly`
+
+**Descrição:** Digest semanal (segunda 08:00).  
+**Auth:** `Authorization: Bearer <CRON_SECRET>`.
+
+---
+
 ## Compromissos Recorrentes (Sprint 8)
 
 ### `GET` — `/api/commitments/monthly`

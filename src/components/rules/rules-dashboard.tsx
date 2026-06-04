@@ -4,17 +4,23 @@ import type { RulesListResponse, RulesTab } from "@/types/rules";
 import { RULES_TABS } from "@/types/rules";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Cpu, Loader2, Plus, Sparkles } from "lucide-react";
+import { Loader2, Plus, Shield, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { isSystemDefaultRuleDescription } from "@/lib/rules/default-categorization-rules";
+import { partitionRulesByOrigin } from "@/lib/rules/rule-priorities";
 import { CreateRuleModal } from "./create-rule-modal";
 import { LearningPatternsList } from "./learning-patterns-list";
 import { ManualRulesList } from "./manual-rules-list";
 
+const TAB_ICONS = {
+  user: User,
+  system: Shield,
+  memory: Sparkles,
+} as const;
+
 export function RulesDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = (searchParams.get("tab") as RulesTab | null) ?? "manual";
+  const activeTab = (searchParams.get("tab") as RulesTab | null) ?? "user";
 
   const [data, setData] = useState<RulesListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +60,7 @@ export function RulesDashboard() {
   }
 
   async function handleDeleteRule(ruleId: string) {
-    const confirmed = window.confirm("Excluir esta regra manual? Essa ação não pode ser desfeita.");
+    const confirmed = window.confirm("Excluir esta regra? Essa ação não pode ser desfeita.");
     if (!confirmed) {
       return;
     }
@@ -115,9 +121,7 @@ export function RulesDashboard() {
     }
   }
 
-  const systemRulesCount =
-    data?.rules.filter((r) => isSystemDefaultRuleDescription(r.description)).length ?? 0;
-  const userRulesCount = (data?.rules.length ?? 0) - systemRulesCount;
+  const { userRules, systemRules } = partitionRulesByOrigin(data?.rules ?? []);
 
   if (loading) {
     return (
@@ -153,12 +157,13 @@ export function RulesDashboard() {
             Regras e Automações
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Controle rígido via regras manuais e memória adaptativa aprendida pela IA.
+            Suas regras vencem o aprendizado da IA. Regras de sistema e memória complementam a
+            classificação.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {activeTab === "manual" && (
+          {activeTab === "user" && (
             <button
               type="button"
               onClick={() => setModalOpen(true)}
@@ -174,20 +179,20 @@ export function RulesDashboard() {
       <div className="grid gap-4 sm:grid-cols-3">
         <article className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
           <div className="flex items-center gap-2 text-blue-800">
-            <Cpu className="h-4 w-4" />
-            <span className="text-sm font-semibold">Suas regras</span>
+            <User className="h-4 w-4" />
+            <span className="text-sm font-semibold">Regras do usuário</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-blue-900">{userRulesCount}</p>
-          <p className="text-xs text-blue-700/80">Prioridade máxima na classificação</p>
+          <p className="mt-2 text-2xl font-bold text-blue-900">{userRules.length}</p>
+          <p className="text-xs text-blue-700/80">Prioridade 100 · vence aprendizado</p>
         </article>
 
         <article className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
           <div className="flex items-center gap-2 text-emerald-800">
-            <Cpu className="h-4 w-4" />
+            <Shield className="h-4 w-4" />
             <span className="text-sm font-semibold">Regras do sistema</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-emerald-900">{systemRulesCount}</p>
-          <p className="text-xs text-emerald-700/80">Pré-definidas · prioridade 50</p>
+          <p className="mt-2 text-2xl font-bold text-emerald-900">{systemRules.length}</p>
+          <p className="text-xs text-emerald-700/80">Prioridade 50 · pré-definidas</p>
         </article>
 
         <article className="rounded-xl border border-violet-100 bg-violet-50/50 p-4">
@@ -196,31 +201,30 @@ export function RulesDashboard() {
             <span className="text-sm font-semibold">Padrões aprendidos</span>
           </div>
           <p className="mt-2 text-2xl font-bold text-violet-900">{data?.patterns.length ?? 0}</p>
-          <p className="text-xs text-violet-700/80">Memória adaptativa (após suas regras)</p>
+          <p className="text-xs text-violet-700/80">Memória adaptativa · ref. prioridade 10</p>
         </article>
       </div>
 
-      <nav className="flex gap-2 border-b border-slate-200 pb-1">
-        {RULES_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => handleTabChange(tab.value)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
-              activeTab === tab.value
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100",
-            )}
-          >
-            {tab.value === "manual" ? (
-              <Cpu className="h-4 w-4" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {tab.label}
-          </button>
-        ))}
+      <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
+        {RULES_TABS.map((tab) => {
+          const Icon = TAB_ICONS[tab.value];
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => handleTabChange(tab.value)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
+                activeTab === tab.value
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </nav>
 
       {actionMessage && (
@@ -229,13 +233,25 @@ export function RulesDashboard() {
         </div>
       )}
 
-      {activeTab === "manual" ? (
+      {activeTab === "user" && (
         <ManualRulesList
-          rules={data?.rules ?? []}
+          rules={userRules}
           deletingId={deletingRuleId}
           onDelete={handleDeleteRule}
+          variant="user"
         />
-      ) : (
+      )}
+
+      {activeTab === "system" && (
+        <ManualRulesList
+          rules={systemRules}
+          deletingId={deletingRuleId}
+          onDelete={handleDeleteRule}
+          variant="system"
+        />
+      )}
+
+      {activeTab === "memory" && (
         <LearningPatternsList
           patterns={data?.patterns ?? []}
           forgettingId={forgettingPatternId}

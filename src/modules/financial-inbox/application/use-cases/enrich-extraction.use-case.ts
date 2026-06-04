@@ -6,6 +6,12 @@ import type { UserLearningPatternRepositoryPort } from "../../domain/ports/user-
 import type { UserRuleRepositoryPort } from "../../domain/ports/user-rule-repository.port";
 import type { RuleAction, RuleCondition } from "../../domain/schemas/user-rule.schema";
 import { isValidTransactionType } from "../../domain/schemas/user-rule.schema";
+import {
+  buildNormalizedSearchText,
+  buildRuleFieldContext,
+  isAmbiguousKeywordBlocked,
+  ruleMatchesSearchText,
+} from "@/lib/rules/rule-match-guards";
 
 const CRITICAL_FIELDS = new Set(["amount", "type"]);
 const ENRICHMENT_CONFIDENCE = 1.0;
@@ -26,13 +32,6 @@ export interface EnrichExtractionResult {
   overriddenFields: string[];
   overriddenCriticalFields: string[];
   fieldSources: Record<string, EnrichmentFieldSource>;
-}
-
-interface MatchContext {
-  description: string;
-  rawContent: string;
-  category: string;
-  paymentMethod: string;
 }
 
 export class EnrichExtractionUseCase {
@@ -57,10 +56,23 @@ export class EnrichExtractionUseCase {
     const overriddenCriticalFields: string[] = [];
     const fieldSources: Record<string, EnrichmentFieldSource> = {};
 
-    const context = this.buildMatchContext(extraction, input.rawContent);
+    const matchFields = {
+      description: extraction.description,
+      rawContent: input.rawContent,
+      descricaoBase: extraction.descricaoBase,
+    };
+    const normalizedSearchText = buildNormalizedSearchText(matchFields);
+    const context = buildRuleFieldContext(matchFields, {
+      category: extraction.category,
+      paymentMethod: extraction.paymentMethod,
+    });
 
     for (const rule of rules) {
-      if (!this.matchesCondition(rule.condition, context)) {
+      const condition = rule.condition;
+      if (isAmbiguousKeywordBlocked(condition.value, normalizedSearchText)) {
+        continue;
+      }
+      if (!ruleMatchesSearchText(condition, normalizedSearchText, context)) {
         continue;
       }
 
@@ -77,10 +89,23 @@ export class EnrichExtractionUseCase {
       }
 
       extraction = this.refreshDerivedFields(extraction, applied);
-      Object.assign(context, this.buildMatchContext(extraction, input.rawContent));
+      Object.assign(
+        context,
+        buildRuleFieldContext(
+          {
+            description: extraction.description,
+            rawContent: input.rawContent,
+            descricaoBase: extraction.descricaoBase,
+          },
+          {
+            category: extraction.category,
+            paymentMethod: extraction.paymentMethod,
+          },
+        ),
+      );
     }
 
-    const searchableText = `${context.rawContent} ${context.description}`.toLowerCase();
+    const searchableText = normalizedSearchText.toLowerCase();
 
     for (const pattern of patterns) {
       const keyword = pattern.inputSignal.keyword.toLowerCase();
@@ -180,28 +205,6 @@ export class EnrichExtractionUseCase {
       confidence: { ...extraction.confidence },
       missingFields: [...extraction.missingFields],
     };
-  }
-
-  private buildMatchContext(
-    extraction: FinancialExtraction,
-    rawContent: string,
-  ): MatchContext {
-    return {
-      description: (extraction.description ?? "").toLowerCase(),
-      rawContent: rawContent.toLowerCase(),
-      category: (extraction.category ?? "").toLowerCase(),
-      paymentMethod: (extraction.paymentMethod ?? "").toLowerCase(),
-    };
-  }
-
-  private matchesCondition(condition: RuleCondition, context: MatchContext): boolean {
-    const fieldValue = context[condition.field];
-
-    if (condition.operator === "contains") {
-      return fieldValue.includes(condition.value.toLowerCase());
-    }
-
-    return fieldValue === condition.value.toLowerCase();
   }
 
   private applyAction(extraction: FinancialExtraction, action: RuleAction): string[] {

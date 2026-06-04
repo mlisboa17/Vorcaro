@@ -65,6 +65,16 @@ src/
 | **Dependências** | `commitments`, `receivables`, `cashflow`, `financial-planning`, `executive-dashboard` (renda do mês) |
 | **Idempotência** | `fingerprint` + `@@unique([userId, fingerprint])` |
 
+### `notifications` (Sprint 10)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Serviços** | `NotificationCenterService`, `NotificationQueryService`, `NotificationDigestService`, `NotificationTelegramDeliveryService`, `NotificationEventBridgeService` |
+| **Repositórios** | `PrismaNotificationRepository`, `PrismaNotificationPreferenceRepository` |
+| **Endpoints** | `GET /api/notifications`, `GET /api/notifications/summary`, `PATCH /api/notifications/[id]`, `GET/PATCH /api/notifications/preferences`, cron digests |
+| **Dependências** | `financial-alerts`, `telegram`, Prisma |
+| **Canais** | Dashboard (instantâneo), Telegram (MarkdownV2, rate limit 3/h), Digest |
+
 ### `commitments` (Sprint 8)
 
 | Aspecto | Detalhe |

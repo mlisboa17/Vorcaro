@@ -18,6 +18,14 @@ interface TelegramFileResponse {
 }
 
 export async function sendTelegramMessage(chatId: number, text: string): Promise<void> {
+  await sendTelegramMessageWithMode(chatId, text, "HTML");
+}
+
+export async function sendTelegramMessageWithMode(
+  chatId: number,
+  text: string,
+  parseMode: "HTML" | "MarkdownV2" = "HTML",
+): Promise<void> {
   const token = getBotToken();
   const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
     method: "POST",
@@ -25,7 +33,7 @@ export async function sendTelegramMessage(chatId: number, text: string): Promise
     body: JSON.stringify({
       chat_id: chatId,
       text,
-      parse_mode: "HTML",
+      parse_mode: parseMode,
     }),
   });
 

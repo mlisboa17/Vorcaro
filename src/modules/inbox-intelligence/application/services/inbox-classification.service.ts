@@ -22,6 +22,8 @@ import { detectPossibleDuplicate } from "../../domain/services/detect-possible-d
 import { detectPotentialReimbursement } from "../../domain/services/detect-potential-reimbursement";
 import { buildInstallmentClassificationHint } from "../../domain/services/installment-classification-hint";
 import {
+  buildNormalizedSearchText,
+  buildRuleFieldContext,
   isAmbiguousKeywordBlocked,
   ruleMatchesSearchText,
   sortRulesForMatching,
@@ -61,6 +63,13 @@ const KEYWORD_RULES: Array<{
     subcategoria: "Uber e Aplicativos",
     confidence: 86,
     reason: "Regra por palavra-chave 99 (mobilidade).",
+  },
+  {
+    keyword: /\buber\s*(trip|pending)\b/i,
+    categoriaPrincipal: "Transporte",
+    subcategoria: "Uber e Aplicativos",
+    confidence: 86,
+    reason: "Regra por palavra-chave UBER TRIP/PENDING (mobilidade).",
   },
   {
     keyword: /\buber(?!\s*eats)\b/i,
@@ -131,6 +140,14 @@ export type ClassifyInboxItemInput = {
   userId: string;
   description: string;
   rawContent?: string;
+  /** Campos opcionais quando disponíveis na extração/importação */
+  descricaoBase?: string | null;
+  merchantName?: string | null;
+  counterparty?: string | null;
+  rawDescription?: string | null;
+  title?: string | null;
+  category?: string | null;
+  paymentMethod?: string | null;
   inboxItemId?: string;
   amount?: number | null;
   date?: string | null;
@@ -145,7 +162,17 @@ export class InboxClassificationService {
   ) {}
 
   async classify(input: ClassifyInboxItemInput): Promise<InboxClassificationSuggestion> {
-    const text = (input.description || input.rawContent || "").trim();
+    const matchFields = {
+      description: input.description,
+      rawContent: input.rawContent,
+      descricaoBase: input.descricaoBase,
+      merchantName: input.merchantName,
+      counterparty: input.counterparty,
+      rawDescription: input.rawDescription,
+      title: input.title,
+    };
+    const normalizedSearchText = buildNormalizedSearchText(matchFields);
+    const text = normalizedSearchText || (input.description || input.rawContent || "").trim();
     if (!text) {
       return this.emptySuggestion("Descrição vazia para classificação.");
     }
@@ -170,7 +197,11 @@ export class InboxClassificationService {
     ]);
 
     const keyword = extractLearningKeyword(text).toLowerCase();
-    const searchable = `${text} ${input.rawContent ?? ""}`.toLowerCase();
+    const searchable = normalizedSearchText.toLowerCase();
+    const ruleFieldContext = buildRuleFieldContext(matchFields, {
+      category: input.category,
+      paymentMethod: input.paymentMethod,
+    });
 
     const installment = buildInstallmentClassificationHint({
       userId: input.userId,
@@ -209,13 +240,18 @@ export class InboxClassificationService {
     const history = this.matchHistory(patterns, searchable, keyword, categories);
     const similarity = this.matchSimilarity(patterns, text, categories);
 
-    const userRule = this.matchUserRules(userRules, text, input.rawContent ?? text, categories);
+    const userRule = this.matchUserRules(
+      userRules,
+      normalizedSearchText,
+      ruleFieldContext,
+      categories,
+    );
     if (userRule) return enrich(userRule);
 
     if (history) return enrich(history);
     if (similarity) return enrich(similarity);
 
-    const keywordRule = this.matchKeywordRule(text, categories);
+    const keywordRule = this.matchKeywordRule(normalizedSearchText, categories);
     if (keywordRule) return enrich(keywordRule);
 
     const ai = await this.classifyWithAi(input.userId, text, categories, patterns);
@@ -404,8 +440,8 @@ export class InboxClassificationService {
 
   private matchUserRules(
     rules: Array<{ name: string; condition: unknown; action: unknown; priority: number; createdAt?: Date }>,
-    description: string,
-    rawContent: string,
+    normalizedSearchText: string,
+    fieldContext: ReturnType<typeof buildRuleFieldContext>,
     categories: CategoryRow[],
   ): InboxClassificationSuggestion | null {
     const sorted = sortRulesForMatching(rules);
@@ -414,8 +450,8 @@ export class InboxClassificationService {
       const condition = parseRuleCondition(rule.condition);
       const action = parseRuleAction(rule.action);
       if (!condition || !action || action.set !== "category") continue;
-      if (isAmbiguousKeywordBlocked(condition.value, description, rawContent)) continue;
-      if (!ruleMatchesSearchText(condition, description, rawContent)) continue;
+      if (isAmbiguousKeywordBlocked(condition.value, normalizedSearchText)) continue;
+      if (!ruleMatchesSearchText(condition, normalizedSearchText, fieldContext)) continue;
 
       const categoryValue = String(action.value);
       const resolved = categories.some((c) => c.id === categoryValue)

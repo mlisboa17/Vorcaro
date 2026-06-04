@@ -1,11 +1,37 @@
 import { parseRuleCondition } from "@/modules/financial-inbox/domain/schemas/user-rule.schema";
 
-export function isAmbiguousKeywordBlocked(
-  keyword: string,
-  description: string,
-  rawContent: string,
-): boolean {
-  const hay = `${description} ${rawContent}`.toLowerCase();
+/**
+ * Campos opcionais para texto de busca em regras.
+ * No domínio atual (FinancialInbox / FinancialExtraction): description, rawContent, descricaoBase.
+ * merchantName, counterparty, rawDescription e title são aceitos quando presentes no input.
+ */
+export type RuleMatchTextFields = {
+  description?: string | null;
+  rawContent?: string | null;
+  descricaoBase?: string | null;
+  merchantName?: string | null;
+  counterparty?: string | null;
+  rawDescription?: string | null;
+  title?: string | null;
+};
+
+export function buildNormalizedSearchText(fields: RuleMatchTextFields): string {
+  return [
+    fields.description,
+    fields.merchantName,
+    fields.counterparty,
+    fields.rawDescription,
+    fields.rawContent,
+    fields.title,
+    fields.descricaoBase,
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join(" ")
+    .trim();
+}
+
+export function isAmbiguousKeywordBlocked(keyword: string, searchText: string): boolean {
+  const hay = searchText.toLowerCase();
   const k = keyword.toLowerCase();
 
   if (k === "uber") {
@@ -18,30 +44,49 @@ export function isAmbiguousKeywordBlocked(
   return false;
 }
 
+export type RuleFieldContext = {
+  description: string;
+  rawContent: string;
+  category: string;
+  paymentMethod: string;
+};
+
+export function buildRuleFieldContext(
+  fields: RuleMatchTextFields,
+  extras?: { category?: string | null; paymentMethod?: string | null },
+): RuleFieldContext {
+  const normalized = buildNormalizedSearchText(fields).toLowerCase();
+  return {
+    description: (fields.description ?? normalized).toLowerCase(),
+    rawContent: (fields.rawContent ?? normalized).toLowerCase(),
+    category: (extras?.category ?? "").toLowerCase(),
+    paymentMethod: (extras?.paymentMethod ?? "").toLowerCase(),
+  };
+}
+
 export function ruleMatchesSearchText(
   condition: { operator: string; field: string; value: string },
-  description: string,
-  rawContent: string,
+  normalizedSearchText: string,
+  fieldContext: RuleFieldContext,
 ): boolean {
-  const context = {
-    description: description.toLowerCase(),
-    rawContent: rawContent.toLowerCase(),
-    category: "",
-    paymentMethod: "",
-  };
-
   const needle = condition.value.toLowerCase();
+  const haystack = normalizedSearchText.toLowerCase();
+
+  if (condition.field === "description" || condition.field === "rawContent") {
+    if (condition.operator === "equals") {
+      const fieldValue =
+        condition.field === "description" ? fieldContext.description : fieldContext.rawContent;
+      return fieldValue === needle || haystack === needle;
+    }
+    return haystack.includes(needle);
+  }
+
+  const fieldValue = fieldContext[condition.field as keyof RuleFieldContext] ?? "";
 
   if (condition.operator === "equals") {
-    const fieldValue = context[condition.field as keyof typeof context] ?? "";
     return fieldValue === needle;
   }
 
-  if (condition.field === "description") {
-    return context.description.includes(needle) || context.rawContent.includes(needle);
-  }
-
-  const fieldValue = context[condition.field as keyof typeof context] ?? "";
   return fieldValue.includes(needle);
 }
 

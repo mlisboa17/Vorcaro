@@ -16,6 +16,7 @@ const categories = [
   { id: "cat-mobility", name: "Uber e Aplicativos", parentCategoryId: "cat-transport" },
   { id: "cat-health", name: "Saúde", parentCategoryId: null },
   { id: "cat-pharmacy", name: "Farmácia", parentCategoryId: "cat-health" },
+  { id: "cat-streaming", name: "Streaming", parentCategoryId: "cat-food" },
 ];
 
 function createMockDb(userId: string) {
@@ -139,6 +140,12 @@ describe("InboxClassificationService", () => {
     expect(trip.subcategoriaId).toBe("cat-mobility");
     expect(trip.source).toBe("rule");
 
+    const pending = await service.classify({
+      userId: USER_B,
+      description: "UBER PENDING BR",
+    });
+    expect(pending.subcategoriaId).toBe("cat-mobility");
+
     const food99 = await service.classify({
       userId: USER_B,
       description: "99FOOD DELIVERY",
@@ -151,6 +158,39 @@ describe("InboxClassificationService", () => {
     });
     expect(app99.subcategoriaId).toBe("cat-mobility");
 
+    expect(ai.generateJson).not.toHaveBeenCalled();
+  });
+
+  it("UserRule encontra keyword em rawContent quando description está vazia", async () => {
+    const db = {
+      userLearningPattern: { findMany: vi.fn().mockResolvedValue([]) },
+      category: { findMany: vi.fn().mockResolvedValue(categories) },
+      userRule: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "rule-netflix",
+            name: "Netflix raw",
+            priority: 100,
+            isActive: true,
+            condition: { operator: "contains", field: "description", value: "NETFLIX" },
+            action: { set: "category", value: "Streaming" },
+          },
+        ]),
+      },
+      transaction: { findMany: vi.fn().mockResolvedValue([]) },
+      financialInbox: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaClient;
+
+    const ai = createMockAiRouter();
+    const service = new InboxClassificationService(db, ai);
+
+    const result = await service.classify({
+      userId: USER_B,
+      description: "",
+      rawContent: "COBRANCA NETFLIX COM BR",
+    });
+
+    expect(result.source).toBe("rule");
     expect(ai.generateJson).not.toHaveBeenCalled();
   });
 
