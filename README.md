@@ -47,6 +47,9 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **11.1** | Vorcaro Intent Engine e Tool Calling | Concluída |
 | **12** | Memória Financeira Longitudinal | Concluída |
 | **13** | Execução Assistida do Vorcaro (Assist → Confirm → Execute) | Concluída |
+| **14** | Follow-up Inteligente e Pendências Ativas | Concluída |
+| **14.5** | Homologação operacional (checklist + relatório) | Concluída |
+| **14.6** | Estabilização pós-homologação (intent, Telegram, cache, senha) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
 Sprint 13: [`docs/sprint-13-assisted-execution.md`](docs/sprint-13-assisted-execution.md).  

@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Fixed — Sprint 14.6 (Estabilização Pós-Homologação)
+
+- Intent `STRATEGIC_ADVICE` — perguntas de patrimônio/estratégia com fallback LLM (H-01).
+- Telegram inline keyboard approve/reject + callbacks; dismiss follow-up (H-02).
+- Sinônimos de intent (FOLLOWUPS, ALERTS, STATUS, RECEIVABLES) — M-01.
+- Cache TTL 5 min timeline/evolução; timeline GET sem recomputação contínua — M-02.
+- `POST /api/auth/forgot-password` e `reset-password` + `PasswordResetToken` — M-03.
+- Comando `/vorcaro` → menu do assistente — M-04.
+- Ownership cross-tenant padronizado em 404 — B-02.
+- Doc: [`docs/sprint-14.6-stabilization.md`](docs/sprint-14.6-stabilization.md).
+
+### Added — Sprint 14.5 (Homologação Operacional)
+
+- Matriz de homologação: [`docs/sprint-14.5-homologation-checklist.md`](docs/sprint-14.5-homologation-checklist.md) (100% preenchida).
+- Relatório de inconformidades: [`docs/sprint-14.5-homologation-report.md`](docs/sprint-14.5-homologation-report.md).
+- Regressão: 405 testes OK; `tsc` OK. Sem bugs críticos de multitenancy identificados.
+
 ### Added — Sprint 14 (Follow-up Inteligente e Pendências Ativas)
 
 - Modelo `VorcaroFollowUp` + enum `VorcaroFollowUpStatus`; migration `20260608120000_vorcaro_followups_sprint14`.

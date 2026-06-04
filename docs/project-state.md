@@ -1,6 +1,25 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-07 (Sprint 13).
+Documento de inventário técnico. Última revisão: 2026-06-09 (Sprint 14.6).
+
+## Sprint 14.6 — Estabilização Pós-Homologação
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Corrigir achados da homologação 14.5 sem novas features |
+| **Correções** | `STRATEGIC_ADVICE`, Telegram inline, sinônimos intent, cache 5 min, reset senha, `/vorcaro`, 404 ownership |
+| **APIs** | `POST /api/auth/forgot-password`, `POST /api/auth/reset-password` |
+| **Tabelas** | `PasswordResetToken`, `User.passwordHash` |
+| **Status** | Concluída |
+
+## Sprint 14 — Follow-up Inteligente
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Pendências ativas pós-ações assistidas, backoff, auto-complete |
+| **Módulo** | `src/modules/vorcaro/followups/` |
+| **Rotas UI** | `/dashboard/vorcaro/followups` |
+| **Status** | Concluída |
 
 ## Sprint 13 — Execução Assistida do Vorcaro
 

@@ -13,10 +13,24 @@ import {
 } from "@/adapters/telegram/types/telegram-update";
 import { parseConnectCommand } from "@/lib/telegram/connect-command";
 import {
+  isVorcaroAssistantCommand,
   parseVorcaroTelegramCommand,
   resolveVorcaroTelegramQuestion,
   shouldRouteToVorcaroChat,
+  VORCARO_ASSISTANT_INTRO,
 } from "@/lib/telegram/vorcaro-telegram-commands";
+import {
+  buildActionProposalKeyboard,
+  parseActionProposalCallback,
+  parseFollowUpDismissCallback,
+} from "@/lib/telegram/telegram-inline-actions";
+import {
+  answerTelegramCallbackQuery,
+  sendTelegramMessageWithMode,
+} from "@/lib/telegram/telegram-bot.client";
+import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
+import { buildVorcaroFollowUpService } from "@/lib/api/vorcaro-followups";
+import type { TelegramCallbackQuery } from "@/adapters/telegram/types/telegram-update";
 import { VorcaroConversationService } from "@/modules/vorcaro/conversation/application/services/vorcaro-conversation.service";
 import { detectReceivableTelegramHint } from "@/lib/telegram/detect-receivable-hint";
 import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegram-bot.client";
@@ -141,6 +155,11 @@ export class ProcessTelegramUpdateService {
       return { ok: true, skipped: "empty_message" };
     }
 
+    if (isVorcaroAssistantCommand(text)) {
+      await this.safeReply(chatId, VORCARO_ASSISTANT_INTRO);
+      return { ok: true, handled: "vorcaro_intro" };
+    }
+
     if (shouldRouteToVorcaroChat(text)) {
       const helpText = parseVorcaroTelegramCommand(text);
       if (text.trim().toLowerCase().startsWith("/help_vorcaro") && helpText) {
@@ -156,7 +175,7 @@ export class ProcessTelegramUpdateService {
           message: question,
           channel: "TELEGRAM",
         });
-        await this.safeReply(chatId, result.answer.slice(0, 3900));
+        await this.safeReplyWithProposals(chatId, result.answer.slice(0, 3900), result.actionProposals);
         return { ok: true, handled: "vorcaro_chat" };
       } catch (error) {
         const msg =
@@ -191,8 +210,80 @@ export class ProcessTelegramUpdateService {
     return { ok: true, handled: "text", inboxItemId: id, channel: "TELEGRAM" };
   }
 
+  async executeCallback(
+    callback: TelegramCallbackQuery,
+  ): Promise<TelegramWebhookResult> {
+    const chatId = callback.message?.chat.id;
+    const data = callback.data?.trim();
+    if (!chatId || !data) {
+      return { ok: true, skipped: "invalid_callback" };
+    }
+
+    const connection = await this.telegramIntegration.findActiveConnectionByChatId(
+      BigInt(chatId),
+    );
+    if (!connection) {
+      await answerTelegramCallbackQuery(callback.id, "Chat não vinculado.");
+      return { ok: true, skipped: "not_connected" };
+    }
+
+    const followUpId = parseFollowUpDismissCallback(data);
+    if (followUpId) {
+      try {
+        await buildVorcaroFollowUpService().dismissFollowUp(connection.userId, followUpId);
+        await answerTelegramCallbackQuery(callback.id, "Pendência dispensada.");
+        await this.safeReply(chatId, "Pendência marcada como dispensada.");
+      } catch {
+        await answerTelegramCallbackQuery(callback.id, "Não foi possível dispensar.");
+      }
+      return { ok: true, handled: "followup_dismiss" };
+    }
+
+    const action = parseActionProposalCallback(data);
+    if (!action) {
+      await answerTelegramCallbackQuery(callback.id);
+      return { ok: true, skipped: "unknown_callback" };
+    }
+
+    const proposals = buildVorcaroActionProposalService();
+    try {
+      if (action.action === "approve") {
+        const { result } = await proposals.approveAndExecute(connection.userId, action.proposalId);
+        await answerTelegramCallbackQuery(callback.id, "Aprovado!");
+        const link = result.targetUrl ? `\n\nAbra: ${result.targetUrl}` : "";
+        await this.safeReply(chatId, `${result.message}${link}`);
+      } else {
+        await proposals.rejectProposal(connection.userId, action.proposalId);
+        await answerTelegramCallbackQuery(callback.id, "Rejeitado.");
+        await this.safeReply(chatId, "Proposta rejeitada.");
+      }
+      return { ok: true, handled: "vorcaro_action_callback" };
+    } catch {
+      await answerTelegramCallbackQuery(callback.id, "Ação indisponível ou expirada.");
+      return { ok: true, handled: "vorcaro_action_callback_failed" };
+    }
+  }
+
   private async safeReply(chatId: number, text: string): Promise<void> {
     try {
+      await sendTelegramMessage(chatId, text);
+    } catch (error) {
+      console.error("[telegram] Falha ao enviar resposta:", error instanceof Error ? error.message : error);
+    }
+  }
+
+  private async safeReplyWithProposals(
+    chatId: number,
+    text: string,
+    proposals?: Array<{ id: string }>,
+  ): Promise<void> {
+    try {
+      if (proposals?.length) {
+        await sendTelegramMessageWithMode(chatId, text, "HTML", {
+          inline_keyboard: buildActionProposalKeyboard(proposals),
+        });
+        return;
+      }
       await sendTelegramMessage(chatId, text);
     } catch (error) {
       console.error("[telegram] Falha ao enviar resposta:", error instanceof Error ? error.message : error);

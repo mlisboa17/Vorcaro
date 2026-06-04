@@ -6,12 +6,12 @@ import {
 } from "../domain/services/vorcaro-followup-backoff";
 
 describe("getFollowUpBackoffDays", () => {
-  it("retorna 1 dia após o primeiro lembrete (checkCount=1)", () => {
-    expect(getFollowUpBackoffDays(1)).toBe(3);
+  it("retorna 1 dia para agendamento inicial (checkCount=0)", () => {
+    expect(getFollowUpBackoffDays(0)).toBe(1);
   });
 
-  it("retorna 3 dias após checkCount=1 na regra de agendamento inicial", () => {
-    expect(getFollowUpBackoffDays(0)).toBe(1);
+  it("retorna 3 dias após o primeiro lembrete (checkCount=1)", () => {
+    expect(getFollowUpBackoffDays(1)).toBe(3);
   });
 
   it("retorna 3 dias quando checkCount após lembrete é 1", () => {

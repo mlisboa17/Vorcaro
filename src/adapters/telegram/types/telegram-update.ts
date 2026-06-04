@@ -34,13 +34,22 @@ const telegramMessageSchema = z.object({
   document: z.unknown().optional(),
 });
 
+const telegramCallbackQuerySchema = z.object({
+  id: z.string(),
+  from: telegramUserSchema.optional(),
+  data: z.string().optional(),
+  message: telegramMessageSchema.optional(),
+});
+
 export const telegramUpdateSchema = z.object({
   update_id: z.number(),
   message: telegramMessageSchema.optional(),
+  callback_query: telegramCallbackQuerySchema.optional(),
 });
 
 export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>;
 export type TelegramMessage = z.infer<typeof telegramMessageSchema>;
+export type TelegramCallbackQuery = z.infer<typeof telegramCallbackQuerySchema>;
 
 export function parseTelegramUpdate(body: unknown): TelegramUpdate | null {
   const parsed = telegramUpdateSchema.safeParse(body);

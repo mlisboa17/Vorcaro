@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
+import { TtlMemoryCache } from "@/lib/cache/ttl-memory-cache";
+import { FINANCIAL_MEMORY_CACHE_TTL_MS } from "../../domain/constants";
 import {
   VORCARO_INSUFFICIENT_HISTORY_MESSAGE,
   type FinancialAchievementRecord,
@@ -13,6 +15,7 @@ import { EvolutionHealthScoreService } from "./evolution-health-score.service";
 import { FinancialTimelineEngineService } from "./financial-timeline-engine.service";
 
 export class FinancialMemoryQueryService {
+  private readonly refreshCache = new TtlMemoryCache<true>(FINANCIAL_MEMORY_CACHE_TTL_MS);
   private readonly repo: PrismaFinancialMemoryRepository;
   private readonly comparison: FinancialComparisonService;
   private readonly evolution: FinancialEvolutionProfileService;
@@ -32,7 +35,18 @@ export class FinancialMemoryQueryService {
   readonly insufficientHistoryMessage = VORCARO_INSUFFICIENT_HISTORY_MESSAGE;
 
   async refresh(userId: string) {
-    return this.engine.runForUser(userId);
+    if (this.refreshCache.get(userId)) {
+      return {
+        userId,
+        snapshotsRecorded: 0,
+        eventsCreated: 0,
+        achievementsUnlocked: 0,
+        durationMs: 0,
+      };
+    }
+    const result = await this.engine.runForUser(userId);
+    this.refreshCache.set(userId, true);
+    return result;
   }
 
   async getTimeline(

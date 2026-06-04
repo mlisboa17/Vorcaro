@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
+import { TtlMemoryCache } from "@/lib/cache/ttl-memory-cache";
+import { FINANCIAL_MEMORY_CACHE_TTL_MS } from "../../domain/constants";
 import type { FinancialTrendDirection } from "@prisma/client";
 import type { FinancialEvolutionProfileRecord } from "../../domain/types/financial-memory";
 import {
@@ -11,6 +13,9 @@ import { FinancialPlanningService } from "@/modules/financial-planning/applicati
 import { financialMemoryObservability } from "./financial-memory-observability.service";
 
 export class FinancialEvolutionProfileService {
+  private readonly computeCache = new TtlMemoryCache<FinancialEvolutionProfileRecord>(
+    FINANCIAL_MEMORY_CACHE_TTL_MS,
+  );
   private readonly comparison: FinancialComparisonService;
   private readonly consultant: IntelligentAdvisorService;
   private readonly planning: FinancialPlanningService;
@@ -23,6 +28,9 @@ export class FinancialEvolutionProfileService {
 
   /** Perfil calculado sob demanda — sem persistência. */
   async compute(userId: string): Promise<FinancialEvolutionProfileRecord> {
+    const cached = this.computeCache.get(userId);
+    if (cached) return cached;
+
     financialMemoryObservability.recordEvolutionQuery();
 
     const [historyDays, cmp90, cmp30, consultation, goals] = await Promise.all([
@@ -61,7 +69,7 @@ export class FinancialEvolutionProfileService {
       financialMemoryObservability.recordTrendDetected();
     }
 
-    return {
+    const profile: FinancialEvolutionProfileRecord = {
       healthTrend,
       cashflowTrend,
       spendingTrend,
@@ -72,6 +80,8 @@ export class FinancialEvolutionProfileService {
       lastHealthScore: consultation.healthScore.score,
       previousHealthScore: cmp30.past?.healthScore ?? null,
     };
+    this.computeCache.set(userId, profile);
+    return profile;
   }
 }
 

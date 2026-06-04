@@ -15,13 +15,13 @@ vi.mock("@/lib/api/installments", () => ({
 }));
 
 describe("GET /api/installments/[groupId]", () => {
-  it("retorna 403 para grupo de outro usuário", async () => {
+  it("retorna 404 para grupo de outro usuário", async () => {
     isGroupForbiddenForUserMock.mockResolvedValueOnce(true);
     const { GET } = await import("../route");
     const response = await GET(new Request("http://localhost/api/installments/other-grp"), {
       params: Promise.resolve({ groupId: "other-grp" }),
     });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
     expect(getGroupDetailMock).not.toHaveBeenCalled();
   });
 

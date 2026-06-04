@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  isVorcaroAssistantCommand,
   isVorcaroFreeTextQuestion,
   parseVorcaroTelegramCommand,
   resolveVorcaroTelegramQuestion,
   shouldRouteToVorcaroChat,
+  VORCARO_ASSISTANT_INTRO,
 } from "@/lib/telegram/vorcaro-telegram-commands";
 
 describe("vorcaro-telegram-commands", () => {
@@ -30,5 +32,12 @@ describe("vorcaro-telegram-commands", () => {
 
   it("normaliza pergunta livre", () => {
     expect(resolveVorcaroTelegramQuestion("Vorcaro, estou bem?")).toBe("estou bem?");
+  });
+
+  it("/vorcaro é comando de assistente, não ALERTS (M-04)", () => {
+    expect(isVorcaroAssistantCommand("/vorcaro")).toBe(true);
+    expect(parseVorcaroTelegramCommand("/vorcaro")).toBeNull();
+    expect(VORCARO_ASSISTANT_INTRO).toContain("Sou Vorcaro");
+    expect(shouldRouteToVorcaroChat("/vorcaro")).toBe(false);
   });
 });

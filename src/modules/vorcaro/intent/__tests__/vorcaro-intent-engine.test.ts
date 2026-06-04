@@ -35,6 +35,7 @@ describe("VorcaroIntentEngineService", () => {
 
   it("exige LLM para perguntas estratégicas", () => {
     const result = engine.detect("O que você faria no meu lugar?");
+    expect(result.primary).toBe("STRATEGIC_ADVICE");
     expect(result.requiresLlm).toBe(true);
   });
 
@@ -76,6 +77,10 @@ describe("VorcaroToolResolverService", () => {
 
   it("resolve FOLLOWUPS para follow_ups", () => {
     expect(resolver.resolve("FOLLOWUPS")).toEqual(["follow_ups"]);
+  });
+
+  it("STRATEGIC_ADVICE não resolve ferramentas", () => {
+    expect(resolver.resolve("STRATEGIC_ADVICE")).toEqual([]);
   });
 });
 

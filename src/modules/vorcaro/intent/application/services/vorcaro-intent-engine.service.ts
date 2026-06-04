@@ -1,4 +1,8 @@
 import type { VorcaroIntent, VorcaroIntentDetection } from "../../domain/types/vorcaro-intent";
+import {
+  INTENT_SYNONYM_RULES,
+  matchesStrategicAdvice,
+} from "../../domain/services/vorcaro-intent-synonyms";
 
 const MEMORY_INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
   {
@@ -16,7 +20,6 @@ const MEMORY_INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> 
       /estou melhor que/i,
       /h[aá]\s*3\s*meses/i,
       /patrim[oô]nio cresceu/i,
-      /meu patrim[oô]nio/i,
       /como evoluiu meu fluxo de caixa/i,
       /compar(ar|ando).*(m[eê]s|meses|trimestre)/i,
     ],
@@ -31,13 +34,8 @@ const MEMORY_INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> 
   },
 ];
 
-const LLM_STRATEGIC_PATTERNS = [
-  /o que voc[eê] faria.*(acelerar|patrim[oô]nio|crescimento)/i,
-  /qual comportamento financeiro.*prejudica/i,
-  /qual estrat[eé]gia.*(12 meses|pr[oó]ximos meses)/i,
-];
-
 const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
+  ...INTENT_SYNONYM_RULES,
   {
     intent: "RULES_AUTOMATIONS",
     patterns: [
@@ -91,7 +89,6 @@ const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
     patterns: [
       /pend[eê]ncias/i,
       /acompanhamento/i,
-      /tenho algo parado/i,
       /follow.?up/i,
       /o que ficou pendente/i,
       /mostre meus acompanhamentos/i,
@@ -107,20 +104,9 @@ const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
       /como estou financeiramente/i,
       /situa[cç][aã]o financeira/i,
       /situa[cç][aã]o melhorou/i,
-      /como estou/i,
       /^\/status\b/i,
     ],
   },
-];
-
-const LLM_REQUIRED_PATTERNS = [
-  /o que voc[eê] faria/i,
-  /no meu lugar/i,
-  /como melhorar minha situa[cç][aã]o/i,
-  /prioridade para os pr[oó]ximos meses/i,
-  /estrat[eé]gia/i,
-  /analise aberta/i,
-  /me ajude a planejar/i,
 ];
 
 const LLM_COMPARISON_PATTERN = /compar(e|ar|ando|ação)/i;
@@ -154,6 +140,10 @@ export class VorcaroIntentEngineService {
   detect(message: string, activeTopic?: string | null): VorcaroIntentDetection {
     const text = message.trim();
 
+    if (matchesStrategicAdvice(text)) {
+      return this.build("STRATEGIC_ADVICE", [], true);
+    }
+
     for (const rule of MEMORY_INTENT_RULES) {
       if (rule.patterns.some((pattern) => pattern.test(text))) {
         return this.build(rule.intent, [], false);
@@ -161,10 +151,8 @@ export class VorcaroIntentEngineService {
     }
 
     const requiresLlm =
-      LLM_STRATEGIC_PATTERNS.some((p) => p.test(text)) ||
-      LLM_REQUIRED_PATTERNS.some((p) => p.test(text)) ||
-      (LLM_COMPARISON_PATTERN.test(text) &&
-        !MEMORY_INTENT_RULES.some((r) => r.patterns.some((p) => p.test(text))));
+      LLM_COMPARISON_PATTERN.test(text) &&
+      !MEMORY_INTENT_RULES.some((r) => r.patterns.some((p) => p.test(text)));
 
     if (/^\/(alertas|recebiveis|metas|gastos|oportunidades|status)\b/i.test(text)) {
       const cmd = text.toLowerCase();

@@ -22,8 +22,8 @@ export async function handleTelegramWebhook(request: Request) {
   }
 
   const update = parseTelegramUpdate(body);
-  if (!update?.message) {
-    return NextResponse.json({ ok: true, skipped: "no_message" });
+  if (!update) {
+    return NextResponse.json({ ok: true, skipped: "invalid_update" });
   }
 
   try {
@@ -31,6 +31,16 @@ export async function handleTelegramWebhook(request: Request) {
       prisma,
       new PrismaTelegramIntegrationRepository(prisma),
     );
+
+    if (update.callback_query) {
+      const result = await service.executeCallback(update.callback_query);
+      return NextResponse.json(result);
+    }
+
+    if (!update.message) {
+      return NextResponse.json({ ok: true, skipped: "no_message" });
+    }
+
     const result = await service.execute(update.message);
     return NextResponse.json(result);
   } catch (error) {

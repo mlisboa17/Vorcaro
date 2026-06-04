@@ -148,6 +148,7 @@ export class VorcaroConversationService {
       userId: input.userId,
       message: input.message,
       activeTopic,
+      channel: input.channel,
     });
 
     if (toolResult.responseMode === "tool" && toolResult.answer) {

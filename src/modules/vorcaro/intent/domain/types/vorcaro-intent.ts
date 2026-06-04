@@ -16,6 +16,7 @@ export const VORCARO_INTENTS = [
   "ACHIEVEMENTS",
   "TRENDS",
   "FOLLOWUPS",
+  "STRATEGIC_ADVICE",
   "GENERAL_CHAT",
   "UNKNOWN",
 ] as const;

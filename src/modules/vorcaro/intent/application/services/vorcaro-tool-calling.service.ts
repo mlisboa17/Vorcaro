@@ -51,6 +51,7 @@ export class VorcaroToolCallingService {
     userId: string;
     message: string;
     activeTopic?: string | null;
+    channel?: "WEB" | "TELEGRAM";
   }): Promise<VorcaroToolCallingResult> {
     const detection = this.detect(input.message, input.activeTopic);
     const intentCacheKey = this.cache.buildIntentKey(input.userId, input.message);
@@ -127,7 +128,12 @@ export class VorcaroToolCallingService {
       proposals.push(proposal);
     }
     if (proposals.length > 0) {
-      answer += formatProposalCtaBlock(proposals);
+      if (input.channel === "TELEGRAM") {
+        answer +=
+          "\n\n<b>Assistência Vorcaro</b> — use os botões abaixo para confirmar (sem alterar dados).";
+      } else {
+        answer += formatProposalCtaBlock(proposals);
+      }
     }
 
     this.observability.recordToolOnlyResponse();

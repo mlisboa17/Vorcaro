@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const service = buildInstallmentReadModelService();
   const forbidden = await service.isGroupForbiddenForUser(session.user.id, groupId);
   if (forbidden) {
-    return NextResponse.json({ error: "Acesso negado a este grupo" }, { status: 403 });
+    return NextResponse.json({ error: "Parcelamento não encontrado" }, { status: 404 });
   }
 
   const detail = await service.getGroupDetail(session.user.id, groupId);

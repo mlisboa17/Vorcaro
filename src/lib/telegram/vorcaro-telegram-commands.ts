@@ -9,6 +9,17 @@ export const VORCARO_TELEGRAM_COMMANDS = [
   "/help_vorcaro",
 ] as const;
 
+export const VORCARO_ASSISTANT_INTRO = `Sou Vorcaro.
+
+Posso ajudar com:
+• Status financeiro
+• Metas
+• Recebíveis
+• Pendências
+• Estratégia patrimonial
+
+Use /status, /metas, /alertas, /recebiveis ou pergunte em linguagem natural.`;
+
 const VORCARO_COMMAND_QUESTIONS: Record<string, string> = {
   "/status": "Como estou financeiramente?",
   "/alertas": "Quais são meus maiores riscos e alertas hoje?",
@@ -16,14 +27,21 @@ const VORCARO_COMMAND_QUESTIONS: Record<string, string> = {
   "/metas": "Como estão minhas metas financeiras?",
   "/oportunidades": "Quais oportunidades de economia você identificou?",
   "/recebiveis": "Como estão meus recebíveis e reembolsos?",
-  "/vorcaro": "O que preciso resolver hoje?",
   "/help_vorcaro":
-    "Comandos Vorcaro:\n/status — saúde financeira\n/alertas — riscos\n/gastos — vazamentos\n/metas — planejamento\n/oportunidades — economias\n/recebiveis — contas a receber\n\nOu pergunte: Vorcaro, <sua pergunta>",
+    "Comandos Vorcaro:\n/status — saúde financeira\n/alertas — riscos\n/gastos — vazamentos\n/metas — planejamento\n/oportunidades — economias\n/recebiveis — contas a receber\n/vorcaro — menu do assistente\n\nOu pergunte: Vorcaro, <sua pergunta>",
 };
+
+export function isVorcaroAssistantCommand(text: string): boolean {
+  const lower = text.trim().toLowerCase();
+  return lower === "/vorcaro" || lower.startsWith("/vorcaro ");
+}
 
 export function parseVorcaroTelegramCommand(text: string): string | null {
   const trimmed = text.trim();
   const lower = trimmed.toLowerCase();
+  if (isVorcaroAssistantCommand(trimmed)) {
+    return null;
+  }
   for (const cmd of VORCARO_TELEGRAM_COMMANDS) {
     if (lower === cmd || lower.startsWith(`${cmd} `)) {
       return VORCARO_COMMAND_QUESTIONS[cmd] ?? trimmed;

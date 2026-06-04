@@ -6,11 +6,9 @@ import type { VorcaroActionType } from "@/modules/vorcaro/actions/domain/types/v
 export function vorcaroActionErrorResponse(error: unknown): NextResponse {
   if (error instanceof VorcaroActionError) {
     const status =
-      error.code === "NOT_FOUND"
+      error.code === "NOT_FOUND" || error.code === "FORBIDDEN"
         ? 404
-        : error.code === "FORBIDDEN"
-          ? 403
-          : error.code === "RATE_LIMIT_EXCEEDED"
+        : error.code === "RATE_LIMIT_EXCEEDED"
             ? 429
             : error.code === "EXPIRED"
               ? 410

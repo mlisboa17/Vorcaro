@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import {
-  buildFinancialMemoryRepository,
-  buildFinancialTimelineEngine,
-} from "@/lib/api/financial-memory";
+import { prisma } from "@/lib/prisma";
+import { FinancialMemoryQueryService } from "@/modules/financial-memory/application/services/financial-memory-query.service";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -16,25 +14,20 @@ export async function GET(request: Request) {
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "30") || 30));
 
   const userId = session.user.id;
-  await buildFinancialTimelineEngine().runForUser(userId);
-
-  const repo = buildFinancialMemoryRepository();
-  const { items, total } = await repo.listTimelineEvents(userId, { page, pageSize });
-  const first = await repo.getFirstSnapshotDate(userId);
-  const historyDays = first
-    ? Math.max(0, Math.floor((Date.now() - first.getTime()) / 86400000))
-    : 0;
+  const query = new FinancialMemoryQueryService(prisma);
+  await query.refresh(userId);
+  const data = await query.getTimeline(userId, pageSize, page);
 
   return NextResponse.json({
-    events: items.map((e) => ({
+    events: data.events.map((e) => ({
       ...e,
       eventDate: e.eventDate.toISOString(),
       createdAt: e.createdAt.toISOString(),
     })),
     page,
     pageSize,
-    total,
-    historyDaysAvailable: historyDays,
-    hasSufficientHistory: historyDays >= 30,
+    total: data.total,
+    historyDaysAvailable: data.historyDaysAvailable,
+    hasSufficientHistory: data.hasSufficientHistory,
   });
 }

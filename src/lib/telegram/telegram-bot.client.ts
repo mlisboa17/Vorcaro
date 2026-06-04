@@ -21,10 +21,15 @@ export async function sendTelegramMessage(chatId: number, text: string): Promise
   await sendTelegramMessageWithMode(chatId, text, "HTML");
 }
 
+export type TelegramInlineKeyboard = {
+  inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+};
+
 export async function sendTelegramMessageWithMode(
   chatId: number,
   text: string,
   parseMode: "HTML" | "MarkdownV2" = "HTML",
+  replyMarkup?: TelegramInlineKeyboard,
 ): Promise<void> {
   const token = getBotToken();
   const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
@@ -34,11 +39,31 @@ export async function sendTelegramMessageWithMode(
       chat_id: chatId,
       text,
       parse_mode: parseMode,
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     }),
   });
 
   if (!response.ok) {
     throw new Error(`Telegram sendMessage failed: HTTP ${response.status}`);
+  }
+}
+
+export async function answerTelegramCallbackQuery(
+  callbackQueryId: string,
+  text?: string,
+): Promise<void> {
+  const token = getBotToken();
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: callbackQueryId,
+      ...(text ? { text, show_alert: false } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram answerCallbackQuery failed: HTTP ${response.status}`);
   }
 }
 
