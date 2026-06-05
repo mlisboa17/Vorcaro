@@ -8,6 +8,7 @@ import {
   PrismaClient,
   TipoLancamentoRecorrente,
 } from "@prisma/client";
+import { seedCategoryTaxonomyForUser } from "../src/lib/categories/seed-category-taxonomy";
 import {
   computeProximaExecucaoForSeed,
   extractOriginalStartDay,
@@ -42,34 +43,6 @@ const FINANCIAL_ACCOUNTS = [
     institutionName: "Wise",
     type: AccountType.CARTEIRA_DIGITAL,
     currency: "USD",
-  },
-] as const;
-
-const CATEGORIES = [
-  {
-    name: "Alimentação",
-    type: CategoryType.DESPESA,
-    children: ["Mercado", "Padaria", "Restaurante"],
-  },
-  {
-    name: "Transporte",
-    type: CategoryType.DESPESA,
-    children: ["Uber", "Combustível"],
-  },
-  {
-    name: "Moradia",
-    type: CategoryType.DESPESA,
-    children: ["Aluguel", "Energia", "Internet", "Condomínio", "Seguro", "Serviços"],
-  },
-  {
-    name: "Receita",
-    type: CategoryType.RECEITA,
-    children: ["Salário"],
-  },
-  {
-    name: "Lazer",
-    type: CategoryType.DESPESA,
-    children: ["Streaming", "Cinema"],
   },
 ] as const;
 
@@ -324,17 +297,8 @@ async function main() {
 
   const accountByName = new Map(accounts.map((account) => [account.name, account.id]));
 
-  const categories = [];
-
-  for (const category of CATEGORIES) {
-    const root = await upsertRootCategory(user.id, category.name, category.type);
-    categories.push(root);
-
-    for (const childName of category.children) {
-      const child = await upsertSubCategory(user.id, root.id, childName, category.type);
-      categories.push(child);
-    }
-  }
+  const taxonomyReport = await seedCategoryTaxonomyForUser(prisma, user.id);
+  console.info(`  Taxonomia Vorcaro: +${taxonomyReport.subcategoriesCreated} subcategorias`);
 
   const paymentMethods = await Promise.all(
     PAYMENT_METHODS.map((method) =>
@@ -353,8 +317,8 @@ async function main() {
   const energiaCategoryId = await findSubCategoryId(user.id, "Moradia", "Energia");
   const internetCategoryId = await findSubCategoryId(user.id, "Moradia", "Internet");
   const condominioCategoryId = await findSubCategoryId(user.id, "Moradia", "Condomínio");
-  const seguroCategoryId = await findSubCategoryId(user.id, "Moradia", "Seguro");
-  const servicosCategoryId = await findSubCategoryId(user.id, "Moradia", "Serviços");
+  const seguroCategoryId = await findSubCategoryId(user.id, "Moradia", "Seguro Residencial");
+  const servicosCategoryId = await findSubCategoryId(user.id, "Moradia", "Serviços Domésticos");
   const streamingCategoryId = await findSubCategoryId(user.id, "Lazer", "Streaming");
   const mercadoCategoryId = await findSubCategoryId(user.id, "Alimentação", "Mercado");
 
@@ -568,7 +532,8 @@ async function main() {
   console.info("Seed concluído com sucesso:");
   console.info(`  User:               ${user.email} (${user.id})`);
   console.info(`  FinancialAccounts:  ${accounts.length}`);
-  console.info(`  Categories:         ${categories.length}`);
+  const categoryCount = await prisma.category.count({ where: { userId: user.id } });
+  console.info(`  Categories:         ${categoryCount}`);
   console.info(`  PaymentMethods:     ${paymentMethods.length}`);
   console.info(`  Cards:              ${cards.length}`);
   console.info(`  Recorrentes:        ${recurringTransactions.length}`);

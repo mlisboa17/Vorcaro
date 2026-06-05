@@ -11,6 +11,9 @@ export const VORCARO_INTENTS = [
   "HEALTH_SCORE",
   "NOTIFICATIONS",
   "RULES_AUTOMATIONS",
+  "CATEGORY_AUDIT",
+  "CATEGORY_LIST",
+  "CARD_LIST",
   "TIMELINE",
   "EVOLUTION",
   "ACHIEVEMENTS",
@@ -42,6 +45,9 @@ export type VorcaroToolName =
   | "notification_query"
   | "spending_analysis"
   | "rules_automation"
+  | "category_audit"
+  | "category_list"
+  | "card_list"
   | "financial_timeline"
   | "financial_evolution"
   | "financial_achievements"
@@ -66,6 +72,12 @@ export type VorcaroIntentObservabilitySnapshot = {
   tool_only_response: number;
   llm_called: number;
   fallback_to_llm: number;
+  responses_approved: number;
+  responses_rejected: number;
+  wrong_tool_detected: number;
+  context_switch_blocked: number;
+  humanization_applied: number;
+  responses_regenerated: number;
 };
 
 export const VORCARO_INTENT_CACHE_TTL_MS = 60_000;

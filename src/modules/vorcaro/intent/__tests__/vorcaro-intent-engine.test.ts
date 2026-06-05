@@ -33,6 +33,18 @@ describe("VorcaroIntentEngineService", () => {
     expect(engine.detect("Quais regras existem?").primary).toBe("RULES_AUTOMATIONS");
   });
 
+  it("detecta CATEGORY_LIST e CARD_LIST", () => {
+    expect(engine.detect("Mostre minhas categorias").primary).toBe("CATEGORY_LIST");
+    expect(engine.detect("Quais cartões tenho?").primary).toBe("CARD_LIST");
+  });
+
+  it("detecta CATEGORY_AUDIT sem LLM", () => {
+    expect(engine.detect("Vorcaro, minhas categorias estão boas?").primary).toBe("CATEGORY_AUDIT");
+    expect(engine.detect("Existem categorias duplicadas?").requiresLlm).toBe(false);
+    expect(engine.detect("O que posso melhorar nas categorias?").primary).toBe("CATEGORY_AUDIT");
+    expect(engine.detect("Tem categorias redundantes?").primary).toBe("CATEGORY_AUDIT");
+  });
+
   it("exige LLM para perguntas estratégicas", () => {
     const result = engine.detect("O que você faria no meu lugar?");
     expect(result.primary).toBe("STRATEGIC_ADVICE");
@@ -66,6 +78,15 @@ describe("VorcaroToolResolverService", () => {
 
   it("resolve RULES_AUTOMATIONS", () => {
     expect(resolver.resolve("RULES_AUTOMATIONS")).toEqual(["rules_automation"]);
+  });
+
+  it("resolve CATEGORY_AUDIT", () => {
+    expect(resolver.resolve("CATEGORY_AUDIT")).toEqual(["category_audit"]);
+  });
+
+  it("resolve CATEGORY_LIST e CARD_LIST", () => {
+    expect(resolver.resolve("CATEGORY_LIST")).toEqual(["category_list"]);
+    expect(resolver.resolve("CARD_LIST")).toEqual(["card_list"]);
   });
 
   it("resolve EVOLUTION e TRENDS com tools dedicadas", () => {

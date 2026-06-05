@@ -1,6 +1,59 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-09 (Sprint 14.6).
+Documento de inventário técnico. Última revisão: 2026-06-04 (Sprint 14.9.3).
+
+## Sprint 14.9.3 — Humanização Consultiva da Auditoria
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Vorcaro como consultor financeiro; Health Score; top 5 melhorias; anti falsos positivos |
+| **Serviços** | `VorcaroConsultativeResponseService`, `CategoryAuditPreferenceMemoryService` |
+| **Domínio** | `category-audit-exemptions.ts`, `category-audit-health.ts` |
+| **UI** | `/dashboard/categories/audit` — Health Score, prioridades humanas, debug técnico opcional |
+| **Docs** | `docs/sprint-14.9.3-humanized-category-audit.md` |
+| **Status** | Concluída |
+
+## Sprint 14.9.2 — Auto-Correção Conversacional
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Context lock, critic de resposta, humanização, auto-regeneração |
+| **Módulo** | `src/modules/vorcaro/conversation/` + pipeline em `vorcaro-tool-calling` |
+| **Intents** | `CATEGORY_LIST`, `CARD_LIST` |
+| **Debug** | `/dashboard/vorcaro/debug` (admin) |
+| **Docs** | `docs/sprint-14.9.2-conversation-self-correction.md` |
+| **Status** | Concluída |
+
+## Sprint 14.9 — Auditoria Inteligente de Categorias
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Vorcaro analisa taxonomia e sugere melhorias sem mutação automática |
+| **Módulo** | `src/modules/categories/` |
+| **API** | `GET /api/categories/audit` |
+| **Intent** | `CATEGORY_AUDIT` → tool `category_audit` |
+| **UI** | `/dashboard/categories/audit` |
+| **Docs** | `docs/sprint-14.9-category-taxonomy-audit.md` |
+| **Status** | Concluída |
+
+## Sprint 14.8 — UX, Performance e Dados Base
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Menu simplificado, hub Vorcaro, performance de navegação, categorias padrão |
+| **Navegação** | `src/lib/navigation/dashboard-nav.ts` — 6 blocos, 16 itens |
+| **Hub UI** | `/dashboard/vorcaro` |
+| **Categorias** | `vorcaro-category-taxonomy.ts`, seed idempotente no login + `prisma db seed` |
+| **Docs** | `docs/sprint-14.8-ux-performance-base-data.md`, `docs/sprint-14.8-performance-audit.md` |
+| **Status** | Concluída |
+
+## Sprint 14.7 — Homologação E2E
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Homologação funcional + hotfix M-01 (Inbox 404) |
+| **Docs** | `docs/sprint-14.7-e2e-report.md` |
+| **Status** | Concluída (condicional — Telegram manual pendente) |
 
 ## Sprint 14.6 — Estabilização Pós-Homologação
 

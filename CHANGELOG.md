@@ -2,6 +2,57 @@
 
 ## [Unreleased]
 
+### Fixed — Sprint 14.9.4 (Saneamento TypeScript)
+
+- `handleTelegramWebhook` extraído de `route.ts` para `src/lib/telegram/handle-telegram-webhook.ts` — compatível com tipos gerados do Next.js App Router
+- `npx tsc --noEmit` sem erros (incluindo `.next/types`)
+- Doc: [`docs/sprint-14.9.4-typescript-sanitization.md`](docs/sprint-14.9.4-typescript-sanitization.md)
+
+### Added — Sprint 14.9.3 (Humanização Avançada e Inteligência Consultiva)
+
+- `VorcaroConsultativeResponseService` — respostas consultivas (O que encontrei / Por que importa / O que eu faria)
+- Modos conversacionais: `ANALYTICAL`, `CONSULTATIVE`, `EXECUTIVE`
+- `TaxonomyHealthScore` (0–100) + top 5 melhorias priorizadas
+- `category-audit-exemptions.ts` — redução de falsos positivos (investimentos, aluguel/receita, especialização)
+- `CategoryAuditPreferenceMemoryService` — memória de rejeições na sessão
+- Dashboard `/dashboard/categories/audit` — Health Score, top 5, impacto esperado; códigos técnicos só em debug
+- Proposta estruturada no chat antes de abrir dashboard
+- Doc: [`docs/sprint-14.9.3-humanized-category-audit.md`](docs/sprint-14.9.3-humanized-category-audit.md)
+
+### Added — Sprint 14.9.2 (Auto-Correção Conversacional)
+
+- `VorcaroConversationContextService`, topic lock e intents `CATEGORY_LIST` / `CARD_LIST`
+- `VorcaroResponseCriticService` + `VorcaroHumanizationGuard` + auto-regeneração
+- Métricas: `responses_approved`, `responses_rejected`, `wrong_tool_detected`, etc.
+- Debug admin: `/dashboard/vorcaro/debug`, `GET /api/vorcaro/debug/diagnostics`
+- Doc: [`docs/sprint-14.9.2-conversation-self-correction.md`](docs/sprint-14.9.2-conversation-self-correction.md)
+
+### Added — Sprint 14.9.1 (Humanização da Auditoria de Categorias)
+
+- `VorcaroCategoryAuditFormatter` — respostas consultivas, agrupamento e até 5 tópicos prioritários
+- Chat Vorcaro sem FATO/IMPACTO/AÇÃO, enums técnicos ou percentuais de confiança
+- CTA humanizado para proposta de reorganização
+- Resumo executivo do Vorcaro no dashboard `/dashboard/categories/audit`
+
+### Added — Sprint 14.9 (Auditoria Inteligente de Categorias)
+
+- `CategoryTaxonomyAuditService` — análise read-only de taxonomia (categorias, regras, padrões, transações)
+- Tipos de achado: duplicatas, fornecedor como categoria, sobreposição, nomenclatura inconsistente, baixo uso, fusão sugerida
+- API `GET /api/categories/audit`
+- Intent Vorcaro `CATEGORY_AUDIT` + tool determinística `category_audit`
+- Dashboard `/dashboard/categories/audit` + link em Configurações → Categorias
+- Guardrails: apenas sugestões — nenhuma mutação automática
+- Doc: [`docs/sprint-14.9-category-taxonomy-audit.md`](docs/sprint-14.9-category-taxonomy-audit.md)
+
+### Added — Sprint 14.8 (UX, Performance e Dados Base)
+
+- Menu lateral reorganizado em 6 blocos (`src/lib/navigation/dashboard-nav.ts`)
+- Hub Vorcaro em `/dashboard/vorcaro` com cards para Chat, Ações, Pendências, Timeline e Insights
+- Taxonomia de categorias expandida + seed idempotente no login e `prisma db seed`
+- Aliases de categorias para compatibilidade com regras (`category-aliases.ts`)
+- `prefetch={false}` no menu para reduzir carga de navegação
+- Docs: [`docs/sprint-14.8-ux-performance-base-data.md`](docs/sprint-14.8-ux-performance-base-data.md), [`docs/sprint-14.8-performance-audit.md`](docs/sprint-14.8-performance-audit.md)
+
 ### Fixed — Hotfix Sprint 14.7 (Inbox ownership 403 → 404)
 
 - M-01: cross-tenant no Inbox padronizado em **404** (`inbox/[id]`, confirm, smart-batch, import)

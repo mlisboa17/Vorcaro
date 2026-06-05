@@ -1,0 +1,332 @@
+[
+  {
+    "block": "0-Ambiente",
+    "flow": "dev server",
+    "status": "PASS",
+    "detail": "http://localhost:3001"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "login válido",
+    "status": "PASS",
+    "detail": "sessão criada"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "senha inválida",
+    "status": "PASS",
+    "detail": "rejeitado"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "usuário inexistente (senha errada)",
+    "status": "PASS",
+    "detail": "rejeitado"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "forgot-password",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "reset senha",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "criar receita",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "criar despesa",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "editar despesa",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "listar/filtrar",
+    "status": "PASS",
+    "detail": "2 itens"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "dashboard atualizado",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "3-Parcelamentos",
+    "flow": "criar parcelamento",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "3-Parcelamentos",
+    "flow": "listar grupos",
+    "status": "PASS",
+    "detail": "1 grupo(s)"
+  },
+  {
+    "block": "3-Parcelamentos",
+    "flow": "detalhe grupo",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "3-Parcelamentos",
+    "flow": "ownership cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "4-Recebíveis",
+    "flow": "criar",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "4-Recebíveis",
+    "flow": "receber parcial",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "4-Recebíveis",
+    "flow": "receber integral",
+    "status": "PASS",
+    "detail": "status=RECEIVED"
+  },
+  {
+    "block": "4-Recebíveis",
+    "flow": "cancelar/excluir",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "5-Metas",
+    "flow": "criar meta",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "5-Metas",
+    "flow": "editar meta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "5-Metas",
+    "flow": "concluir meta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "5-Metas",
+    "flow": "meta em risco (seed)",
+    "status": "PASS",
+    "detail": "HTTP 201"
+  },
+  {
+    "block": "6-Alertas",
+    "flow": "listar alertas",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "6-Alertas",
+    "flow": "resolver alerta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "6-Alertas",
+    "flow": "dismiss alerta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "GET timeline API",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "GET evolution API",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "chat: Meu patrimônio cresceu?",
+    "status": "PASS",
+    "detail": "provider=deterministic"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "chat: Como estava há 90 dias?",
+    "status": "PASS",
+    "detail": "provider=groq"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "chat: O que mudou este mês?",
+    "status": "PASS",
+    "detail": "provider=groq"
+  },
+  {
+    "block": "8-Follow-ups",
+    "flow": "dismiss manual",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "8-Follow-ups",
+    "flow": "listar follow-ups",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Como estou financeiramente?",
+    "status": "PASS",
+    "detail": "mode=tool provider=deterministic"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Tenho alertas?",
+    "status": "PASS",
+    "detail": "mode=tool provider=deterministic"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Tenho pendências?",
+    "status": "PASS",
+    "detail": "mode=tool provider=deterministic"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Quais metas estão em risco?",
+    "status": "PASS",
+    "detail": "mode=tool provider=deterministic"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "LLM strategic advice",
+    "status": "PASS",
+    "detail": "mode=llm provider=groq"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "proposta criada",
+    "status": "PASS",
+    "detail": "id=cmq07ghtd0015os884rnfwodd"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "aprovar proposta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "executar proposta",
+    "status": "PASS",
+    "detail": "execution=EXECUTED proposal=EXECUTED"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "rejeitar proposta",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "proposta expirada",
+    "status": "PASS",
+    "detail": "HTTP 410"
+  },
+  {
+    "block": "11-Telegram",
+    "flow": "comandos bot",
+    "status": "MANUAL",
+    "detail": "token presente — validar no app Telegram"
+  },
+  {
+    "block": "11-Telegram",
+    "flow": "inline buttons",
+    "status": "MANUAL",
+    "detail": "validar callbacks no chat real"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "inbox cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "meta cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "recebível cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "alerta cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "follow-up cross-tenant",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "sem 403 ownership",
+    "status": "PASS",
+    "detail": "padrão 404"
+  },
+  {
+    "block": "14-Performance",
+    "flow": "timeline repetida",
+    "status": "PASS",
+    "detail": "HTTP 200/200"
+  },
+  {
+    "block": "14-Performance",
+    "flow": "evolution repetida",
+    "status": "PASS",
+    "detail": "HTTP 200/200"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "excluir despesa",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "12-Dashboards",
+    "flow": "navegação visual",
+    "status": "MANUAL",
+    "detail": "validar via Playwright/browser"
+  }
+]

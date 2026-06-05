@@ -50,8 +50,16 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **14** | Follow-up Inteligente e Pendências Ativas | Concluída |
 | **14.5** | Homologação operacional (checklist + relatório) | Concluída |
 | **14.6** | Estabilização pós-homologação (intent, Telegram, cache, senha) | Concluída |
+| **14.7** | Homologação funcional E2E + hotfix Inbox 404 | Concluída |
+| **14.8** | UX menu, hub Vorcaro, performance navegação, categorias base | Concluída |
+| **14.9** | Auditoria inteligente de categorias (Vorcaro, API, dashboard) | Concluída |
+| **14.9.3** | Humanização consultiva da auditoria (Health Score, top 5, memória de preferências) | Concluída |
+| **14.9.2** | Auto-correção conversacional (context lock, critic, humanização) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
+Sprint 14.9: [`docs/sprint-14.9-category-taxonomy-audit.md`](docs/sprint-14.9-category-taxonomy-audit.md).  
+Sprint 14.9.3: [`docs/sprint-14.9.3-humanized-category-audit.md`](docs/sprint-14.9.3-humanized-category-audit.md).  
+Sprint 14.9.2: [`docs/sprint-14.9.2-conversation-self-correction.md`](docs/sprint-14.9.2-conversation-self-correction.md).  
 Sprint 13: [`docs/sprint-13-assisted-execution.md`](docs/sprint-13-assisted-execution.md).  
 Sprint 11: [`docs/sprint-11-vorcaro-conversacional.md`](docs/sprint-11-vorcaro-conversacional.md).  
 Fechamento Sprint 10: [`docs/sprint-10-closure-report.md`](docs/sprint-10-closure-report.md).  
@@ -160,6 +168,8 @@ npm run dev
 Acesse [http://localhost:3000](http://localhost:3000). Se a porta 3000 estiver ocupada, o Next.js pode usar **3001**.
 
 **Login de desenvolvimento (seed):** `dev@logos.local` — senha definida em `AUTH_DEV_PASSWORD` (padrão no `.env.example`: `dev123`).
+
+**Navegação (Sprint 14.8):** menu em blocos via `src/lib/navigation/dashboard-nav.ts`; hub Vorcaro em `/dashboard/vorcaro`. Categorias padrão via `seedCategoryTaxonomyForUser` (taxonomia em `src/lib/categories/vorcaro-category-taxonomy.ts`).
 
 ---
 

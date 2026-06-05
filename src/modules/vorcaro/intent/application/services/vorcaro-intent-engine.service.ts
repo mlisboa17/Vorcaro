@@ -4,6 +4,50 @@ import {
   matchesStrategicAdvice,
 } from "../../domain/services/vorcaro-intent-synonyms";
 
+const CATEGORY_LIST_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
+  {
+    intent: "CATEGORY_LIST",
+    patterns: [
+      /^(mostre|liste|listar|quais|me mostre|me liste).*(minhas )?categor/i,
+      /quais categorias (eu )?tenho/i,
+      /minhas categorias$/i,
+      /mostre minhas categorias/i,
+    ],
+  },
+];
+
+const CARD_LIST_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
+  {
+    intent: "CARD_LIST",
+    patterns: [
+      /quais cart[oõ]es (eu )?tenho/i,
+      /meus cart[oõ]es/i,
+      /^(mostre|liste|listar|quais).*(meus )?cart[oõ]/i,
+    ],
+  },
+];
+
+const CATEGORY_AUDIT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
+  {
+    intent: "CATEGORY_AUDIT",
+    patterns: [
+      /minhas categorias est[aã]o boas/i,
+      /existem categorias duplicadas/i,
+      /categorias redundantes/i,
+      /melhorar.*categorias/i,
+      /melhorar.*cadastro/i,
+      /o que posso melhorar nas categorias/i,
+      /categorias duplicadas/i,
+      /auditoria.*categor/i,
+      /taxonomia.*categor/i,
+      /vorcaro.*categorias/i,
+      /categorias est[aã]o (boas|ruins|confus)/i,
+      /pode melhorar (esse|este) cadastro/i,
+      /vale a pena.*categor/i,
+    ],
+  },
+];
+
 const MEMORY_INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
   {
     intent: "TIMELINE",
@@ -62,7 +106,7 @@ const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
   },
   {
     intent: "CASHFLOW",
-    patterns: [/fluxo de caixa/i, /\bcaixa\b/i, /ficar negativo/i, /saldo projetado/i, /pr[oó]ximo m[eê]s/i],
+    patterns: [/fluxo de caixa/i, /ficar negativo/i, /saldo projetado/i, /pr[oó]ximo m[eê]s/i],
   },
   {
     intent: "COMMITMENTS",
@@ -112,6 +156,8 @@ const INTENT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
 const LLM_COMPARISON_PATTERN = /compar(e|ar|ando|ação)/i;
 
 const TOPIC_TO_INTENT: Record<string, VorcaroIntent> = {
+  categories: "CATEGORY_AUDIT",
+  cards: "CARD_LIST",
   cashflow: "CASHFLOW",
   health: "HEALTH_SCORE",
   goals: "GOALS",
@@ -136,12 +182,42 @@ const STATUS_BUNDLE: VorcaroIntent[] = [
   "COMMITMENTS",
 ];
 
+export type VorcaroIntentDetectOptions = {
+  lockedIntent?: VorcaroIntent | null;
+};
+
 export class VorcaroIntentEngineService {
-  detect(message: string, activeTopic?: string | null): VorcaroIntentDetection {
+  detect(
+    message: string,
+    activeTopic?: string | null,
+    options?: VorcaroIntentDetectOptions,
+  ): VorcaroIntentDetection {
     const text = message.trim();
+
+    if (options?.lockedIntent) {
+      return this.build(options.lockedIntent, [], false, 3);
+    }
 
     if (matchesStrategicAdvice(text)) {
       return this.build("STRATEGIC_ADVICE", [], true);
+    }
+
+    for (const rule of CATEGORY_LIST_RULES) {
+      if (rule.patterns.some((pattern) => pattern.test(text))) {
+        return this.build(rule.intent, [], false);
+      }
+    }
+
+    for (const rule of CARD_LIST_RULES) {
+      if (rule.patterns.some((pattern) => pattern.test(text))) {
+        return this.build(rule.intent, [], false);
+      }
+    }
+
+    for (const rule of CATEGORY_AUDIT_RULES) {
+      if (rule.patterns.some((pattern) => pattern.test(text))) {
+        return this.build(rule.intent, [], false);
+      }
     }
 
     for (const rule of MEMORY_INTENT_RULES) {

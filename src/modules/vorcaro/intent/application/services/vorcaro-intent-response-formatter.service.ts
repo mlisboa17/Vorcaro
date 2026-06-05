@@ -30,6 +30,14 @@ export class VorcaroIntentResponseFormatter {
   }
 
   private formatSingle(result: VorcaroToolResult): string {
+    if (
+      result.intent === "CATEGORY_AUDIT" ||
+      result.intent === "CATEGORY_LIST" ||
+      result.intent === "CARD_LIST"
+    ) {
+      return result.summary.trim();
+    }
+
     const lines = [
       `**FATO** — ${result.summary}`,
       "",

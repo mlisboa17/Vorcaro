@@ -5,7 +5,22 @@ import {
 } from "../../domain/types/vorcaro-conversation";
 
 const TOPIC_PATTERNS: Array<{ topic: VorcaroChatTopic; patterns: RegExp[] }> = [
-  { topic: "cashflow", patterns: [/fluxo de caixa/i, /\bcaixa\b/i, /saldo projetado/i, /ficar negativo/i] },
+  {
+    topic: "categories",
+    patterns: [
+      /categorias?/i,
+      /subcategorias?/i,
+      /taxonomia/i,
+      /cadastro de categor/i,
+      /esse cadastro/i,
+      /melhorar.*cadastro/i,
+    ],
+  },
+  {
+    topic: "cards",
+    patterns: [/cart[oõ]es/i, /cart[aã]o de cr[eé]dito/i, /meus cart[oõ]/i],
+  },
+  { topic: "cashflow", patterns: [/fluxo de caixa/i, /saldo projetado/i, /ficar negativo/i] },
   { topic: "health", patterns: [/sa[uú]de financeira/i, /como estou/i, /situa[cç][aã]o financeira/i] },
   { topic: "goals", patterns: [/meta/i, /metas/i, /objetivo/i, /patrim[oô]nio/i] },
   { topic: "receivables", patterns: [/receb[ií]v/i, /reembolso/i, /devedor/i] },
@@ -29,6 +44,11 @@ const CONTINUATION_PATTERNS = [
   /^e no/i,
   /^e para/i,
   /^e se/i,
+  /pode melhorar/i,
+  /vale a pena/i,
+  /o que voc[eê] faria/i,
+  /(esse|este) cadastro/i,
+  /melhor(e|ar|aria)/i,
 ];
 
 export class VorcaroConversationMemoryService {

@@ -3,7 +3,7 @@
  * Mantido para compatibilidade com URLs antigas (?token=).
  */
 import { NextResponse } from "next/server";
-import { handleTelegramWebhook } from "@/app/api/telegram/webhook/route";
+import { handleTelegramWebhook } from "@/lib/telegram/handle-telegram-webhook";
 
 function validateLegacyToken(request: Request): boolean {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;

@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
+import { seedCategoryTaxonomyForUser } from "@/lib/categories/seed-category-taxonomy";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 
@@ -52,12 +53,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        return prisma.user.create({
+        const created = await prisma.user.create({
           data: {
             email: normalizedEmail,
             name: normalizedEmail.split("@")[0],
           },
         });
+
+        void seedCategoryTaxonomyForUser(prisma, created.id).catch((error) => {
+          console.error("[auth] seedCategoryTaxonomyForUser", error);
+        });
+
+        return created;
       },
     }),
   ],

@@ -11,6 +11,44 @@ src/
 └── types/            # DTOs e schemas Zod compartilhados
 ```
 
+### Navegação UI (Sprint 14.8)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Config** | `src/lib/navigation/dashboard-nav.ts` — `DASHBOARD_NAV_GROUPS`, `VORCARO_HUB_CARDS` |
+| **Shell** | `src/components/dashboard/sidebar.tsx` — `prefetch={false}`, `exactMatch` no hub |
+| **Hub Vorcaro** | `/dashboard/vorcaro` → cards para chat, ações, pendências, timeline, insights |
+| **Rotas** | Todas as rotas anteriores preservadas; submódulos Vorcaro removidos do menu principal |
+
+### Autoconsciência conversacional (Sprint 14.9.2)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Context** | `VorcaroConversationContextService` — topic lock, stage |
+| **Critic** | `VorcaroResponseCriticService` — relevância, ferramenta, score |
+| **Pipeline** | `VorcaroConversationSelfCorrectionService` — critic + regenerate |
+| **Listagens** | `category_list`, `card_list` — respostas simples sem análise |
+| **Debug** | `GET /api/vorcaro/debug/diagnostics` (admin) |
+
+### Auditoria consultiva de categorias (Sprint 14.9.3)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Consultivo** | `VorcaroConsultativeResponseService` — modos ANALYTICAL / CONSULTATIVE / EXECUTIVE |
+| **Health** | `computeTaxonomyHealthScore`, `buildTopImprovements` em `category-audit-health.ts` |
+| **Exemptions** | `category-audit-exemptions.ts` — investimentos, receita/despesa, especialização |
+| **Memória** | `CategoryAuditPreferenceMemoryService` — rejeições na sessão (sem Prisma) |
+| **UI** | `/dashboard/categories/audit` — Health Score, top 5; códigos técnicos em painel debug |
+
+### Taxonomia de categorias (Sprint 14.8)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Fonte** | `src/lib/categories/vorcaro-category-taxonomy.ts` |
+| **Seed** | `seedCategoryTaxonomyForUser` — idempotente, não sobrescreve customizadas |
+| **Provisionamento** | `prisma db seed` + primeiro login (`src/lib/auth.ts`) |
+| **Aliases** | `category-aliases.ts` — compatibilidade regras/inbox |
+
 ---
 
 ## `src/modules/` — mapa principal

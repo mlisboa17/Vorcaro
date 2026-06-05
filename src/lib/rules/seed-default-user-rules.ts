@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { resolveCategoryAlias } from "@/lib/categories/category-aliases";
 import { normalizeCategoryName } from "@/lib/categories/category-name-normalizer";
 import { seedCategoryTaxonomyForUser } from "@/lib/categories/seed-category-taxonomy";
 import {
@@ -103,7 +104,7 @@ export async function seedDefaultUserRulesForUser(
       continue;
     }
 
-    const normSub = normalizeCategoryName(String(draft.action.value));
+    const normSub = resolveCategoryAlias(String(draft.action.value));
     const categoryRow = categoryByNorm.get(normSub);
 
     if (!categoryRow) {

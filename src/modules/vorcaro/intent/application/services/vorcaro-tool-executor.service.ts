@@ -15,6 +15,9 @@ import { FinancialAchievementTool } from "@/modules/financial-memory/application
 import { FinancialTrendTool } from "@/modules/financial-memory/application/tools/financial-trend-tool";
 import { FinancialMemoryQueryService } from "@/modules/financial-memory/application/services/financial-memory-query.service";
 import { RulesAutomationTool } from "../tools/rules-automation-tool";
+import { CategoryAuditTool } from "../tools/category-audit-tool";
+import { CategoryListTool } from "../tools/category-list-tool";
+import { CardListTool } from "../tools/card-list-tool";
 import { buildFollowUpTool } from "@/lib/api/vorcaro-followups";
 
 function monthKey(d: Date): string {
@@ -33,6 +36,9 @@ const TOOL_TO_INTENT: Record<VorcaroToolName, VorcaroIntent> = {
   notification_query: "NOTIFICATIONS",
   spending_analysis: "EXPENSES",
   rules_automation: "RULES_AUTOMATIONS",
+  category_audit: "CATEGORY_AUDIT",
+  category_list: "CATEGORY_LIST",
+  card_list: "CARD_LIST",
   financial_timeline: "TIMELINE",
   financial_evolution: "EVOLUTION",
   financial_achievements: "ACHIEVEMENTS",
@@ -45,6 +51,9 @@ export class VorcaroToolExecutorService {
   private readonly alerts: FinancialAlertQueryService;
   private readonly notifications: NotificationQueryService;
   private readonly rulesTool: RulesAutomationTool;
+  private readonly categoryAuditTool: CategoryAuditTool;
+  private readonly categoryListTool: CategoryListTool;
+  private readonly cardListTool: CardListTool;
   private readonly memoryQuery: FinancialMemoryQueryService;
   private readonly timelineTool: FinancialTimelineTool;
   private readonly evolutionTool: FinancialEvolutionTool;
@@ -57,6 +66,9 @@ export class VorcaroToolExecutorService {
     this.alerts = new FinancialAlertQueryService(prisma);
     this.notifications = new NotificationQueryService(prisma);
     this.rulesTool = new RulesAutomationTool(prisma);
+    this.categoryAuditTool = new CategoryAuditTool(prisma);
+    this.categoryListTool = new CategoryListTool(prisma);
+    this.cardListTool = new CardListTool(prisma);
     this.memoryQuery = new FinancialMemoryQueryService(prisma);
     this.timelineTool = new FinancialTimelineTool(prisma);
     this.evolutionTool = new FinancialEvolutionTool(prisma);
@@ -69,6 +81,7 @@ export class VorcaroToolExecutorService {
     toolName: VorcaroToolName,
     consultation: AdvisorConsultation,
     question: string,
+    options: { priorUserMessages?: string[] } = {},
   ): Promise<VorcaroToolResult> {
     switch (toolName) {
       case "financial_health":
@@ -93,6 +106,14 @@ export class VorcaroToolExecutorService {
         return this.buildSpending(consultation);
       case "rules_automation":
         return this.rulesTool.execute(userId, question);
+      case "category_audit":
+        return this.categoryAuditTool.execute(userId, question, {
+          priorUserMessages: options.priorUserMessages,
+        });
+      case "category_list":
+        return this.categoryListTool.execute(userId);
+      case "card_list":
+        return this.cardListTool.execute(userId);
       case "financial_timeline":
         return this.timelineTool.execute(userId);
       case "financial_evolution":

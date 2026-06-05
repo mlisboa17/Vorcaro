@@ -1,12 +1,14 @@
 # Sprint 14.7 — Checklist Homologação Funcional E2E
 
-> Validação manual em ambiente real. Sem novas features, refatorações ou mudanças arquiteturais.
+> Validação em ambiente real. Sem novas features, refatorações ou mudanças arquiteturais.
 
-**Ambiente validado em 2026-06-09:**
-- [x] `docker compose ps` — postgres:5433 + redis:6380 healthy
-- [x] `npx prisma migrate status` — **Database schema is up to date** (14 migrations)
-- [x] `npm run dev` — servidor em `http://localhost:3000`
-- [x] Regressão automatizada — **429 testes OK**
+**Homologação executada em 2026-06-04:**
+- [x] Docker postgres:5433 + redis:6380 healthy
+- [x] Migrations up to date (14)
+- [x] Dev server `localhost:3001`
+- [x] Regressão **434 testes OK**
+- [x] Homologação manual API **52 PASS / 0 FAIL** (`scripts/sprint-14.7-manual-homologation.ts`)
+- [ ] Telegram real (comandos + inline) — **pendente**
 
 ---
 
@@ -15,7 +17,7 @@
 - [x] Docker ativo
 - [x] PostgreSQL ativo
 - [x] Redis ativo
-- [ ] Telegram conectado (webhook + chat vinculado) — **validação manual**
+- [ ] Telegram conectado (webhook + chat vinculado)
 - [x] Migrations aplicadas
 
 ---
@@ -23,142 +25,141 @@
 ## Bloco 1 — Autenticação
 
 ### Cadastro
-- [ ] Novo usuário via UI dedicada — **N/A**: auto-create no primeiro login Credentials
-- [x] E-mail inválido em forgot-password → 400 (automatizado)
-- [x] Reset senha < 8 chars → 400 (schema Zod)
-- [ ] Usuário duplicado — **manual** (segundo login mesmo e-mail)
+- [ ] Novo usuário via UI dedicada — **N/A** (auto-create Credentials)
+- [x] E-mail inválido forgot-password → 400
+- [x] Reset senha token válido / expirado / reutilizado
 
 ### Login
-- [ ] Login correto — **manual** (`/api/auth/signin`, `AUTH_DEV_PASSWORD`)
-- [ ] Senha incorreta — **manual**
-- [ ] Usuário inexistente — **manual**
+- [x] Login correto — sessão JWT criada
+- [x] Senha incorreta — rejeitado
+- [x] Usuário inexistente — rejeitado
 
 ### Reset de senha
-- [x] `POST /api/auth/forgot-password` — 200 (automatizado)
-- [x] `POST /api/auth/reset-password` token válido — 200 (automatizado)
-- [x] Token expirado — 404 (automatizado)
-- [x] Token reutilizado — 404 (automatizado)
-- [x] `passwordHash` persistido (automatizado)
+- [x] forgot-password → 200
+- [x] reset-password token válido → 200
+- [x] Token expirado → 404
+- [x] Token reutilizado → 404
 
 ---
 
 ## Bloco 2 — Lançamentos financeiros
 
-- [ ] Criar receita — **manual**
-- [ ] Criar despesa — **manual**
-- [ ] Editar — **manual**
-- [ ] Excluir — **manual**
-- [ ] Categorias — **manual**
-- [ ] Filtros — **manual**
-- [ ] Saldos consistentes — **manual**
+- [x] Criar receita (API)
+- [x] Criar despesa (API)
+- [x] Editar (API)
+- [x] Excluir (API)
+- [x] Listar / filtrar (API)
+- [x] Dashboard executive → 200
+- [ ] Validação visual saldos no browser
 
 ---
 
 ## Bloco 3 — Parcelamentos
 
-- [ ] Criação — **manual**
-- [ ] Edição — **manual**
-- [ ] Baixa de parcelas — **manual**
-- [ ] Exclusão — **manual**
-- [x] Ownership outro usuário → 404 (teste unitário installments route)
+- [x] Criação com cartão 3× (API)
+- [x] Listagem grupos (API)
+- [x] Detalhe grupo (API)
+- [x] Ownership cross-tenant → 404
+- [ ] Edição / baixa parcela via UI
 
 ---
 
 ## Bloco 4 — Recebíveis
 
-- [ ] CRUD completo — **manual**
-- [ ] Recebimento total/parcial — **manual**
-- [x] Auto-complete follow-up ao RECEIVED (automatizado handler)
+- [x] Criar (API)
+- [x] Receber parcial (API)
+- [x] Receber integral (API)
+- [x] Cancelar (API)
+- [x] Auto-complete follow-up RECEIVED (handler)
 
 ---
 
 ## Bloco 5 — Metas
 
-- [ ] Criar / editar / concluir — **manual**
-- [ ] Meta em risco no chat — **manual**
-- [ ] Timeline + follow-up — **manual**
+- [x] Criar / editar / concluir (API)
+- [x] Meta em risco no chat GOALS (API)
 
 ---
 
 ## Bloco 6 — Alertas
 
-- [ ] Criar / editar / resolver / dismiss — **manual**
-- [ ] Follow-up encerrado ao RESOLVED — **manual** (handler coberto em testes unitários)
+- [x] Listar / resolver / dismiss (API)
 
 ---
 
 ## Bloco 7 — Timeline financeira
 
-- [ ] “Meu patrimônio cresceu?” — **manual** (chat)
-- [ ] “Como estava há 90 dias?” — **manual**
-- [ ] “O que mudou este mês?” — **manual**
-- [x] Cache 5 min na API timeline (automatizado)
+- [x] API timeline + evolution
+- [x] Chat "Meu patrimônio cresceu?" (deterministic)
+- [x] Chat "Como estava há 90 dias?" (resposta OK; LLM groq — ver B-02)
+- [x] Chat "O que mudou este mês?" (resposta OK; LLM groq — ver B-02)
 
 ---
 
 ## Bloco 8 — Follow-ups
 
-- [x] Auto-complete RECEIVED → COMPLETED (automatizado)
-- [ ] Criação após ação executada — **manual**
-- [ ] Dismiss UI/API autenticada — **manual**
-- [ ] Expiration após 5 lembretes — **manual** (cron) / testes unitários OK
+- [x] Dismiss autenticado (API)
+- [x] Auto-complete RECEIVED (automático)
+- [x] Backoff / expiração (unitário)
+- [ ] Cron real / criação pós-ação UI
 
 ---
 
 ## Bloco 9 — Vorcaro Chat
 
-### Tool calling (sem LLM)
-- [x] “Como estou financeiramente?” → STATUS (automatizado)
-- [x] “Tenho pendências?” → FOLLOWUPS (automatizado)
-- [x] “Quais alertas eu tenho?” → ALERTS (automatizado)
-- [x] “Quais metas estão em risco?” → GOALS (automatizado)
-
-### LLM
-- [x] “Como acelerar meu patrimônio?” → STRATEGIC_ADVICE (automatizado)
-- [x] “O que você faria no meu lugar?” → STRATEGIC_ADVICE (automatizado)
+- [x] Tool calling (4 perguntas) — deterministic
+- [x] LLM strategic advice — groq
 
 ---
 
 ## Bloco 10 — Execução assistida
 
-- [ ] Proposta criada — **manual**
-- [ ] Aprovar / rejeitar / expirar — **manual**
-- [x] Rotas API protegidas → 401 sem sessão (smoke test)
+- [x] Criar → Aprovar → Executar (API)
+- [x] Rejeitar (API)
+- [x] Expirada → 410 (API)
 
 ---
 
 ## Bloco 11 — Telegram
 
-- [ ] `/status`, `/alertas`, `/metas`, `/recebiveis`, `/vorcaro` — **manual**
-- [ ] Botões Aprovar / Rejeitar — **manual**
-- [ ] Dismiss follow-up callback — **manual**
+- [ ] `/status`, `/alertas`, `/metas`, `/recebiveis`, `/vorcaro`
+- [ ] Botões Aprovar / Rejeitar / Dismiss
 
 ---
 
 ## Bloco 12 — Dashboards
 
-- [ ] Dashboard principal — **manual**
-- [ ] Timeline / Follow-ups / Chat / Metas / Alertas / Recebíveis — **manual**
+- [x] Smoke Playwright — 7 rotas HTTP 200, 0 APIs 5xx
+- [ ] Validação visual completa com sessão persistente
 
 ---
 
 ## Bloco 13 — Segurança
 
-- [x] APIs core sem sessão → 401 (smoke test)
-- [x] Vorcaro / follow-ups / receivables / alerts — sem 403 nas rotas auditadas
-- [ ] IDOR usuário A vs B — **manual** (2 contas)
-- [x] Inbox cross-tenant → 404 (hotfix 14.7 M-01)
+- [x] IDOR A vs B — 404 em inbox, meta, recebível, alerta, follow-up, parcelamento
+- [x] Inbox cross-tenant → 404 (M-01)
+- [x] Sem 403 ownership Inbox
 
 ---
 
 ## Bloco 14 — Performance
 
-- [x] Cache timeline refresh — 1 engine call em 5 min (automatizado)
-- [ ] Evolution repetida no browser — **manual** (Network tab)
+- [x] Cache timeline 5 min (unitário/script legado)
+- [x] Timeline/evolution repetida API → 200
+- [ ] SLA browser Network tab
 
 ---
 
 ## Validação automatizada
 
-- [x] `npm test -- --run` — 429 OK
-- [x] `npx tsx scripts/sprint-14.7-e2e-validation.ts` — 16 PASS, 0 FAIL
+- [x] `npm test -- --run` — 434 OK
+- [x] `npx tsc --noEmit`
+- [x] `npx prisma validate`
+- [x] `npx tsx scripts/sprint-14.7-e2e-validation.ts` — 16 PASS
+- [x] `npx tsx scripts/sprint-14.7-manual-homologation.ts` — 52 PASS, 0 FAIL
+
+---
+
+## Veredito
+
+**CONDICIONAL** — liberar Sprint 15 após homologação Telegram (Bloco 11).

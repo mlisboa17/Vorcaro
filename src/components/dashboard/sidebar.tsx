@@ -29,9 +29,12 @@ function useNotificationBadgeCount() {
   return count;
 }
 
-function isActiveRoute(pathname: string, href: string): boolean {
+function isActiveRoute(pathname: string, href: string, exactMatch?: boolean): boolean {
   if (href === "/dashboard") {
     return pathname === "/dashboard";
+  }
+  if (exactMatch) {
+    return pathname === href;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -79,13 +82,14 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
             </p>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
-                const active = isActiveRoute(pathname, item.href);
+                const active = isActiveRoute(pathname, item.href, item.exactMatch);
                 const Icon = item.icon;
 
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      prefetch={false}
                       onClick={onClose}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",

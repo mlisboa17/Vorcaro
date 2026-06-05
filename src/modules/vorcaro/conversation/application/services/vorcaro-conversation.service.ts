@@ -11,6 +11,7 @@ import type { VorcaroActionProposalRecord } from "@/modules/vorcaro/actions/doma
 import { VorcaroActionInterpreterService } from "@/modules/vorcaro/actions/application/services/vorcaro-action-interpreter.service";
 import { VorcaroActionProposalService } from "@/modules/vorcaro/actions/application/services/vorcaro-action-proposal.service";
 import { PrismaVorcaroActionProposalRepository } from "@/modules/vorcaro/actions/infrastructure/repositories/prisma-vorcaro-action-proposal.repository";
+import type { VorcaroIntent, VorcaroToolName } from "@/modules/vorcaro/intent/domain/types/vorcaro-intent";
 import { VorcaroToolCallingService } from "@/modules/vorcaro/intent/application/services/vorcaro-tool-calling.service";
 import { vorcaroIntentObservability } from "@/modules/vorcaro/intent/application/services/vorcaro-intent-observability.service";
 import {
@@ -144,11 +145,27 @@ export class VorcaroConversationService {
       };
     }
 
+    const lastAssistant = [...priorMessages].reverse().find((m) => m.role === "VORCARO");
+    const lastIntent =
+      typeof lastAssistant?.metadata?.intent === "string"
+        ? (lastAssistant.metadata.intent as VorcaroIntent)
+        : null;
+    const lastTools = Array.isArray(lastAssistant?.metadata?.tools)
+      ? (lastAssistant.metadata.tools as string[])
+      : [];
+    const lastToolUsed =
+      typeof lastTools[0] === "string" ? (lastTools[0] as VorcaroToolName) : null;
+
     const toolResult = await this.toolCalling.execute({
       userId: input.userId,
       message: input.message,
       activeTopic,
       channel: input.channel,
+      lastIntent,
+      lastToolUsed,
+      priorUserMessages: priorMessages
+        .filter((m) => m.role === "USER")
+        .map((m) => m.content),
     });
 
     if (toolResult.responseMode === "tool" && toolResult.answer) {

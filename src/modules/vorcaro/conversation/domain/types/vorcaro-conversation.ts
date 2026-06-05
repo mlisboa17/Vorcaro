@@ -57,6 +57,8 @@ export type VorcaroChatResponse = {
 };
 
 export const VORCARO_CHAT_TOPICS = [
+  "categories",
+  "cards",
   "cashflow",
   "health",
   "goals",
@@ -69,6 +71,7 @@ export const VORCARO_CHAT_TOPICS = [
   "evolution",
   "achievements",
   "trends",
+  "followups",
   "general",
 ] as const;
 

@@ -1,0 +1,8 @@
+[     137ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin:0
+[     175ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[   49429ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/vorcaro/timeline:0
+[   49442ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/vorcaro/followups:0
+[   57996ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/vorcaro/chat:0
+[   62721ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/patrimony:0
+[   65752ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/advisor:0
+[   68009ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3001/api/auth/signin?callbackUrl=/dashboard/vorcaro/actions:0
