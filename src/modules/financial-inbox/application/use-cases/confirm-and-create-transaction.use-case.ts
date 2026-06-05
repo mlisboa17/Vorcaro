@@ -90,7 +90,7 @@ export class ConfirmAndCreateTransactionUseCase {
     }
 
     if (item.userId !== input.userId) {
-      throw new ConfirmTransactionError("Forbidden access to inbox item", "FORBIDDEN");
+      throw new ConfirmTransactionError("Inbox item not found", "NOT_FOUND");
     }
 
     if (!CONFIRMABLE_STATUSES.has(item.status)) {

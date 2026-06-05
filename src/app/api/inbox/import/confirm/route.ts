@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       where: { id: data.contaFinanceiraId, userId, isActive: true },
       select: { id: true },
     });
-    if (!owned) return jsonError("Conta financeira não encontrada ou inválida", 403);
+    if (!owned) return jsonError("Conta financeira não encontrada ou inválida", 404);
   }
 
   if (data.cartaoId) {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       where: { id: data.cartaoId, userId, isActive: true },
       select: { id: true },
     });
-    if (!owned) return jsonError("Cartão não encontrado ou inválido", 403);
+    if (!owned) return jsonError("Cartão não encontrado ou inválido", 404);
   }
 
   let imported = 0;

@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       select: { id: true },
     });
     if (!account) {
-      return jsonError("Conta financeira não encontrada ou inválida", 403);
+      return jsonError("Conta financeira não encontrada ou inválida", 404);
     }
   }
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       select: { id: true },
     });
     if (!card) {
-      return jsonError("Cartão não encontrado ou inválido", 403);
+      return jsonError("Cartão não encontrado ou inválido", 404);
     }
   }
 

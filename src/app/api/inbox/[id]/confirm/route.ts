@@ -51,8 +51,6 @@ function mapErrorToResponse(error: ConfirmTransactionError) {
   switch (error.code) {
     case "NOT_FOUND":
       return NextResponse.json({ error: error.message }, { status: 404 });
-    case "FORBIDDEN":
-      return NextResponse.json({ error: error.message }, { status: 403 });
     case "INVALID_STATE":
       return NextResponse.json({ error: error.message }, { status: 409 });
     case "VALIDATION":

@@ -41,10 +41,7 @@ export async function POST(request: Request) {
   const unauthorized = parsed.data.inboxItemIds.filter((id) => !ownedIds.has(id));
 
   if (unauthorized.length > 0) {
-    return NextResponse.json(
-      { error: "Itens não encontrados ou sem permissão", unauthorizedIds: unauthorized },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "Itens não encontrados" }, { status: 404 });
   }
 
   try {

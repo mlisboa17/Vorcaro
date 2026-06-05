@@ -1,0 +1,164 @@
+[
+  {
+    "block": "0-Ambiente",
+    "flow": "dev server",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "POST forgot-password",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "reset token válido",
+    "status": "PASS",
+    "detail": "HTTP 200"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "token reutilizado",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "passwordHash",
+    "status": "PASS",
+    "detail": "hash persistido"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "token expirado",
+    "status": "PASS",
+    "detail": "HTTP 404"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "e-mail inválido",
+    "status": "PASS",
+    "detail": "HTTP 400"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "cadastro dedicado",
+    "status": "MANUAL",
+    "detail": "auto-create via Credentials no primeiro login (sem rota signup)"
+  },
+  {
+    "block": "1-Auth",
+    "flow": "login UI",
+    "status": "MANUAL",
+    "detail": "validar em /api/auth/signin com AUTH_DEV_PASSWORD"
+  },
+  {
+    "block": "8-Follow-ups",
+    "flow": "auto-complete RECEIVED",
+    "status": "PASS",
+    "detail": "status=COMPLETED"
+  },
+  {
+    "block": "13-Segurança",
+    "flow": "follow-up sem sessão",
+    "status": "PASS",
+    "detail": "HTTP 401"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Como estou financeiramente?",
+    "status": "PASS",
+    "detail": "STATUS llm=false"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Tenho pendências?",
+    "status": "PASS",
+    "detail": "FOLLOWUPS llm=false"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Quais alertas eu tenho?",
+    "status": "PASS",
+    "detail": "ALERTS llm=false"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "tool: Quais metas estão em risco?",
+    "status": "PASS",
+    "detail": "GOALS llm=false"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "llm: Como acelerar meu patrimônio?",
+    "status": "PASS",
+    "detail": "STRATEGIC_ADVICE llm=true"
+  },
+  {
+    "block": "9-Vorcaro",
+    "flow": "llm: O que você faria no meu lugar?",
+    "status": "PASS",
+    "detail": "STRATEGIC_ADVICE llm=true"
+  },
+  {
+    "block": "14-Performance",
+    "flow": "cache refresh 5min",
+    "status": "PASS",
+    "detail": "engine calls=1"
+  },
+  {
+    "block": "2-Lançamentos",
+    "flow": "CRUD receita/despesa",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "3-Parcelamentos",
+    "flow": "grupos e baixas",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "4-Recebíveis",
+    "flow": "fluxo completo UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "5-Metas",
+    "flow": "criar/concluir UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "6-Alertas",
+    "flow": "resolver/dismiss UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "7-Timeline",
+    "flow": "perguntas chat com dados reais",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "10-Execução",
+    "flow": "Assist→Confirm→Execute UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "11-Telegram",
+    "flow": "comandos e inline buttons",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  },
+  {
+    "block": "12-Dashboards",
+    "flow": "navegação visual",
+    "status": "MANUAL",
+    "detail": "requer validação humana no browser/Telegram"
+  }
+]

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed — Hotfix Sprint 14.7 (Inbox ownership 403 → 404)
+
+- M-01: cross-tenant no Inbox padronizado em **404** (`inbox/[id]`, confirm, smart-batch, import)
+- Testes de rota para ownership cross-tenant
+
+### Added — Sprint 14.7 (Homologação Funcional E2E)
+
+- Checklist: [`docs/sprint-14.7-e2e-checklist.md`](docs/sprint-14.7-e2e-checklist.md)
+- Relatório: [`docs/sprint-14.7-e2e-report.md`](docs/sprint-14.7-e2e-report.md)
+- Script: `scripts/sprint-14.7-e2e-validation.ts` (16 checks API/DB PASS)
+- Veredito: **condicional** — blocos UI/Telegram pendentes de validação humana; 0 bugs CRÍTICO/ALTO
+
 ### Fixed — Sprint 14.6 (Estabilização Pós-Homologação)
 
 - Intent `STRATEGIC_ADVICE` — perguntas de patrimônio/estratégia com fallback LLM (H-01).

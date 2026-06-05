@@ -26,7 +26,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   if (item.userId !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const extractionResult = await extractionRepository.findLatestByInboxItemId(id);

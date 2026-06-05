@@ -1,6 +1,5 @@
 export type ConfirmTransactionErrorCode =
   | "NOT_FOUND"
-  | "FORBIDDEN"
   | "INVALID_STATE"
   | "VALIDATION"
   | "DUPLICATE";
