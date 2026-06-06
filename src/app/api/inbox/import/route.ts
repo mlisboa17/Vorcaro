@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { computeImportHash, type ImportFinancialFileType } from "@/lib/inbox/financial-file-import";
-import { parseImportFile } from "@/lib/inbox/financial-import-pipeline";
+import { buildImportHash, parseImportFile } from "@/lib/inbox/financial-import-pipeline";
 import { isPdfParseError, pdfImportErrorResponse } from "@/lib/inbox/pdf-import-http";
+import type { ImportFinancialFileType } from "@/modules/financial-inbox/domain/types/imported-financial-line";
 
 const tipoSchema = z.enum(["EXTRATO_BANCARIO", "FATURA_CARTAO"]);
 
-function guessExtension(fileName: string): "ofx" | "csv" | "pdf" | null {
+function guessExtension(fileName: string): "ofx" | "csv" | "pdf" | "xls" | "xlsx" | null {
   const lower = fileName.toLowerCase().trim();
   if (lower.endsWith(".ofx")) return "ofx";
   if (lower.endsWith(".csv")) return "csv";
   if (lower.endsWith(".pdf")) return "pdf";
+  if (lower.endsWith(".xls")) return "xls";
+  if (lower.endsWith(".xlsx")) return "xlsx";
   return null;
 }
 
@@ -82,7 +84,7 @@ export async function POST(request: Request) {
 
   const ext = guessExtension(file.name);
   if (!ext) {
-    return jsonError("Formato não suportado. Use apenas .ofx, .csv ou .pdf");
+    return jsonError("Formato não suportado. Use PDF, OFX, CSV, XLS ou XLSX.");
   }
 
   const arrayBuffer = await file.arrayBuffer();
@@ -106,16 +108,13 @@ export async function POST(request: Request) {
         try {
           const externalId = line.externalId?.trim() || null;
 
-          const importHash = computeImportHash({
+          const importHash = buildImportHash({
             userId,
             importType: tipo,
             sourceFileName: file.name,
             accountId: contaFinanceiraId,
             cardId: cartaoId,
-            date: line.date,
-            description: line.description,
-            amount: line.amount,
-            rawContent: line.rawContent,
+            line,
           });
 
           if (externalId) {

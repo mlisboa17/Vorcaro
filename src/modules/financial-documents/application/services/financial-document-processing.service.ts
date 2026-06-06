@@ -2,7 +2,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { PdfParseError } from "@/lib/parsers/pdf-parser";
 import { buildDocumentFingerprint } from "../../domain/services/document-fingerprint.service";
 import { explainDocumentConfidence } from "../../domain/services/financial-document-confidence.service";
-import { analyzeFinancialDocumentText } from "../../domain/services/financial-document-import-analyzer.service";
+import { analyzeDocumentWithLayoutTraining } from "@/modules/statement-layout-training/application/services/analyze-document-with-layout-training.service";
 import { buildPartiesMetadata } from "../../domain/services/financial-parties-metadata.service";
 import {
   AUTO_APPROVAL_THRESHOLD,
@@ -127,8 +127,9 @@ export class FinancialDocumentProcessingService {
         };
       }
 
-      const batchReview = analyzeFinancialDocumentText(trimmedText, {
+      const batchReview = await analyzeDocumentWithLayoutTraining(this.prisma, {
         userId,
+        text: trimmedText,
         fileName: document.fileName,
       });
 

@@ -1,0 +1,326 @@
+{
+  "generatedAt": "2026-06-06T06:00:21.907Z",
+  "userId": "layout-homolog-1780725621714",
+  "fixturesRoot": "C:\\Users\\mlisb\\OneDrive\\ProjetosAntigravy\\Acessor30052026_Chat\\tests\\fixtures\\statement-layout-training",
+  "scenarios": [
+    {
+      "id": "C1",
+      "title": "Primeiro extrato de banco desconhecido",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v1.csv",
+      "similarity": 0,
+      "similarityTier": "LOW",
+      "metrics": {
+        "total": 10,
+        "recognized": 0,
+        "needsReview": 10,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "created",
+      "modelId": "cmq1y23gm0001os6kdr5zszg3",
+      "modelVersion": 1,
+      "layoutLabel": "Novo Banco · CSV · v1",
+      "correctionsApplied": 0,
+      "checks": [
+        {
+          "name": "Cria modelo novo",
+          "status": "PASS",
+          "detail": "modelId=cmq1y23gm0001os6kdr5zszg3"
+        },
+        {
+          "name": "Marca NEEDS_REVIEW",
+          "status": "PASS",
+          "detail": "10 linha(s) precisam revisar"
+        },
+        {
+          "name": "Preserva rawContent",
+          "status": "PASS",
+          "detail": "todas as linhas têm rawContent"
+        },
+        {
+          "name": "Não descarta silenciosamente",
+          "status": "PASS",
+          "detail": "total=10, parsed=10"
+        },
+        {
+          "name": "Prévia possível antes de gravar",
+          "status": "PASS",
+          "detail": "métricas de prévia calculadas"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    },
+    {
+      "id": "C2",
+      "title": "Segundo extrato do mesmo banco/layout",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v2-similar.csv",
+      "similarity": 100,
+      "similarityTier": "HIGH",
+      "metrics": {
+        "total": 9,
+        "recognized": 0,
+        "needsReview": 9,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "reused",
+      "modelId": "cmq1y23gm0001os6kdr5zszg3",
+      "modelVersion": 1,
+      "layoutLabel": "Novo Banco · CSV · v1",
+      "correctionsApplied": 0,
+      "checks": [
+        {
+          "name": "Reutiliza modelo",
+          "status": "PASS",
+          "detail": "modelId=cmq1y23gm0001os6kdr5zszg3"
+        },
+        {
+          "name": "Similaridade aumentou",
+          "status": "PASS",
+          "detail": "0% → 100%"
+        },
+        {
+          "name": "Menos ou igual NEEDS_REVIEW vs 1º import",
+          "status": "PASS",
+          "detail": "v1=10, v2=9, tier=HIGH"
+        },
+        {
+          "name": "Tier HIGH ou MEDIUM",
+          "status": "PASS",
+          "detail": "HIGH"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    },
+    {
+      "id": "C3",
+      "title": "Extrato parecido, mas não idêntico",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v3-layout-diferente.csv",
+      "similarity": 70.9,
+      "similarityTier": "MEDIUM",
+      "metrics": {
+        "total": 10,
+        "recognized": 0,
+        "needsReview": 10,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "approximate",
+      "modelId": "cmq1y23gm0001os6kdr5zszg3",
+      "modelVersion": 1,
+      "layoutLabel": "Novo Banco · CSV · v1",
+      "correctionsApplied": 0,
+      "checks": [
+        {
+          "name": "Busca modelo aproximado",
+          "status": "PASS",
+          "detail": "modelId=cmq1y23gm0001os6kdr5zszg3"
+        },
+        {
+          "name": "Não começa do zero",
+          "status": "PASS",
+          "detail": "similaridade=70.9%"
+        },
+        {
+          "name": "Marca revisão se MEDIUM",
+          "status": "PASS",
+          "detail": "needsReview=10"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    },
+    {
+      "id": "C3b",
+      "title": "Nova versão quando layout difere após correções",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v3-layout-diferente.csv",
+      "similarity": 70.9,
+      "similarityTier": "MEDIUM",
+      "metrics": {
+        "total": 10,
+        "recognized": 0,
+        "needsReview": 10,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "forked",
+      "modelId": "cmq1y23hq0006os6kgyi91cur",
+      "modelVersion": 2,
+      "layoutLabel": "Novo Banco · CSV · v2",
+      "correctionsApplied": 3,
+      "checks": [
+        {
+          "name": "Cria nova versão se layout diferente",
+          "status": "PASS",
+          "detail": "versão fork detectada"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    },
+    {
+      "id": "C4",
+      "title": "Correções do usuário",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v1.csv",
+      "similarity": 70.9,
+      "similarityTier": "HIGH",
+      "metrics": {
+        "total": 10,
+        "recognized": 0,
+        "needsReview": 10,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "reused",
+      "modelId": "cmq1y23gm0001os6kdr5zszg3",
+      "modelVersion": 1,
+      "layoutLabel": "Novo Banco · CSV · v1",
+      "correctionsApplied": 1,
+      "checks": [
+        {
+          "name": "Salva BankStatementLayoutCorrection",
+          "status": "PASS",
+          "detail": "correções=4"
+        },
+        {
+          "name": "Atualiza accuracyRate",
+          "status": "PASS",
+          "detail": "0% → 50%"
+        },
+        {
+          "name": "Não zera modelo com 1 correção",
+          "status": "PASS",
+          "detail": "status=ACTIVE"
+        },
+        {
+          "name": "Exemplos corrigidos incrementados",
+          "status": "PASS",
+          "detail": "examples=1"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    },
+    {
+      "id": "C6",
+      "title": "Importação final com prévia e confirmação",
+      "bank": "Novo Banco",
+      "file": "novobanco-extrato-v2-similar.csv",
+      "similarity": 100,
+      "similarityTier": "HIGH",
+      "metrics": {
+        "total": 9,
+        "recognized": 0,
+        "needsReview": 9,
+        "ignored": 0,
+        "errors": 0
+      },
+      "modelAction": "reused",
+      "modelId": "cmq1y23gm0001os6kdr5zszg3",
+      "modelVersion": 1,
+      "layoutLabel": "Novo Banco · CSV · v1",
+      "correctionsApplied": 1,
+      "checks": [
+        {
+          "name": "Prévia obrigatória (métricas antes de gravar)",
+          "status": "PASS",
+          "detail": "total=9"
+        },
+        {
+          "name": "Nenhuma linha descartada silenciosamente",
+          "status": "PASS",
+          "detail": "parsed=9, trained=9"
+        },
+        {
+          "name": "Linhas incertas com rawContent",
+          "status": "PASS",
+          "detail": "NEEDS_REVIEW preserva linha original"
+        },
+        {
+          "name": "layoutModelId disponível para confirmação",
+          "status": "PASS",
+          "detail": "modelId=cmq1y23gm0001os6kdr5zszg3"
+        },
+        {
+          "name": "Confirmação persiste correções",
+          "status": "PASS",
+          "detail": "learnFromCorrections executado pós-prévia"
+        }
+      ],
+      "problems": [],
+      "status": "PASS"
+    }
+  ],
+  "uiValidation": [
+    {
+      "name": "Listagem retorna modelos",
+      "status": "PASS",
+      "detail": "2 modelo(s)"
+    },
+    {
+      "name": "Exibe versão",
+      "status": "PASS",
+      "detail": "version presente"
+    },
+    {
+      "name": "Exibe taxa de acerto",
+      "status": "PASS",
+      "detail": "max accuracy=50%"
+    },
+    {
+      "name": "Exibe último uso",
+      "status": "PASS",
+      "detail": "lastUsedAt preenchido"
+    },
+    {
+      "name": "Desativar modelo",
+      "status": "PASS",
+      "detail": "status=INACTIVE"
+    },
+    {
+      "name": "Excluir modelo",
+      "status": "PASS",
+      "detail": "deleted fork id=cmq1y23hq0006os6kgyi91cur"
+    }
+  ],
+  "importFlowValidation": [
+    {
+      "name": "Prévia obrigatória (métricas antes de gravar)",
+      "status": "PASS",
+      "detail": "total=9"
+    },
+    {
+      "name": "Nenhuma linha descartada silenciosamente",
+      "status": "PASS",
+      "detail": "parsed=9, trained=9"
+    },
+    {
+      "name": "Linhas incertas com rawContent",
+      "status": "PASS",
+      "detail": "NEEDS_REVIEW preserva linha original"
+    },
+    {
+      "name": "layoutModelId disponível para confirmação",
+      "status": "PASS",
+      "detail": "modelId=cmq1y23gm0001os6kdr5zszg3"
+    },
+    {
+      "name": "Confirmação persiste correções",
+      "status": "PASS",
+      "detail": "learnFromCorrections executado pós-prévia"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "ready": true
+  }
+}

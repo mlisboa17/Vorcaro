@@ -5,6 +5,7 @@ import {
   importConfirmRequestSchema,
   importConfirmResponseSchema,
 } from "@/modules/financial-inbox/domain/schemas/financial-import-api.schema";
+import { StatementLayoutTrainingService } from "@/modules/statement-layout-training/application/services/statement-layout-training.service";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -105,6 +106,35 @@ export async function POST(request: Request) {
       }
     }
   });
+
+  if (data.layoutModelId) {
+    const training = new StatementLayoutTrainingService(prisma);
+    const corrections = data.lines
+      .filter(
+        (line) =>
+          line.rawContent &&
+          line.date &&
+          line.description &&
+          typeof line.amount === "number",
+      )
+      .map((line) => ({
+        originalLine: line.rawContent,
+        correctedDate: line.date,
+        correctedDescription: line.description,
+        correctedAmount: line.amount,
+        sourceFileName: data.sourceFileName,
+      }));
+
+    if (corrections.length > 0) {
+      await training.learnFromCorrections({
+        userId,
+        layoutModelId: data.layoutModelId,
+        corrections,
+      });
+    } else {
+      await training.recordImportSuccess(data.layoutModelId);
+    }
+  }
 
   return NextResponse.json(importConfirmResponseSchema.parse({ imported, skippedDuplicates, failed }));
 }

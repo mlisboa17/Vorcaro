@@ -1,0 +1,7 @@
+PagBank PagSeguro
+Extrato de movimentações — App Android
+Titular: JOAO TESTE
+CPF: 222.333.444-55
+03/06/2026 PIX RECEBIDO Venda 250,00
+04/06/2026 TRANSFERENCIA ENVIADA 80,00
+05/06/2026 PIX ENVIADO Mercado 45,00

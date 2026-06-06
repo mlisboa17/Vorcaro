@@ -443,7 +443,7 @@ Total de **operações HTTP documentadas: 66** (rotas únicas; métodos listados
 
 ### `GET` / `POST` — `/api/import/documents/:id/lines`
 
-**Descrição:** Lista linhas de extrato/fatura para revisão (GET) ou confirma seleção + parcelas futuras (POST). Revisão humana obrigatória.  
+**Descrição:** Lista linhas de extrato/fatura para revisão (GET) ou confirma seleção + parcelas futuras (POST). Dedup por `lineFingerprint` (Sprint 15.2). Revisão humana obrigatória.  
 **Auth:** Obrigatório (ownership).
 
 ### `POST` — `/api/import/documents/:id/reprocess`

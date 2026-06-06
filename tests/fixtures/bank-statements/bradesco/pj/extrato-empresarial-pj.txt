@@ -1,0 +1,11 @@
+Bradesco
+Extrato Empresarial
+Razão Social: COMERCIO BRASIL ME
+CNPJ: 98.765.432/0001-10
+Agência: 1111 Conta Empresarial: 22222-3
+Saldo anterior R$ 8.000,00
+
+Data Histórico Documento Débito Crédito Saldo
+03/06/2026 PIX RECEBIDO Venda 123456 0,00 1.200,00 9.200,00
+04/06/2026 DOC ENVIADO Fornecedor 987654 450,00 0,00 8.750,00
+05/06/2026 TED ENVIADA Folha 555666 3.000,00 0,00 5.750,00

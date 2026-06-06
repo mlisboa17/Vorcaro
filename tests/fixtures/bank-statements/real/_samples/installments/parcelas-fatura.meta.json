@@ -1,0 +1,7 @@
+{
+  "bankId": "bradesco",
+  "profile": "PF",
+  "documentType": "FATURA",
+  "minTransactions": 0,
+  "homologationStatus": "PARCIAL"
+}

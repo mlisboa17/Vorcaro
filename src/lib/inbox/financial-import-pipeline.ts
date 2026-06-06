@@ -9,7 +9,7 @@ import type {
   ImportFinancialFileType,
   MatchedCardInfo,
 } from "@/modules/financial-inbox/domain/types/imported-financial-line";
-import { parseCsvBankStatement, parseOfxBankStatement } from "./financial-file-import";
+import { parseCsvBankStatement, parseExcelBankStatement, parseOfxBankStatement } from "./financial-file-import";
 import { PdfParseError, parsePdfWithLocalExtraction } from "./financial-file-import-pdf";
 import {
   parseInstallmentStructure,
@@ -221,7 +221,7 @@ async function parsePdfWithGemini(buffer: Buffer): Promise<ImportedFinancialLine
 
 export async function parseImportFile(input: {
   buffer: Buffer;
-  extension: "csv" | "ofx" | "pdf";
+  extension: "csv" | "ofx" | "pdf" | "xls" | "xlsx";
   fileName?: string;
   pdfPassword?: string;
 }): Promise<ImportedFinancialLine[]> {
@@ -231,6 +231,10 @@ export async function parseImportFile(input: {
 
   if (input.extension === "ofx") {
     return parseOfxBankStatement(input.buffer);
+  }
+
+  if (input.extension === "xls" || input.extension === "xlsx") {
+    return parseExcelBankStatement(input.buffer);
   }
 
   const fileName = input.fileName ?? "arquivo.pdf";

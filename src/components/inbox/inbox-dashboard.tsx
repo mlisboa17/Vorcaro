@@ -17,6 +17,7 @@ import { QuickIngest } from "./quick-ingest";
 import { cn } from "@/lib/utils/cn";
 import { Loader2, Upload } from "lucide-react";
 import { FinancialFileImportModal } from "./financial-file-import-modal";
+import { InboxBankImportPanel } from "./inbox-bank-import-panel";
 import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
 import { InboxBulkReviewModal } from "./inbox-bulk-review-modal";
 import { InboxBulkConfirmDialog } from "./inbox-bulk-confirm-dialog";
@@ -696,6 +697,8 @@ function InboxDashboardContent() {
       </header>
 
       <InboxMetricsCards items={allItems} />
+
+      <InboxBankImportPanel onOpenFullImport={() => setImportOpen(true)} />
 
       <InboxIntelligenceMetricsCards metrics={intelligenceMetrics} />
 

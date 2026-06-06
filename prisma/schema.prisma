@@ -54,6 +54,8 @@ model User {
   financialDocuments           FinancialDocument[]
   financialDocumentLearningPatterns FinancialDocumentLearningPattern[]
   financialDocumentAuditEvents FinancialDocumentAuditEvent[]
+  bankStatementLayoutModels    BankStatementLayoutModel[]
+  bankStatementLayoutCorrections BankStatementLayoutCorrection[]
 }
 
 model Account {
@@ -1254,4 +1256,100 @@ model FinancialDocumentAuditEvent {
 
   @@index([userId, documentId])
   @@index([suggestionId])
+}
+
+enum BankStatementLayoutFormat {
+  PDF
+  OFX
+  CSV
+  XLS
+  XLSX
+  UNKNOWN
+}
+
+enum BankStatementLayoutStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BankStatementLayoutApprovalStatus {
+  TESTING
+  APPROVED
+  DISABLED
+  REJECTED
+}
+
+enum BankStatementLayoutRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BankStatementLayoutSimilarityTier {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model BankStatementLayoutModel {
+  id                  String                      @id @default(cuid())
+  userId              String
+
+  bankId              String
+  bankName            String
+  profile             String                      @default("UNKNOWN")
+  fileFormat          BankStatementLayoutFormat     @default(UNKNOWN)
+  layoutLabel         String
+  accountType         String?
+
+  fingerprint         Json
+  structureRules      Json
+
+  version             Int                         @default(1)
+  accuracyRate        Float                       @default(0)
+  usageCount          Int                         @default(0)
+  successCount        Int                         @default(0)
+  correctionCount     Int                         @default(0)
+  lastUsedAt          DateTime?
+  lastSimilarityScore Float?
+
+  status              BankStatementLayoutStatus     @default(ACTIVE)
+  approvalStatus      BankStatementLayoutApprovalStatus @default(TESTING)
+  riskLevel           BankStatementLayoutRiskLevel  @default(MEDIUM)
+  humanReviewConfirmedAt DateTime?
+  realImportCount     Int                         @default(0)
+  parentModelId       String?
+  isBuiltIn           Boolean                     @default(false)
+
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  user                User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentModel         BankStatementLayoutModel?   @relation("LayoutModelVersions", fields: [parentModelId], references: [id], onDelete: SetNull)
+  childVersions       BankStatementLayoutModel[]  @relation("LayoutModelVersions")
+  corrections         BankStatementLayoutCorrection[]
+
+  @@index([userId, bankId, fileFormat, status])
+  @@index([userId, status])
+}
+
+model BankStatementLayoutCorrection {
+  id                   String   @id @default(cuid())
+  userId               String
+  layoutModelId        String
+
+  originalLine         String   @db.Text
+  correctedDate        String?
+  correctedDescription String?
+  correctedAmount      Decimal? @db.Decimal(15, 2)
+  sourceDocumentId     String?
+  sourceFileName       String?
+
+  appliedToModel       Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layoutModel          BankStatementLayoutModel   @relation(fields: [layoutModelId], references: [id], onDelete: Cascade)
+
+  @@index([userId, layoutModelId])
 }

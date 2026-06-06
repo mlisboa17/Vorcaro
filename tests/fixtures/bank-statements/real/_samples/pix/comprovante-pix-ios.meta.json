@@ -1,0 +1,8 @@
+{
+  "bankId": "bradesco",
+  "profile": "PF",
+  "source": "IOS",
+  "documentType": "PIX",
+  "minTransactions": 0,
+  "homologationStatus": "NAO_HOMOLOGADO"
+}

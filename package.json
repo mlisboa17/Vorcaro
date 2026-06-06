@@ -26,6 +26,11 @@
     "notifications:digest-weekly": "npx tsx scripts/run-notification-digest-weekly.ts",
     "inbox:reset-stuck": "npx tsx scripts/reset-stuck-inbox.ts",
     "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "homolog:layout-training": "npx tsx scripts/statement-layout-training-homologation.ts",
+    "homolog:real-banks": "npx tsx scripts/real-bank-homologation.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:foundation": "npx tsx scripts/validate-foundation.ts"
   },
   "prisma": {
@@ -49,9 +54,11 @@
     "react-dom": "^19.0.0",
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.7",
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.0.7",

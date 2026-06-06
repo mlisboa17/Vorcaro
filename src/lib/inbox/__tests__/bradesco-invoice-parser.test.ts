@@ -82,12 +82,13 @@ describe("bradesco-invoice-parser", () => {
     });
   });
 
-  it("integração linesFromPdfText usa parser Bradesco sem afetar outros bancos", () => {
-    const beforeGeneric = linesFromPdfText(
-      "NUBANK\n15/06/2026 Compra 10,00",
+  it("integração linesFromPdfText usa parser por banco sem afetar fatura Bradesco", () => {
+    const nubankLines = linesFromPdfText(
+      "NUBANK\nNu Pagamentos\nExtrato\n15/06/2026 Compra 10,00",
       "nubank.pdf",
     );
-    expect(beforeGeneric[0]?.description).toContain("15/06/2026");
+    expect(nubankLines[0]?.date).toBe("2026-06-15");
+    expect(nubankLines[0]?.description).toContain("Compra");
 
     const afterBradesco = linesFromPdfText(BRADESCO_FIXTURE, "bradesco.pdf");
     expect(countBradescoInstallments(afterBradesco)).toBe(5);

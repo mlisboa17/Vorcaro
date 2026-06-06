@@ -63,6 +63,10 @@ Sprint 15: [`docs/sprint-15-intelligent-document-capture.md`](docs/sprint-15-int
 Sprint 15.0.2 (revisão segura): [`docs/sprint-15.0.2-document-review-hardening.md`](docs/sprint-15.0.2-document-review-hardening.md).  
 Sprint 15.1 (OCR Paddle local): [`docs/sprint-15.1-local-paddleocr.md`](docs/sprint-15.1-local-paddleocr.md) — `docker compose up -d ocr`.
 
+Sprint 15.2.1 (homologação PF/PJ): [`docs/sprint-15.2.1-bank-parser-homologation.md`](docs/sprint-15.2.1-bank-parser-homologation.md).
+
+Sprint 15.2 (motor importação bancária BR): [`docs/sprint-15.2-brazilian-bank-import-engine.md`](docs/sprint-15.2-brazilian-bank-import-engine.md).
+
 Sprint 15.1.2 (extratos + parcelamentos): [`docs/sprint-15.1.2-bank-statement-and-card-installments.md`](docs/sprint-15.1.2-bank-statement-and-card-installments.md).
 
 Sprint 15.1.1 (partes pagador/recebedor + reprocessamento): [`docs/sprint-15.1.1-document-review-reprocessing.md`](docs/sprint-15.1.1-document-review-reprocessing.md).  

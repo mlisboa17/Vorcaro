@@ -14,17 +14,13 @@ import { FinancialDocumentUploadError } from "@/modules/financial-documents/appl
 import { ALLOWED_DOCUMENT_MIMES } from "@/modules/financial-documents/domain/types/financial-document.types";
 
 import {
-
   formatTelegramDocumentSummary,
-
+  formatTelegramBankStatementBatchSummary,
+  formatTelegramInstallmentBatchSummary,
   TELEGRAM_DOCUMENT_RECEIVED,
-
   TELEGRAM_PASSWORD_REQUIRED,
   TELEGRAM_REVIEW_REQUIRED,
-  formatTelegramInstallmentBatchSummary,
 } from "./telegram-document-summary.formatter";
-
-
 
 export type TelegramDocumentInput = {
 
@@ -237,7 +233,12 @@ export class TelegramFinancialDocumentService {
       const installmentSummary =
         batchReview.installmentPurchases && batchReview.installmentPurchases.length > 0
           ? formatTelegramInstallmentBatchSummary(batchReview.installmentPurchases)
-          : "Extrato ou fatura com múltiplos lançamentos detectados.\n\nRevise em /dashboard/import/review";
+          : batchReview.documentKind === "BANK_STATEMENT"
+            ? formatTelegramBankStatementBatchSummary({
+                transactionCount: batchReview.bankStatementTransactions.length,
+                bank: batchReview.bank,
+              })
+            : "Extrato ou fatura com múltiplos lançamentos detectados.\n\nRevise em /dashboard/import/review";
 
       return {
         documentId: document.id,

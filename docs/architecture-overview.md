@@ -50,8 +50,10 @@ src/
 | **Partes (15.1.1)** | `FinancialPartiesMetadata` em `extractedJson.parties` / `metadata.parties` — **não** em `Transaction` |
 | **Aprendizado** | `FinancialDocumentLearningPattern` — pixKey, documentNumber, normalizedName (+ payer/receiver na 15.1.1) |
 | **Reprocessamento** | `POST /api/import/documents/:id/reprocess` + auditoria `REPROCESS_*` |
-| **Guardrails** | Lançamento somente via `POST .../suggestions/:id/approve` |
-| **UI** | `/dashboard/import/*` — blocos pagador/recebedor |
+| **Extratos BR (15.2)** | `src/lib/bank-parsers/` — `BankStatementParserResolver`, 8 bancos P1, fingerprint por linha |
+| **PF/PJ (15.2.1)** | `BankStatementProfileResolver` + parsers `{banco}/{pf|pj}-parser.ts`, homologação em `tests/fixtures/bank-statements/` |
+| **Guardrails** | Lançamento somente via `POST .../suggestions/:id/approve` ou confirmação em lote `/lines` |
+| **UI** | `/dashboard/import/*` — tabela multi-linha, edição inline, parcelas futuras |
 | **Telegram** | `TelegramFinancialDocumentService` + callbacks `doc_*` (inline bloqueado se dados críticos ausentes) |
 
 ### Taxonomia de categorias (Sprint 14.8)

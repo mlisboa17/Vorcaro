@@ -2,6 +2,8 @@ export type ImportFinancialFileType = "EXTRATO_BANCARIO" | "FATURA_CARTAO";
 
 export type CategorySuggestionConfidence = "HIGH" | "MEDIUM" | "LOW";
 
+export type ImportLineParseStatus = "RECOGNIZED" | "NEEDS_REVIEW" | "IGNORED" | "ERROR";
+
 export type ImportedFinancialLine = {
   externalId?: string;
   date?: string;
@@ -10,8 +12,9 @@ export type ImportedFinancialLine = {
   rawContent: string;
   installment?: number;
   totalInstallments?: number;
-  /** Cidade do estabelecimento (ex.: fatura Bradesco). */
   city?: string;
+  parseStatus?: ImportLineParseStatus;
+  reviewMessage?: string;
 };
 
 export type DetectedCardInfo = {

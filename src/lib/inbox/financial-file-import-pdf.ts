@@ -1,12 +1,8 @@
 import { parsePdf } from "@/lib/parsers/pdf-parser";
 import { PdfParseError, toPdfParseError } from "@/lib/parsers/pdf-import-errors";
 import type { ImportedFinancialLine } from "@/modules/financial-inbox/domain/types/imported-financial-line";
-import {
-  isBradescoInvoiceText,
-  parseBradescoInvoiceText,
-  type BradescoInvoiceSummary,
-} from "./bradesco-invoice-parser";
-import { isBradescoBankStatementText, parseBradescoBankStatementText } from "./bradesco-bank-statement-parser";
+import { resolveBankStatement } from "@/lib/bank-parsers";
+import { isBradescoInvoiceText, parseBradescoInvoiceText, type BradescoInvoiceSummary } from "./bradesco-invoice-parser";
 
 export type { BradescoInvoiceSummary };
 
@@ -64,17 +60,18 @@ function splitLines(text: string): string[] {
 }
 
 export function linesFromPdfText(text: string, fileName: string): ImportedFinancialLine[] {
-  if (isBradescoBankStatementText(text)) {
-    return parseBradescoBankStatementText(text).map((tx) => ({
+  if (isBradescoInvoiceText(text)) {
+    return parseBradescoInvoiceText(text, fileName).lines;
+  }
+
+  const { statement } = resolveBankStatement(text);
+  if (statement.transactions.length > 0) {
+    return statement.transactions.map((tx) => ({
       date: tx.date,
       description: tx.description,
       amount: tx.direction === "EXPENSE" ? -tx.amount : tx.amount,
-      rawContent: `${tx.date} ${tx.description} ${tx.amount}`,
+      rawContent: tx.rawLine,
     }));
-  }
-
-  if (isBradescoInvoiceText(text) && !isBradescoBankStatementText(text)) {
-    return parseBradescoInvoiceText(text, fileName).lines;
   }
 
   const lines = splitLines(text);

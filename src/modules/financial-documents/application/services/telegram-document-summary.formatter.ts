@@ -50,6 +50,19 @@ export const TELEGRAM_REVIEW_REQUIRED =
 export const TELEGRAM_INSTALLMENT_BATCH_DETECTED =
   "Detectei compras parceladas nesta fatura.\n\nRevise as parcelas em /dashboard/import/review antes de confirmar.";
 
+export function formatTelegramBankStatementBatchSummary(input: {
+  transactionCount: number;
+  bank?: string;
+}): string {
+  const bankLabel = input.bank ? ` (${input.bank})` : "";
+  return [
+    `Identifiquei ${input.transactionCount} movimentações neste documento${bankLabel}.`,
+    "",
+    "Abra o dashboard para revisar e escolher quais deseja importar.",
+    "/dashboard/import/review",
+  ].join("\n");
+}
+
 export function formatTelegramInstallmentBatchSummary(
   purchases: Array<{
     merchant: string;

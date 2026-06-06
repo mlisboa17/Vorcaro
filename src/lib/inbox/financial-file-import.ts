@@ -1,57 +1,15 @@
-import crypto from "crypto";
-
-export type ImportFinancialFileType = "EXTRATO_BANCARIO" | "FATURA_CARTAO";
-
-export type ImportedFinancialLine = {
-  externalId?: string;
-  date?: string; // YYYY-MM-DD (quando detectável)
-  description?: string;
-  amount?: number;
-  rawContent: string;
-};
+import * as XLSX from "xlsx";
+import type { ImportedFinancialLine } from "@/modules/financial-inbox/domain/types/imported-financial-line";
+import {
+  enrichImportedLines,
+  isLikelyCsvHeader,
+  normalizeImportDate,
+  parseCsvRow,
+  parseStructuredAmount,
+} from "./structured-bank-import.parser";
 
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
-}
-
-function safeNumber(value: string): number | null {
-  if (normalizeDateToYyyyMmDd(value)) {
-    return null;
-  }
-
-  const cleaned = value
-    .replace(/[^\d,.\-]/g, "")
-    .replace(/\.(?=\d{3}(\D|$))/g, "")
-    .replace(",", ".")
-    .trim();
-
-  if (!cleaned || cleaned === "-" || cleaned === ".") {
-    return null;
-  }
-
-  const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function normalizeDateToYyyyMmDd(value: string): string | null {
-  const raw = value.trim();
-
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) {
-    return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  }
-
-  const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (br) {
-    return `${br[3]}-${br[2]}-${br[1]}`;
-  }
-
-  const compact = raw.match(/^(\d{4})(\d{2})(\d{2})/);
-  if (compact) {
-    return `${compact[1]}-${compact[2]}-${compact[3]}`;
-  }
-
-  return null;
 }
 
 function splitLines(text: string): string[] {
@@ -63,71 +21,20 @@ function splitLines(text: string): string[] {
     .filter(Boolean);
 }
 
-export function computeImportHash(params: {
-  userId: string;
-  importType: ImportFinancialFileType;
-  sourceFileName: string;
-  accountId?: string | null;
-  cardId?: string | null;
-  date?: string;
-  description?: string;
-  amount?: number;
-  rawContent: string;
-}): string {
-  const payload = JSON.stringify({
-    userId: params.userId,
-    importType: params.importType,
-    sourceFileName: params.sourceFileName,
-    accountId: params.accountId ?? null,
-    cardId: params.cardId ?? null,
-    date: params.date ?? null,
-    description: params.description ?? null,
-    amount: typeof params.amount === "number" ? params.amount : null,
-    rawContent: normalizeWhitespace(params.rawContent),
-  });
-
-  return crypto.createHash("sha256").update(payload).digest("hex");
-}
-
 export function parseCsvBankStatement(buffer: Buffer): ImportedFinancialLine[] {
   const text = buffer.toString("utf-8").replace(/^\uFEFF/, "");
   const lines = splitLines(text);
+  if (lines.length === 0) return [];
 
-  if (lines.length === 0) {
-    return [];
-  }
+  const delimiter = lines[0]!.includes(";") ? ";" : lines[0]!.includes("\t") ? "\t" : ",";
+  const rows = lines.filter((line, index) => !(index === 0 && isLikelyCsvHeader(line)));
 
-  const delimiter = lines[0].includes(";") ? ";" : lines[0].includes("\t") ? "\t" : ",";
-
-  const result: ImportedFinancialLine[] = [];
-
-  for (const line of lines) {
-    const cols = line.split(delimiter).map((value) => value.trim());
-
-    const dateCandidate = cols.find((c) => normalizeDateToYyyyMmDd(c));
-    const amountCandidate = cols.find((c) => safeNumber(c) !== null);
-    const descriptionCandidate =
-      cols.find((c) => c && !normalizeDateToYyyyMmDd(c) && safeNumber(c) === null) ?? cols[0];
-
-    const date = dateCandidate ? normalizeDateToYyyyMmDd(dateCandidate) : null;
-    const amount = amountCandidate ? safeNumber(amountCandidate) : null;
-    const description = descriptionCandidate ? normalizeWhitespace(descriptionCandidate) : undefined;
-
-    result.push({
-      date: date ?? undefined,
-      amount: amount ?? undefined,
-      description,
-      rawContent: normalizeWhitespace(line),
-    });
-  }
-
-  return result;
+  return enrichImportedLines(rows.map((line) => parseCsvRow(line, delimiter)));
 }
 
 export function parseOfxBankStatement(buffer: Buffer): ImportedFinancialLine[] {
   const text = buffer.toString("utf-8");
   const blocks = text.split(/<STMTTRN>/gi).slice(1);
-
   const result: ImportedFinancialLine[] = [];
 
   for (const block of blocks) {
@@ -137,10 +44,9 @@ export function parseOfxBankStatement(buffer: Buffer): ImportedFinancialLine[] {
     const name = block.match(/<NAME>([^<\n\r]+)/i)?.[1]?.trim() ?? "";
     const memo = block.match(/<MEMO>([^<\n\r]+)/i)?.[1]?.trim() ?? "";
 
-    const date = normalizeDateToYyyyMmDd(dtposted);
-    const amount = safeNumber(trnamt);
+    const date = normalizeImportDate(dtposted);
+    const amount = parseStructuredAmount(trnamt);
     const description = normalizeWhitespace(memo || name || "Lançamento OFX");
-
     const rawContent = normalizeWhitespace(
       [date ?? dtposted, description, amount !== null ? String(amount) : trnamt].filter(Boolean).join(" | "),
     );
@@ -154,6 +60,36 @@ export function parseOfxBankStatement(buffer: Buffer): ImportedFinancialLine[] {
     });
   }
 
-  return result;
+  return enrichImportedLines(result);
 }
 
+export function parseExcelBankStatement(buffer: Buffer): ImportedFinancialLine[] {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName]!;
+  const rows = XLSX.utils.sheet_to_json<(string | number | Date | null)[]>(sheet, {
+    header: 1,
+    raw: false,
+    defval: "",
+  });
+
+  const result: ImportedFinancialLine[] = [];
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!Array.isArray(row) || row.length === 0) continue;
+
+    const cells = row.map((cell) => String(cell ?? "").trim()).filter(Boolean);
+    if (cells.length === 0) continue;
+
+    const joined = cells.join(" | ");
+    if (index === 0 && isLikelyCsvHeader(joined)) continue;
+
+    const delimiter = joined.includes(";") ? ";" : joined.includes("\t") ? "\t" : "|";
+    result.push(parseCsvRow(cells.join(delimiter === "|" ? " | " : delimiter), delimiter === "|" ? ";" : delimiter));
+  }
+
+  return enrichImportedLines(result);
+}

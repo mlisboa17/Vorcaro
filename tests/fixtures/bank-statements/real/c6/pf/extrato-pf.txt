@@ -1,0 +1,8 @@
+C6 Bank
+Extrato bancário — Internet Banking
+Titular: MARIA TESTE
+CPF: 111.222.333-44
+Conta Corrente 88888-8
+03/06/2026 PIX RECEBIDO Salario 3.500,00
+04/06/2026 COMPRA CARTAO LOJA 120,00
+05/06/2026 TED ENVIADA Fornecedor 200,00

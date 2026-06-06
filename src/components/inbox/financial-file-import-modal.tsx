@@ -1,6 +1,9 @@
 "use client";
 
+import { ImportSummaryCards } from "@/components/financial-documents/import-summary-cards";
+import { formatHintForFileName, labelForFileName } from "@/components/financial-documents/bank-import-format-picker";
 import { fetchInstrumentList } from "@/lib/instruments/instrument-api";
+import { BANK_IMPORT_ACCEPT_INBOX } from "@/lib/inbox/bank-import-file-types";
 import { cn } from "@/lib/utils/cn";
 import type { ConfigCartao, ConfigConta } from "@/types/instruments-config";
 import { Loader2, Upload, X } from "lucide-react";
@@ -36,7 +39,28 @@ function formatBytes(bytes: number): string {
 
 function isAcceptedFile(file: File): boolean {
   const name = file.name.toLowerCase();
-  return name.endsWith(".ofx") || name.endsWith(".csv") || name.endsWith(".pdf");
+  return (
+    name.endsWith(".ofx") ||
+    name.endsWith(".csv") ||
+    name.endsWith(".pdf") ||
+    name.endsWith(".xls") ||
+    name.endsWith(".xlsx")
+  );
+}
+
+function formatParseStatus(status?: string) {
+  switch (status) {
+    case "RECOGNIZED":
+      return "Reconhecido";
+    case "NEEDS_REVIEW":
+      return "Precisa revisar";
+    case "IGNORED":
+      return "Ignorado";
+    case "ERROR":
+      return "Erro";
+    default:
+      return "—";
+  }
 }
 
 export function FinancialFileImportModal({
@@ -71,6 +95,9 @@ export function FinancialFileImportModal({
   const [pdfPassword, setPdfPassword] = useState("");
   const [pdfRequiresPassword, setPdfRequiresPassword] = useState(false);
   const [pdfPasswordError, setPdfPasswordError] = useState<string | null>(null);
+  const [lineEdits, setLineEdits] = useState<
+    Record<number, { date?: string; description?: string; amount?: string }>
+  >({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +133,7 @@ export function FinancialFileImportModal({
     setPdfPassword("");
     setPdfRequiresPassword(false);
     setPdfPasswordError(null);
+    setLineEdits({});
 
     Promise.all([
       fetchInstrumentList<ConfigConta>("/api/config/contas"),
@@ -181,6 +209,7 @@ export function FinancialFileImportModal({
 
       const payload = body as ImportPreviewResponse;
       setPreview(payload);
+      setLineEdits({});
       setPdfRequiresPassword(false);
 
       if (tipo === "FATURA_CARTAO" && payload.detectedCard?.exists && payload.detectedCard.cardId) {
@@ -214,24 +243,33 @@ export function FinancialFileImportModal({
         ...(contaFinanceiraId ? { contaFinanceiraId } : {}),
         ...(cartaoId ? { cartaoId } : {}),
         skipDuplicates,
+        ...(preview.layoutTraining?.modelId ? { layoutModelId: preview.layoutTraining.modelId } : {}),
         ...(ignoredCardCreation && !cartaoId ? { cardDetectionStatus: "NEEDS_MANUAL_CARD_SELECTION" } : {}),
-        lines: preview.lines.map((line) => ({
-          lineIndex: line.lineIndex,
-          rawContent: line.rawContent,
-          importHash: line.importHash,
-          ...(line.externalId ? { externalId: line.externalId } : {}),
-          ...(line.date ? { date: line.date } : {}),
-          ...(line.description ? { description: line.description } : {}),
-          ...(typeof line.amount === "number" ? { amount: line.amount } : {}),
-          ...(line.installment ? { installment: line.installment } : {}),
-          ...(line.totalInstallments ? { totalInstallments: line.totalInstallments } : {}),
-          ...(line.suggestedCategoryId ? { suggestedCategoryId: line.suggestedCategoryId } : {}),
-          ...(line.suggestedCategoryName ? { suggestedCategoryName: line.suggestedCategoryName } : {}),
-          ...(line.categoryConfidence ? { categoryConfidence: line.categoryConfidence } : {}),
-          ...(line.dataCompra ? { dataCompra: line.dataCompra } : {}),
-          ...(line.dataCaixa ? { dataCaixa: line.dataCaixa } : {}),
-          ...(line.dataVencimentoFatura ? { dataVencimentoFatura: line.dataVencimentoFatura } : {}),
-        })),
+        lines: preview.lines.map((line) => {
+          const edit = lineEdits[line.lineIndex] ?? {};
+          const date = edit.date ?? line.date;
+          const description = edit.description ?? line.description;
+          const amountRaw = edit.amount ?? (typeof line.amount === "number" ? String(line.amount) : undefined);
+          const amount = amountRaw ? Number(amountRaw.replace(",", ".")) : undefined;
+
+          return {
+            lineIndex: line.lineIndex,
+            rawContent: line.rawContent,
+            importHash: line.importHash,
+            ...(line.externalId ? { externalId: line.externalId } : {}),
+            ...(date ? { date } : {}),
+            ...(description ? { description } : {}),
+            ...(typeof amount === "number" && !Number.isNaN(amount) ? { amount } : {}),
+            ...(line.installment ? { installment: line.installment } : {}),
+            ...(line.totalInstallments ? { totalInstallments: line.totalInstallments } : {}),
+            ...(line.suggestedCategoryId ? { suggestedCategoryId: line.suggestedCategoryId } : {}),
+            ...(line.suggestedCategoryName ? { suggestedCategoryName: line.suggestedCategoryName } : {}),
+            ...(line.categoryConfidence ? { categoryConfidence: line.categoryConfidence } : {}),
+            ...(line.dataCompra ? { dataCompra: line.dataCompra } : {}),
+            ...(line.dataCaixa ? { dataCaixa: line.dataCaixa } : {}),
+            ...(line.dataVencimentoFatura ? { dataVencimentoFatura: line.dataVencimentoFatura } : {}),
+          };
+        }),
       };
 
       const response = await fetch("/api/inbox/import/confirm", {
@@ -330,7 +368,7 @@ export function FinancialFileImportModal({
     if (!next) return;
 
     if (!isAcceptedFile(next)) {
-      setError("Formato não suportado. Use apenas .ofx, .csv ou .pdf.");
+      setError("Formato não suportado. Use PDF, OFX, CSV, XLS ou XLSX.");
       return;
     }
 
@@ -353,11 +391,11 @@ export function FinancialFileImportModal({
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-4">
           <div>
             <h2 id="import-title" className="text-lg font-semibold text-slate-900">
-              Importar Extrato / Fatura
+              Importar extrato ou fatura
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Envie um arquivo .ofx, .csv ou .pdf para criar itens na Caixa Financeira (sem gerar
-              transações automaticamente).
+              Envie PDF, OFX, CSV ou Excel. Mostramos uma prévia amigável antes de gravar na
+              caixa — nada entra sem sua confirmação.
             </p>
           </div>
           <button
@@ -452,18 +490,11 @@ export function FinancialFileImportModal({
               const dropped = event.dataTransfer.files?.[0] ?? null;
               handlePickFile(dropped);
             }}
-            onClick={() => {
-              if (!loading) {
-                fileInputRef.current?.click();
-              }
-            }}
-            role="button"
-            tabIndex={0}
           >
             <input
               ref={fileInputRef}
               type="file"
-              accept=".ofx,.csv,.pdf"
+              accept={BANK_IMPORT_ACCEPT_INBOX}
               className="hidden"
               onChange={(event) => handlePickFile(event.target.files?.[0] ?? null)}
               disabled={loading}
@@ -472,16 +503,42 @@ export function FinancialFileImportModal({
             {file ? (
               <div className="space-y-1">
                 <p className="text-sm font-medium text-slate-900">{file.name}</p>
-                <p className="text-xs text-slate-500">{formatBytes(file.size)}</p>
-                <p className="mt-2 text-xs text-slate-500">Clique para trocar o arquivo.</p>
+                <p className="text-xs text-slate-500">
+                  {formatBytes(file.size)} · {labelForFileName(file.name)}
+                </p>
+                {formatHintForFileName(file.name) ? (
+                  <p className="text-xs text-slate-600">{formatHintForFileName(file.name)}</p>
+                ) : null}
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-medium text-slate-600 underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={loading}
+                >
+                  Trocar arquivo
+                </button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                   <Upload className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-medium text-slate-900">Arraste o arquivo ou clique aqui</p>
-                <p className="text-xs text-slate-500">Suporta .ofx, .csv e .pdf</p>
+                <p className="text-sm text-slate-600">Arraste o arquivo aqui ou use o botão abaixo.</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Selecionar arquivo
+                </button>
+                <p className="text-xs text-slate-500">PDF, OFX, CSV, XLS e XLSX</p>
               </div>
             )}
           </div>
@@ -537,12 +594,52 @@ export function FinancialFileImportModal({
               <div className="text-sm text-slate-700">
                 <p>
                   Arquivo: <strong>{preview.sourceFileName}</strong>
+                  {preview.fileFormat ? ` · ${preview.fileFormat}` : ""}
                 </p>
-                <p>
-                  Registros: <strong>{preview.totals.total}</strong> · Novos:{" "}
-                  <strong>{preview.totals.newCount}</strong> · Duplicados:{" "}
-                  <strong>{preview.totals.duplicateCount}</strong>
+                {preview.structuredPriority ? (
+                  <p className="mt-1 text-xs text-emerald-800">
+                    Formato estruturado — reconhecimento mais confiável que PDF.
+                  </p>
+                ) : preview.fileFormat === "PDF" ? (
+                  <p className="mt-1 text-xs text-amber-800">
+                    PDFs podem exigir mais revisão. Se o banco permitir, prefira OFX, CSV ou Excel.
+                  </p>
+                ) : null}
+                <p className="mt-1">
+                  Duplicados detectados: <strong>{preview.totals.duplicateCount}</strong> · Novos:{" "}
+                  <strong>{preview.totals.newCount}</strong>
                 </p>
+              </div>
+
+              {preview.importSummary ? (
+                <ImportSummaryCards summary={preview.importSummary} />
+              ) : null}
+
+              {preview.layoutTraining ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                  <p className="font-medium text-slate-900">
+                    Modelo: {preview.layoutTraining.layoutLabel ?? "Novo layout"}
+                  </p>
+                  <p className="mt-1">
+                    Similaridade: {preview.layoutTraining.similarityScore.toFixed(1)}% ·{" "}
+                    {preview.layoutTraining.similarityTier === "HIGH"
+                      ? "aplicado automaticamente"
+                      : preview.layoutTraining.similarityTier === "MEDIUM"
+                        ? "aplicado com revisão"
+                        : "parser genérico"}
+                  </p>
+                  {preview.layoutTraining.message ? (
+                    <p className="mt-1 text-xs text-slate-600">{preview.layoutTraining.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {(preview.importSummary?.needsReview ?? 0) > 0 ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Alguns lançamentos precisam de revisão. Confira os destacados e corrija data,
+                  descrição ou valor antes de confirmar.
+                </p>
+              ) : null}
                 {preview.detectedCard ? (
                   <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3 text-sm">
                     {preview.detectedCard.exists ? (
@@ -742,7 +839,6 @@ export function FinancialFileImportModal({
                     )}
                   </div>
                 ) : null}
-              </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input
@@ -758,6 +854,7 @@ export function FinancialFileImportModal({
                 <table className="min-w-full text-xs">
                   <thead className="bg-slate-100 text-slate-600">
                     <tr>
+                      <th className="px-2 py-2 text-left">Status</th>
                       <th className="px-2 py-2 text-left">Data</th>
                       <th className="px-2 py-2 text-left">Descrição</th>
                       <th className="px-2 py-2 text-right">Valor</th>
@@ -765,16 +862,83 @@ export function FinancialFileImportModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {preview.previewSample.map((line) => (
-                      <tr key={`${line.lineIndex}-${line.importHash}`} className="border-t border-slate-100">
-                        <td className="px-2 py-1.5">{line.date ?? "—"}</td>
-                        <td className="px-2 py-1.5">{line.description ?? line.rawContent.slice(0, 80)}</td>
-                        <td className="px-2 py-1.5 text-right">
-                          {typeof line.amount === "number" ? line.amount.toFixed(2) : "—"}
-                        </td>
-                        <td className="px-2 py-1.5 text-center">{line.isDuplicate ? "Sim" : "Não"}</td>
-                      </tr>
-                    ))}
+                    {preview.previewSample.map((line) => {
+                      const edit = lineEdits[line.lineIndex] ?? {};
+                      const needsReview = line.parseStatus === "NEEDS_REVIEW" || line.parseStatus === "ERROR";
+                      const displayDate = edit.date ?? line.date ?? "";
+                      const displayDescription = edit.description ?? line.description ?? "";
+                      const displayAmount =
+                        edit.amount ??
+                        (typeof line.amount === "number" ? String(line.amount) : "");
+
+                      return (
+                        <tr
+                          key={`${line.lineIndex}-${line.importHash}`}
+                          className={cn(
+                            "border-t border-slate-100",
+                            needsReview && "bg-amber-50",
+                          )}
+                        >
+                          <td className="px-2 py-1.5 whitespace-nowrap" title={line.reviewMessage}>
+                            {formatParseStatus(line.parseStatus)}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {needsReview ? (
+                              <input
+                                className="w-24 rounded border border-slate-200 px-1 py-0.5"
+                                value={displayDate}
+                                onChange={(e) =>
+                                  setLineEdits((prev) => ({
+                                    ...prev,
+                                    [line.lineIndex]: { ...prev[line.lineIndex], date: e.target.value },
+                                  }))
+                                }
+                              />
+                            ) : (
+                              line.date ?? "—"
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {needsReview ? (
+                              <input
+                                className="w-full min-w-[8rem] rounded border border-slate-200 px-1 py-0.5"
+                                value={displayDescription}
+                                onChange={(e) =>
+                                  setLineEdits((prev) => ({
+                                    ...prev,
+                                    [line.lineIndex]: {
+                                      ...prev[line.lineIndex],
+                                      description: e.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            ) : (
+                              line.description ?? line.rawContent.slice(0, 80)
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            {needsReview ? (
+                              <input
+                                className="w-20 rounded border border-slate-200 px-1 py-0.5 text-right"
+                                value={displayAmount}
+                                onChange={(e) =>
+                                  setLineEdits((prev) => ({
+                                    ...prev,
+                                    [line.lineIndex]: { ...prev[line.lineIndex], amount: e.target.value },
+                                  }))
+                                }
+                              />
+                            ) : typeof line.amount === "number" ? (
+                              line.amount.toFixed(2)
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 text-center">{line.isDuplicate ? "Sim" : "Não"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -823,7 +987,7 @@ export function FinancialFileImportModal({
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {step === "config" ? "Gerar Preview" : "Confirmar Importação"}
+            {step === "config" ? "Gerar prévia" : "Confirmar importação"}
           </button>
         </div>
       </div>

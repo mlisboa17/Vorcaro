@@ -1,0 +1,11 @@
+Banco Inter
+Inter Empresas
+Extrato de movimentações
+Razão Social: TECH INTER LTDA
+CNPJ: 11.999.888/0001-77
+Conta PJ 88888-8
+Saldo anterior R$ 22.000,00
+
+03/06/2026 PIX RECEBIDO Assinatura SaaS 5.000,00
+04/06/2026 TED ENVIADA Cloud Provider 2.300,00
+05/06/2026 BOLETO PAGO Contabilidade 800,00

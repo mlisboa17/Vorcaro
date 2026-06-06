@@ -1,3 +1,5 @@
+export type BankStatementLineParseStatus = "RECOGNIZED" | "NEEDS_REVIEW" | "IGNORED" | "ERROR";
+
 export type ExtractedBankStatementTransaction = {
   id: string;
   date: string;
@@ -6,12 +8,18 @@ export type ExtractedBankStatementTransaction = {
   direction: "INCOME" | "EXPENSE";
   balanceAfter?: number;
   documentNumber?: string;
-  method?: "PIX" | "TRANSFERENCIA" | "BOLETO" | "CARTAO_CREDITO" | "OUTROS";
+  method?: "PIX" | "TRANSFERENCIA" | "BOLETO" | "CARTAO_CREDITO" | "TARIFA" | "OUTROS";
+  rawLine?: string;
   confidence: number;
+  fingerprint?: string;
+  suggestedCategoryId?: string;
+  suggestedSubcategoryId?: string;
+  warnings?: string[];
   selected?: boolean;
   rejected?: boolean;
+  parseStatus?: BankStatementLineParseStatus;
+  reviewMessage?: string;
 };
-
 export type ExtractedInstallmentPurchase = {
   id: string;
   merchant: string;
@@ -24,13 +32,39 @@ export type ExtractedInstallmentPurchase = {
   dueDate?: string;
   confidence: number;
   fingerprint?: string;
+  rawLine?: string;
 };
 
 export type FinancialDocumentImportKind = "BANK_STATEMENT" | "CARD_INVOICE" | "SINGLE_RECEIPT";
 
 export type FinancialDocumentBatchReview = {
   documentKind: FinancialDocumentImportKind;
+  bank?: string;
+  profile?: "PF" | "PJ" | "UNKNOWN";
+  account?: string;
+  branch?: string;
+  holderName?: string;
+  period?: { start?: string; end?: string };
+  warnings?: string[];
   bankStatementTransactions: ExtractedBankStatementTransaction[];
   installmentPurchases: ExtractedInstallmentPurchase[];
   batchReviewRequired: boolean;
+  usedGenericParser?: boolean;
+  layoutTraining?: {
+    modelId: string | null;
+    modelVersion: number | null;
+    layoutLabel: string | null;
+    similarityScore: number;
+    similarityTier: "HIGH" | "MEDIUM" | "LOW";
+    isNewModel?: boolean;
+    message?: string;
+  };
+  importSummary?: {
+    totalLines: number;
+    recognized: number;
+    needsReview: number;
+    ignored: number;
+    errors: number;
+    processedInChunks?: boolean;
+  };
 };

@@ -1,6 +1,26 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-12 (Sprint 15.1.2).
+Documento de inventário técnico. Última revisão: 2026-06-12 (Sprint 15.2.1).
+
+## Sprint 15.2.1 — Homologação PF/PJ
+
+| Área | Entrega |
+|------|---------|
+| **Perfil** | `BankProfile` + `BankStatementProfileResolver` |
+| **Parsers** | PF/PJ separados (8 bancos obrigatórios) |
+| **Fixtures** | `tests/fixtures/bank-statements/` |
+| **Homologação** | `scripts/sprint-15.2.1-bank-parser-homologation.ts` — meta ≥ 90% |
+| **Docs** | `docs/sprint-15.2.1-bank-parser-homologation.md`, `docs/bank-layout-inventory.md` |
+
+## Sprint 15.2 — Motor de importação bancária brasileira
+
+| Área | Entrega |
+|------|---------|
+| **Parsers** | `src/lib/bank-parsers/` — 8 bancos P1 + P2/P3, resolver, genérico |
+| **Pipeline** | `financial-document-import-analyzer` via `BankStatementParserResolver` |
+| **Dedup** | Fingerprint por linha em confirmação em lote |
+| **UI** | Tabela review: método, warnings, edição inline |
+| **Docs** | `docs/sprint-15.2-brazilian-bank-import-engine.md` |
 
 ## Sprint 15.1.2 — Extratos e parcelamentos
 

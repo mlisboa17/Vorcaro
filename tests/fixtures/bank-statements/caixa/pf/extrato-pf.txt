@@ -1,0 +1,10 @@
+Caixa Econômica Federal
+Extrato de Conta Corrente
+Titular: CARLA MENDES
+CPF: 444.555.666-77
+Agência 1234 Conta 98765-4
+Saldo anterior R$ 1.500,00
+
+03/06/2026 PIX RECEBIDO Salario 100 0,00 3.000,00 4.500,00
+04/06/2026 SAQUE ATM 200 200,00 0,00 4.300,00
+05/06/2026 BOLETO PAGO Escola 300 450,00 0,00 3.850,00

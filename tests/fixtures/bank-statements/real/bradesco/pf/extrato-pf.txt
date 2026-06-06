@@ -1,0 +1,11 @@
+Bradesco
+Extrato de Conta Corrente
+Titular: JOAO OLIVEIRA
+CPF: 987.654.321-00
+Agência: 4321 Conta: 98765-4
+Saldo anterior R$ 1.000,00
+
+Data Histórico Documento Débito Crédito Saldo
+03/06/2026 PIX RECEBIDO João 123456 0,00 500,00 1.500,00
+04/06/2026 TED ENVIADA Empresa 987654 200,00 0,00 1.300,00
+05/06/2026 TARIFA PACOTE 111222 15,90 0,00 1.284,10

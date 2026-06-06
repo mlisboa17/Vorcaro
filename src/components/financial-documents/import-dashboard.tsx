@@ -3,7 +3,22 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, FileUp, Loader2, Pencil, Upload } from "lucide-react";
+import {
+  acceptForBankImportFormat,
+  BankImportFormatPicker,
+  formatHintForFileName,
+  isStructuredImportFormat,
+  labelForFileName,
+  type BankImportFormatChoice,
+} from "@/components/financial-documents/bank-import-format-picker";
+import { ImportSummaryCards } from "@/components/financial-documents/import-summary-cards";
 import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
+import { fetchInstrumentList } from "@/lib/instruments/instrument-api";
+import type { ConfigConta } from "@/types/instruments-config";
+import type {
+  ImportConfirmRequest,
+  ImportPreviewResponse,
+} from "@/modules/financial-inbox/domain/schemas/financial-import-api.schema";
 import { AUTO_APPROVAL_THRESHOLD } from "@/modules/financial-documents/domain/constants/financial-document-review.constants";
 import type { FinancialDocumentBatchReview } from "@/modules/financial-documents/domain/types/financial-document-import.types";
 import { cn } from "@/lib/utils/cn";
@@ -72,6 +87,40 @@ function formatMoney(value: number | null) {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
+function formatMethod(method?: string | null) {
+  if (!method) return "—";
+  const labels: Record<string, string> = {
+    PIX: "PIX",
+    TRANSFERENCIA: "Transferência",
+    BOLETO: "Boleto",
+    CARTAO_CREDITO: "Cartão",
+    TARIFA: "Tarifa",
+    OUTROS: "Outros",
+  };
+  return labels[method] ?? method;
+}
+
+function formatParseStatus(status?: string) {
+  switch (status) {
+    case "RECOGNIZED":
+      return "Reconhecido";
+    case "NEEDS_REVIEW":
+      return "Precisa revisar";
+    case "IGNORED":
+      return "Ignorado";
+    case "ERROR":
+      return "Erro";
+    default:
+      return "Reconhecido";
+  }
+}
+
+function parseStatusRowClass(status?: string) {
+  if (status === "NEEDS_REVIEW") return "bg-amber-50";
+  if (status === "ERROR") return "bg-red-50";
+  return "";
+}
+
 function formatDate(value: string | null) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString("pt-BR");
@@ -96,9 +145,19 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
   const [passwordInputs, setPasswordInputs] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [batchLineSelection, setBatchLineSelection] = useState<Record<string, Record<string, boolean>>>({});
+  const [batchLineEdits, setBatchLineEdits] = useState<
+    Record<string, Record<string, { date?: string; description?: string; amount?: string }>>
+  >({});
   const [installmentCreateChoice, setInstallmentCreateChoice] = useState<
     Record<string, Record<string, boolean>>
   >({});
+  const [importFormat, setImportFormat] = useState<BankImportFormatChoice>("PDF");
+  const [structuredFile, setStructuredFile] = useState<File | null>(null);
+  const [structuredPreview, setStructuredPreview] = useState<ImportPreviewResponse | null>(null);
+  const [structuredContaId, setStructuredContaId] = useState("");
+  const [contas, setContas] = useState<ConfigConta[]>([]);
+  const [structuredBusy, setStructuredBusy] = useState(false);
+  const structuredInputRef = useRef<HTMLInputElement>(null);
   const resendInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -109,6 +168,11 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
         fetch("/api/import/learning-patterns"),
         fetch("/api/finance/catalog"),
       ];
+      if (mode === "upload") {
+        fetchInstrumentList<ConfigConta>("/api/config/contas")
+          .then(setContas)
+          .catch(() => setContas([]));
+      }
       if (mode === "history" || mode === "upload" || mode === "review") {
         requests.push(fetch("/api/import/documents?enriched=true"));
       }
@@ -156,6 +220,12 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
   }, [load]);
 
   async function uploadFile(file: File) {
+    if (isStructuredImportFormat(importFormat)) {
+      setStructuredFile(file);
+      setStructuredPreview(null);
+      return;
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
@@ -189,6 +259,88 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
     } finally {
       setUploading(false);
     }
+  }
+
+  async function generateStructuredPreview() {
+    if (!structuredFile) return;
+    if (!structuredContaId) {
+      pushToast("error", "Selecione a conta financeira de destino.");
+      return;
+    }
+
+    setStructuredBusy(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", structuredFile);
+      formData.set("tipo", "EXTRATO_BANCARIO");
+      formData.set("contaFinanceiraId", structuredContaId);
+
+      const response = await fetch("/api/inbox/import/preview", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const body = (await response.json().catch(() => null)) as ImportPreviewResponse & { error?: string };
+      if (!response.ok) {
+        pushToast("error", body?.error ?? "Falha ao gerar prévia do arquivo.");
+        return;
+      }
+      setStructuredPreview(body);
+    } finally {
+      setStructuredBusy(false);
+    }
+  }
+
+  async function confirmStructuredImport() {
+    if (!structuredPreview) return;
+
+    setStructuredBusy(true);
+    try {
+      const requestBody: ImportConfirmRequest = {
+        importType: structuredPreview.importType,
+        sourceFileName: structuredPreview.sourceFileName,
+        contaFinanceiraId: structuredContaId,
+        skipDuplicates: true,
+        lines: structuredPreview.lines.map((line) => ({
+          lineIndex: line.lineIndex,
+          rawContent: line.rawContent,
+          importHash: line.importHash,
+          ...(line.externalId ? { externalId: line.externalId } : {}),
+          ...(line.date ? { date: line.date } : {}),
+          ...(line.description ? { description: line.description } : {}),
+          ...(typeof line.amount === "number" ? { amount: line.amount } : {}),
+        })),
+      };
+
+      const response = await fetch("/api/inbox/import/confirm", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string; imported?: number };
+      if (!response.ok) {
+        pushToast("error", body.error ?? "Falha ao confirmar importação.");
+        return;
+      }
+      pushToast(
+        "success",
+        `${body.imported ?? 0} lançamentos enviados para a Caixa Financeira.`,
+      );
+      setStructuredFile(null);
+      setStructuredPreview(null);
+      await load();
+    } finally {
+      setStructuredBusy(false);
+    }
+  }
+
+  function pickStructuredFile() {
+    structuredInputRef.current?.click();
+  }
+
+  function pickDocumentFile() {
+    resendInputRef.current?.click();
   }
 
   async function submitPassword(documentId: string) {
@@ -469,12 +621,38 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
       return;
     }
 
+    const lineEditsMap = batchLineEdits[s.id] ?? {};
+    const invalidSelected = batch.bankStatementTransactions.filter((line) => {
+      if (!selectedLineIds.includes(line.id)) return false;
+      const editAmount = lineEditsMap[line.id]?.amount;
+      const amount = editAmount ? Number(editAmount.replace(",", ".")) : line.amount;
+      return !amount || amount <= 0;
+    });
+    if (invalidSelected.length > 0) {
+      pushToast(
+        "error",
+        `${invalidSelected.length} lançamento(s) selecionado(s) sem valor válido. Informe o valor manualmente.`,
+      );
+      return;
+    }
+
     setActionLoading(s.documentId);
     try {
+      const lines = Object.entries(lineEditsMap).map(([id, edit]) => ({
+        id,
+        ...(edit.date ? { date: edit.date } : {}),
+        ...(edit.description ? { description: edit.description } : {}),
+        ...(edit.amount ? { amount: Number(edit.amount.replace(",", ".")) } : {}),
+      }));
+
       const res = await fetch(`/api/import/documents/${s.documentId}/lines`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedLineIds, installmentActions }),
+        body: JSON.stringify({
+          selectedLineIds,
+          installmentActions,
+          ...(lines.length > 0 ? { lines } : {}),
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
@@ -513,6 +691,7 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
           {(
             [
               ["/dashboard/import", "Upload"],
+              ["/dashboard/import/layout-training", "Treinamento de Extratos"],
               ["/dashboard/import/review", "Revisão"],
               ["/dashboard/import/history", "Histórico"],
             ] as const
@@ -542,6 +721,19 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
       ) : null}
 
       <input
+        ref={structuredInputRef}
+        type="file"
+        accept={acceptForBankImportFormat(importFormat)}
+        className="hidden"
+        disabled={uploading || structuredBusy}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void uploadFile(file);
+        }}
+      />
+
+      <input
         ref={resendInputRef}
         type="file"
         accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*"
@@ -556,9 +748,117 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
 
       {!loading && mode === "upload" ? (
         <>
+          <BankImportFormatPicker
+            selected={importFormat}
+            onSelect={(format) => {
+              setImportFormat(format);
+              setStructuredFile(null);
+              setStructuredPreview(null);
+            }}
+          />
+
+          {isStructuredImportFormat(importFormat) ? (
+            <section className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+              <h2 className="text-base font-semibold text-slate-900">
+                {importFormat === "OFX"
+                  ? "Importar OFX"
+                  : importFormat === "CSV"
+                    ? "Importar CSV"
+                    : "Importar Excel"}
+              </h2>
+              <p className="text-sm text-slate-600">
+                Este formato é estruturado e costuma ter melhor reconhecimento que PDF.
+              </p>
+
+              <label className="block max-w-md space-y-1.5">
+                <span className="text-sm font-medium text-slate-700">Conta financeira</span>
+                <select
+                  value={structuredContaId}
+                  onChange={(e) => setStructuredContaId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Selecione a conta…</option>
+                  {contas.map((conta) => (
+                    <option key={conta.id} value={conta.id}>
+                      {conta.nome}
+                      {conta.nomeInstituicao ? ` (${conta.nomeInstituicao})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {structuredFile ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+                  <p className="font-medium text-slate-900">{structuredFile.name}</p>
+                  <p className="text-xs text-slate-500">{labelForFileName(structuredFile.name)}</p>
+                  {formatHintForFileName(structuredFile.name) ? (
+                    <p className="mt-1 text-xs text-slate-600">
+                      {formatHintForFileName(structuredFile.name)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={pickStructuredFile}
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  <FileUp className="h-4 w-4" />
+                  Selecionar arquivo
+                </button>
+              )}
+
+              {structuredPreview?.importSummary ? (
+                <ImportSummaryCards summary={structuredPreview.importSummary} />
+              ) : null}
+
+              {structuredPreview ? (
+                <p className="text-sm text-slate-600">
+                  Encontramos {structuredPreview.totals.total} lançamentos ·{" "}
+                  {structuredPreview.totals.newCount} novos · {structuredPreview.totals.duplicateCount}{" "}
+                  duplicados
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                {structuredFile && !structuredPreview ? (
+                  <button
+                    type="button"
+                    disabled={structuredBusy || !structuredContaId}
+                    onClick={() => void generateStructuredPreview()}
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {structuredBusy ? "Gerando prévia…" : "Gerar prévia"}
+                  </button>
+                ) : null}
+                {structuredPreview ? (
+                  <button
+                    type="button"
+                    disabled={structuredBusy}
+                    onClick={() => void confirmStructuredImport()}
+                    className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+                  >
+                    {structuredBusy ? "Importando…" : "Confirmar importação"}
+                  </button>
+                ) : null}
+                {structuredFile ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStructuredFile(null);
+                      setStructuredPreview(null);
+                    }}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Trocar arquivo
+                  </button>
+                ) : null}
+              </div>
+            </section>
+          ) : (
           <section
             className={cn(
-              "rounded-xl border-2 border-dashed p-10 text-center transition",
+              "mt-4 rounded-xl border-2 border-dashed p-10 text-center transition",
               dragOver ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white",
             )}
             onDragOver={(e) => {
@@ -574,24 +874,21 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
             }}
           >
             <Upload className="mx-auto h-10 w-10 text-slate-400" />
-            <p className="mt-3 font-medium text-slate-800">Arraste PDF ou imagem (PNG, JPG, WEBP)</p>
-            <p className="mt-1 text-sm text-slate-500">Máximo 10MB</p>
-            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+            <p className="mt-3 font-medium text-slate-800">Importar PDF ou imagem (comprovante)</p>
+            <p className="mt-1 text-sm text-slate-500">
+              PDFs podem exigir mais revisão. Se o banco permitir, prefira OFX, CSV ou Excel acima.
+            </p>
+            <button
+              type="button"
+              onClick={pickDocumentFile}
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
               <FileUp className="h-4 w-4" />
               Selecionar arquivo
-              <input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void uploadFile(file);
-                }}
-              />
-            </label>
+            </button>
             {uploading ? <p className="mt-3 text-sm text-slate-500">Processando…</p> : null}
           </section>
+          )}
 
           {passwordDocs.length > 0 ? (
             <section className="space-y-3">
@@ -675,7 +972,17 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
 
               if (isBatch && batch) {
                 const lineSelection = batchLineSelection[s.id] ?? Object.fromEntries(
-                  batch.bankStatementTransactions.map((line) => [line.id, line.selected !== false]),
+                  batch.bankStatementTransactions.map((line) => [
+                    line.id,
+                    line.parseStatus === "NEEDS_REVIEW" || line.parseStatus === "ERROR"
+                      ? false
+                      : line.selected !== false,
+                  ]),
+                );
+                const lineEdits = batchLineEdits[s.id] ?? {};
+                const summary = batch.importSummary;
+                const reviewLines = batch.bankStatementTransactions.filter(
+                  (l) => l.parseStatus === "NEEDS_REVIEW" || l.parseStatus === "ERROR",
                 );
 
                 return (
@@ -684,49 +991,172 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
                       <div>
                         <p className="text-xs uppercase tracking-wide text-slate-500">
                           {batch.documentKind === "BANK_STATEMENT" ? "Extrato bancário" : "Fatura de cartão"}
+                          {batch.bank ? ` · ${batch.bank}` : ""}
+                          {batch.profile ? ` · ${batch.profile}` : ""}
                         </p>
                         <p className="text-lg font-semibold text-slate-900">{s.fileName}</p>
                         <p className="mt-1 text-sm text-slate-600">{s.description}</p>
+                        {batch.account ? (
+                          <p className="mt-1 text-xs text-slate-500">Conta: {batch.account}</p>
+                        ) : null}
                       </div>
-                      <p className="text-sm text-slate-500">
+                    </div>
+
+                    {summary ? (
+                      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                        <p className="font-medium text-slate-900">
+                          Encontramos {summary.totalLines} lançamentos no extrato.
+                        </p>
+                        <p className="mt-1">
+                          {summary.recognized} foram reconhecidos automaticamente.
+                          {summary.needsReview > 0 ? ` ${summary.needsReview} precisam de revisão.` : ""}
+                          {summary.errors > 0 ? ` ${summary.errors} com erro de leitura.` : ""}
+                          {summary.ignored > 0 ? ` ${summary.ignored} linhas de cabeçalho/rodapé ignoradas.` : ""}
+                        </p>
+                        {summary.processedInChunks ? (
+                          <p className="mt-1 text-xs text-slate-500">
+                            Extrato longo — leitura feita em blocos para não perder lançamentos.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-500">
                         {batch.bankStatementTransactions.length} lançamentos detectados
                       </p>
-                    </div>
+                    )}
+
+                    {reviewLines.length > 0 ? (
+                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        Revise os lançamentos destacados em amarelo antes de confirmar a importação.
+                      </p>
+                    ) : null}
+
+                    {batch.warnings && batch.warnings.length > 0 ? (
+                      <ul className="mt-3 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        {batch.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    ) : null}
 
                     <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
                       <table className="min-w-full text-sm">
                         <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                           <tr>
-                            <th className="px-3 py-2">Importar</th>
+                            <th className="px-3 py-2">Selecionar</th>
+                            <th className="px-3 py-2">Status</th>
                             <th className="px-3 py-2">Data</th>
                             <th className="px-3 py-2">Descrição</th>
                             <th className="px-3 py-2">Valor</th>
                             <th className="px-3 py-2">Tipo</th>
-                            <th className="px-3 py-2">Confiança</th>
+                            <th className="px-3 py-2">Linha original</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {batch.bankStatementTransactions.map((line) => (
-                            <tr key={line.id} className="border-t border-slate-100">
-                              <td className="px-3 py-2">
-                                <input
-                                  type="checkbox"
-                                  checked={lineSelection[line.id] !== false}
-                                  onChange={(e) =>
-                                    setBatchLineSelection((prev) => ({
-                                      ...prev,
-                                      [s.id]: { ...lineSelection, [line.id]: e.target.checked },
-                                    }))
-                                  }
-                                />
-                              </td>
-                              <td className="px-3 py-2 whitespace-nowrap">{formatDate(line.date)}</td>
-                              <td className="px-3 py-2">{line.description}</td>
-                              <td className="px-3 py-2 whitespace-nowrap">{formatMoney(line.amount)}</td>
-                              <td className="px-3 py-2">{line.direction === "INCOME" ? "Crédito" : "Débito"}</td>
-                              <td className="px-3 py-2">{line.confidence}%</td>
-                            </tr>
-                          ))}
+                          {batch.bankStatementTransactions.map((line) => {
+                            const edit = lineEdits[line.id] ?? {};
+                            const displayDate = edit.date ?? line.date.slice(0, 10);
+                            const displayDescription = edit.description ?? line.description;
+                            const displayAmount =
+                              edit.amount ?? (line.amount > 0 ? String(line.amount) : "");
+                            const needsAttention =
+                              line.parseStatus === "NEEDS_REVIEW" || line.parseStatus === "ERROR";
+
+                            return (
+                              <tr
+                                key={line.id}
+                                className={cn("border-t border-slate-100 align-top", parseStatusRowClass(line.parseStatus))}
+                              >
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={lineSelection[line.id] === true}
+                                    onChange={(e) =>
+                                      setBatchLineSelection((prev) => ({
+                                        ...prev,
+                                        [s.id]: { ...lineSelection, [line.id]: e.target.checked },
+                                      }))
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-xs">
+                                  <span
+                                    className={cn(
+                                      "rounded-full px-2 py-0.5 font-medium",
+                                      needsAttention
+                                        ? "bg-amber-200 text-amber-900"
+                                        : "bg-emerald-100 text-emerald-800",
+                                    )}
+                                  >
+                                    {formatParseStatus(line.parseStatus)}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <input
+                                    type="date"
+                                    className="w-36 rounded border border-slate-200 px-2 py-1 text-xs"
+                                    value={displayDate}
+                                    onChange={(e) =>
+                                      setBatchLineEdits((prev) => ({
+                                        ...prev,
+                                        [s.id]: {
+                                          ...lineEdits,
+                                          [line.id]: { ...edit, date: e.target.value },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2 min-w-[12rem]">
+                                  <input
+                                    type="text"
+                                    className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
+                                    value={displayDescription}
+                                    onChange={(e) =>
+                                      setBatchLineEdits((prev) => ({
+                                        ...prev,
+                                        [s.id]: {
+                                          ...lineEdits,
+                                          [line.id]: { ...edit, description: e.target.value },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  {line.reviewMessage ? (
+                                    <p className="mt-1 text-xs text-amber-800">{line.reviewMessage}</p>
+                                  ) : null}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <input
+                                    type="text"
+                                    className={cn(
+                                      "w-28 rounded border px-2 py-1 text-xs",
+                                      needsAttention && !displayAmount
+                                        ? "border-amber-400 bg-amber-50"
+                                        : "border-slate-200",
+                                    )}
+                                    placeholder="Informe o valor"
+                                    value={displayAmount}
+                                    onChange={(e) =>
+                                      setBatchLineEdits((prev) => ({
+                                        ...prev,
+                                        [s.id]: {
+                                          ...lineEdits,
+                                          [line.id]: { ...edit, amount: e.target.value },
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  {line.direction === "INCOME" ? "Entrada" : "Saída"}
+                                </td>
+                                <td className="px-3 py-2 max-w-xs text-xs text-slate-500 whitespace-pre-wrap">
+                                  {line.rawLine ?? "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

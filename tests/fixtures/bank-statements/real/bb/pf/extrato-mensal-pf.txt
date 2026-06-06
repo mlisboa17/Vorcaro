@@ -1,0 +1,13 @@
+BANCO DO BRASIL
+Extrato de Conta Corrente
+Titular: ANA SILVA SANTOS
+CPF: 123.456.789-00
+Agência: 1234-5
+Conta Corrente: 56789-0
+Período de 01/06/2026 a 30/06/2026
+Saldo anterior R$ 2.000,00
+
+Data Histórico Documento Débito Crédito Saldo
+03/06/2026 PIX RECEBIDO Cliente A 1001 0,00 300,00 2.300,00
+04/06/2026 TED ENVIADA Fornecedor B 1002 150,00 0,00 2.150,00
+05/06/2026 TARIFA MANUTENCAO 1003 12,50 0,00 2.137,50

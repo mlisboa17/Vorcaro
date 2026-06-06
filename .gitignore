@@ -6,6 +6,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/.playwright-mcp/
 
 # next.js
 /.next/
@@ -47,3 +50,16 @@ node_modules/.prisma/client
 
 # build output
 /dist
+
+# bank statement real PDFs (local homologation only)
+tests/fixtures/bank-statements/real/**/*.pdf
+
+# real bank homologation — sensitive files (keep README + .gitkeep)
+homologation/banks/**/*.pdf
+homologation/banks/**/*.ofx
+homologation/banks/**/*.csv
+homologation/banks/**/*.xls
+homologation/banks/**/*.xlsx
+!homologation/banks/**/README.md
+!homologation/banks/**/.gitkeep
+!homologation/banks/README.md

@@ -37,6 +37,16 @@ describe("Sprint 15.1.2 — extrato Bradesco", () => {
     expect(isBradescoBankStatementText(BRADESCO_STATEMENT)).toBe(true);
   });
 
+  it("extrai linha com saldo negativo (cheque especial)", () => {
+    const lines = parseBradescoBankStatementText(`
+Bradesco
+Extrato de Conta Corrente
+03/06/2026 TED ENVIADA Fornecedor 2001 500,00 0,00 -1245,00
+`);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.balanceAfter).toBe(-1245);
+  });
+
   it("extrai débitos e créditos", () => {
     const lines = parseBradescoBankStatementText(BRADESCO_STATEMENT);
     expect(lines.length).toBeGreaterThanOrEqual(3);

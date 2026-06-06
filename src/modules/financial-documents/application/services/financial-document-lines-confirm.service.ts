@@ -96,8 +96,30 @@ export class FinancialDocumentLinesConfirmService {
     }
 
     const createdTransactionIds: string[] = [];
+    let skippedDuplicates = 0;
 
     for (const line of selectedLines) {
+      if (!line.amount || line.amount <= 0) {
+        throw new Error(
+          `O lançamento "${line.description.slice(0, 40)}" não tem valor válido. Informe o valor antes de confirmar.`,
+        );
+      }
+
+      if (line.fingerprint) {
+        const duplicate = await this.prisma.transaction.findFirst({
+          where: {
+            userId,
+            metadata: { path: ["lineFingerprint"], equals: line.fingerprint },
+          },
+          select: { id: true },
+        });
+        if (duplicate) {
+          skippedDuplicates += 1;
+          createdTransactionIds.push(duplicate.id);
+          continue;
+        }
+      }
+
       const type: TransactionType = line.direction === "INCOME" ? "INCOME" : "EXPENSE";
       const saved = await this.transactions.save({
         userId,
@@ -112,6 +134,8 @@ export class FinancialDocumentLinesConfirmService {
           method: line.method,
           documentNumber: line.documentNumber,
           lineId: line.id,
+          lineFingerprint: line.fingerprint,
+          rawLine: line.rawLine,
         },
       });
       createdTransactionIds.push(saved.id);
@@ -170,6 +194,7 @@ export class FinancialDocumentLinesConfirmService {
       documentId,
       transactionIds: createdTransactionIds,
       installmentResults,
+      skippedDuplicates,
     };
   }
 

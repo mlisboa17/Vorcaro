@@ -8,6 +8,20 @@ import { FinancialDocumentLearningService } from "@/modules/financial-documents/
 import { FinancialDocumentClassificationService } from "@/modules/financial-documents/application/services/financial-document-classification.service";
 import { FinancialDocumentReprocessService } from "@/modules/financial-documents/application/services/financial-document-reprocess.service";
 import { FinancialDocumentProcessingService } from "@/modules/financial-documents/application/services/financial-document-processing.service";
+import { analyzeFinancialDocumentText } from "@/modules/financial-documents/domain/services/financial-document-import-analyzer.service";
+
+vi.mock(
+  "@/modules/statement-layout-training/application/services/analyze-document-with-layout-training.service",
+  () => ({
+    analyzeDocumentWithLayoutTraining: vi.fn(async (_db: unknown, input: { userId?: string; text: string; fileName?: string; cardId?: string | null }) =>
+      analyzeFinancialDocumentText(input.text, {
+        userId: input.userId,
+        fileName: input.fileName,
+        cardId: input.cardId,
+      }),
+    ),
+  }),
+);
 
 describe("Sprint 15.1.1 — parties metadata", () => {
   it("extrai pagador e recebedor em PIX", () => {

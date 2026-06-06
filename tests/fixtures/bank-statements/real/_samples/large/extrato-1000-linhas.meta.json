@@ -1,0 +1,9 @@
+{
+  "bankId": "bradesco",
+  "profile": "PJ",
+  "source": "WEB",
+  "documentType": "EXTRATO",
+  "minTransactions": 995,
+  "homologationStatus": "PARCIAL",
+  "notes": "Stress test 1000 linhas"
+}

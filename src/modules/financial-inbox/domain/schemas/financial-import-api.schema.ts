@@ -29,13 +29,37 @@ export const importPreviewLineSchema = z
     dataCompra: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     dataCaixa: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     dataVencimentoFatura: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    parseStatus: z.enum(["RECOGNIZED", "NEEDS_REVIEW", "IGNORED", "ERROR"]).optional(),
+    reviewMessage: z.string().optional(),
   })
   .strict();
+
+const importSummarySchema = z.object({
+  total: z.number().int().min(0),
+  recognized: z.number().int().min(0),
+  needsReview: z.number().int().min(0),
+  ignored: z.number().int().min(0),
+  errors: z.number().int().min(0),
+});
 
 export const importPreviewResponseSchema = z
   .object({
     sourceFileName: z.string().min(1),
     importType: importFinancialFileTypeSchema,
+    fileFormat: z.enum(["PDF", "OFX", "CSV", "XLS", "XLSX", "UNKNOWN"]).optional(),
+    importSummary: importSummarySchema.optional(),
+    structuredPriority: z.boolean().optional(),
+    layoutTraining: z
+      .object({
+        modelId: z.string().nullable(),
+        modelVersion: z.number().int().nullable(),
+        layoutLabel: z.string().nullable(),
+        similarityScore: z.number(),
+        similarityTier: z.enum(["HIGH", "MEDIUM", "LOW"]),
+        isNewModel: z.boolean().optional(),
+        message: z.string().optional(),
+      })
+      .optional(),
     totals: z.object({
       total: z.number().int().min(0),
       newCount: z.number().int().min(0),
@@ -75,6 +99,7 @@ export const importConfirmRequestSchema = z
     contaFinanceiraId: z.string().min(1).optional(),
     cartaoId: z.string().min(1).optional(),
     skipDuplicates: z.boolean().default(true),
+    layoutModelId: z.string().min(1).optional(),
     dataCaixa: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     dataVencimentoFatura: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     cardDetectionStatus: z.string().optional(),

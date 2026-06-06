@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### Added — Sprint 15.2.2 (Bank Layout Intelligence & Real PDF Homologation)
+
+- `BankLayoutSource` (WEB/ANDROID/IOS/SCANNED/UNKNOWN) + detecção de canal e tipo de documento
+- Biblioteca `tests/fixtures/bank-statements/real/{banco}/{pf|pj}/` com sidecars `.meta.json`
+- Runner async `runRealPdfHomologation` — suporte PDF, métricas por banco/perfil, gate 50+ PDFs / 95%
+- OCR benchmark (`_samples/`), gerador de extratos grandes (100/300/1000 linhas)
+- Scripts: `bootstrap-sprint-15.2.2-fixtures.ts`, `sprint-15.2.2-real-pdf-homologation.ts`
+- Docs: [`docs/bank-layout-inventory.md`](docs/bank-layout-inventory.md), [`docs/sprint-15.2.2-real-pdf-homologation-report.md`](docs/sprint-15.2.2-real-pdf-homologation-report.md)
+
+### Fixed — Sprint 15.2.2 (identificação PF/PJ)
+
+- Perfil PJ não confunde mais descrições de transação contendo "Empresa" (marcadores limitados ao cabeçalho)
+
+### Added — Sprint 15.2.1 (Homologação PF/PJ extratos bancários)
+
+- `BankProfile` (PF/PJ/UNKNOWN) + `BankStatementProfileResolver`
+- Parsers separados PF/PJ para BB, Bradesco, Itaú, Santander, Caixa, Sicredi, Sicoob, Inter
+- Biblioteca `tests/fixtures/bank-statements/{banco}/{pf|pj}/`
+- Runner de homologação + métrica PDF Success Rate (meta ≥ 90%)
+- Docs: [`docs/sprint-15.2.1-bank-parser-homologation.md`](docs/sprint-15.2.1-bank-parser-homologation.md), [`docs/bank-layout-inventory.md`](docs/bank-layout-inventory.md)
+
+### Added — Sprint 15.2 (Motor de importação bancária brasileira)
+
+- `src/lib/bank-parsers/` — parsers dedicados P1 (BB, Bradesco, Itaú, Santander, Nubank, Inter, C6, PagBank) + P2/P3
+- `BankStatementParserResolver` com fallback genérico e warnings
+- Fingerprint por linha (`userId+bank+account+date+amount+descrição`) e dedup na confirmação
+- Revisão em tabela ampliada: método, warnings, edição inline de data/descrição/valor
+- Telegram direciona extratos multi-linha para `/dashboard/import/review`
+- Doc: [`docs/sprint-15.2-brazilian-bank-import-engine.md`](docs/sprint-15.2-brazilian-bank-import-engine.md)
+
 ### Fixed — Hotfix Sprint 15.1.1 (Reimportação de documento rejeitado/falho)
 
 - Upload por fingerprint permite recuperar documentos `REJECTED`/`FAILED` (reutiliza registro existente)

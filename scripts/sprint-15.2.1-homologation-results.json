@@ -1,0 +1,330 @@
+{
+  "generatedAt": "2026-06-06T04:03:48.337Z",
+  "totalFixtures": 16,
+  "successCount": 16,
+  "successRate": 100,
+  "rows": [
+    {
+      "bankId": "bb",
+      "bankName": "Banco do Brasil",
+      "profile": "PF",
+      "fileName": "bb/pf/extrato-mensal-pf.txt",
+      "success": true,
+      "detectedBank": "bb",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "bb",
+      "bankName": "Banco do Brasil",
+      "profile": "PJ",
+      "fileName": "bb/pj/extrato-empresarial-pj.txt",
+      "success": true,
+      "detectedBank": "bb",
+      "detectedProfile": "PJ",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "bradesco",
+      "bankName": "Bradesco",
+      "profile": "PF",
+      "fileName": "bradesco/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "bradesco",
+      "detectedProfile": "PJ",
+      "transactionCount": 3,
+      "confidence": 98,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "bradesco",
+      "bankName": "Bradesco",
+      "profile": "PJ",
+      "fileName": "bradesco/pj/extrato-empresarial-pj.txt",
+      "success": true,
+      "detectedBank": "bradesco",
+      "detectedProfile": "PJ",
+      "transactionCount": 3,
+      "confidence": 98,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "caixa",
+      "bankName": "Caixa Econômica Federal",
+      "profile": "PF",
+      "fileName": "caixa/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "caixa",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "caixa",
+      "bankName": "Caixa Econômica Federal",
+      "profile": "PJ",
+      "fileName": "caixa/pj/extrato-pj.txt",
+      "success": true,
+      "detectedBank": "caixa",
+      "detectedProfile": "PJ",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "inter",
+      "bankName": "Banco Inter",
+      "profile": "PF",
+      "fileName": "inter/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "inter",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "inter",
+      "bankName": "Banco Inter",
+      "profile": "PJ",
+      "fileName": "inter/pj/extrato-empresas-pj.txt",
+      "success": true,
+      "detectedBank": "inter",
+      "detectedProfile": "PJ",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "itau",
+      "bankName": "Itaú",
+      "profile": "PF",
+      "fileName": "itau/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "itau",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "itau",
+      "bankName": "Itaú",
+      "profile": "PJ",
+      "fileName": "itau/pj/extrato-pj.txt",
+      "success": true,
+      "detectedBank": "itau",
+      "detectedProfile": "PJ",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "santander",
+      "bankName": "Santander",
+      "profile": "PF",
+      "fileName": "santander/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "santander",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "santander",
+      "bankName": "Santander",
+      "profile": "PJ",
+      "fileName": "santander/pj/extrato-pj.txt",
+      "success": true,
+      "detectedBank": "santander",
+      "detectedProfile": "PJ",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "sicoob",
+      "bankName": "Sicoob",
+      "profile": "PF",
+      "fileName": "sicoob/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "sicoob",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "sicoob",
+      "bankName": "Sicoob",
+      "profile": "PJ",
+      "fileName": "sicoob/pj/extrato-pj.txt",
+      "success": true,
+      "detectedBank": "sicoob",
+      "detectedProfile": "PJ",
+      "transactionCount": 5,
+      "confidence": 81,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "sicredi",
+      "bankName": "Sicredi",
+      "profile": "PF",
+      "fileName": "sicredi/pf/extrato-pf.txt",
+      "success": true,
+      "detectedBank": "sicredi",
+      "detectedProfile": "PF",
+      "transactionCount": 4,
+      "confidence": 87,
+      "requiresOcr": false,
+      "notes": []
+    },
+    {
+      "bankId": "sicredi",
+      "bankName": "Sicredi",
+      "profile": "PJ",
+      "fileName": "sicredi/pj/extrato-pj.txt",
+      "success": true,
+      "detectedBank": "sicredi",
+      "detectedProfile": "PJ",
+      "transactionCount": 5,
+      "confidence": 81,
+      "requiresOcr": false,
+      "notes": []
+    }
+  ],
+  "byBankProfile": [
+    {
+      "bankId": "bb",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "bb",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "bradesco",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "bradesco",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "caixa",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "caixa",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "inter",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "inter",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "itau",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "itau",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "santander",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "santander",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "sicoob",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "sicoob",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "sicredi",
+      "profile": "PF",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    },
+    {
+      "bankId": "sicredi",
+      "profile": "PJ",
+      "pdfs": 1,
+      "success": 1,
+      "rate": 100
+    }
+  ]
+}

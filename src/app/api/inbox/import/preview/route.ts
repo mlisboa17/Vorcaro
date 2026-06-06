@@ -8,16 +8,25 @@ import {
 import { buildPreviewLines, detectCardFromText, matchDetectedCard, parseImportFile } from "@/lib/inbox/financial-import-pipeline";
 import { isPdfParseError, pdfImportErrorResponse } from "@/lib/inbox/pdf-import-http";
 import type { ImportFinancialFileType } from "@/modules/financial-inbox/domain/types/imported-financial-line";
+import {
+  detectBankImportFileFormat,
+  isStructuredBankImportFormat,
+} from "@/lib/inbox/bank-import-file-types";
+import { buildImportLineSummary } from "@/lib/inbox/structured-bank-import.parser";
+import { StatementLayoutTrainingService } from "@/modules/statement-layout-training/application/services/statement-layout-training.service";
+import type { StatementLayoutFormat } from "@/modules/statement-layout-training/domain/types/statement-layout-model.types";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function guessExtension(fileName: string): "ofx" | "csv" | "pdf" | null {
+function guessExtension(fileName: string): "ofx" | "csv" | "pdf" | "xls" | "xlsx" | null {
   const lower = fileName.toLowerCase().trim();
   if (lower.endsWith(".ofx")) return "ofx";
   if (lower.endsWith(".csv")) return "csv";
   if (lower.endsWith(".pdf")) return "pdf";
+  if (lower.endsWith(".xls")) return "xls";
+  if (lower.endsWith(".xlsx")) return "xlsx";
   return null;
 }
 
@@ -78,8 +87,10 @@ export async function POST(request: Request) {
 
   const ext = guessExtension(file.name);
   if (!ext) {
-    return jsonError("Formato não suportado. Use apenas .ofx, .csv ou .pdf");
+    return jsonError("Formato não suportado. Use PDF, OFX, CSV, XLS ou XLSX.");
   }
+
+  const fileFormat = detectBankImportFileFormat(file.name);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const pdfPassword = String(formData.get("pdfPassword") ?? "").trim() || undefined;
@@ -91,6 +102,36 @@ export async function POST(request: Request) {
       fileName: file.name,
       pdfPassword,
     });
+    let workingLines = parsedLines;
+    let layoutTraining: Awaited<
+      ReturnType<StatementLayoutTrainingService["matchForImport"]>
+    >["match"] | null = null;
+
+    if (tipo === "EXTRATO_BANCARIO") {
+      const training = new StatementLayoutTrainingService(prisma);
+      const contentSample = [
+        file.name,
+        buffer.toString("utf-8", 0, Math.min(buffer.length, 12000)),
+        ...parsedLines.map((line) => line.rawContent),
+      ].join("\n");
+
+      const layoutContext = await training.matchForImport({
+        userId,
+        content: contentSample,
+        fileName: file.name,
+        fileFormat: fileFormat as StatementLayoutFormat,
+      });
+
+      workingLines = training.applyTrainingToInboxLines(parsedLines, layoutContext);
+      layoutTraining = await training.ensureModelAfterFirstImport({
+        userId,
+        content: contentSample,
+        fileName: file.name,
+        fileFormat: fileFormat as StatementLayoutFormat,
+        match: layoutContext.match,
+      });
+    }
+
     const previewLines = await buildPreviewLines({
       db: prisma,
       userId,
@@ -98,7 +139,7 @@ export async function POST(request: Request) {
       sourceFileName: file.name,
       accountId: contaFinanceiraId,
       cardId: cartaoId,
-      parsedLines,
+      parsedLines: workingLines,
       defaultDataCaixa: dataCaixa,
       defaultDataVencimentoFatura: dataVencimentoFatura,
     });
@@ -108,9 +149,24 @@ export async function POST(request: Request) {
       tipo === "FATURA_CARTAO" ? await matchDetectedCard(prisma, userId, detectCardFromText(sourceText)) : null;
 
     const duplicateCount = previewLines.filter((line) => line.isDuplicate).length;
+    const importSummary = buildImportLineSummary(previewLines);
     const response = {
       sourceFileName: file.name,
       importType: tipo,
+      fileFormat,
+      importSummary,
+      structuredPriority: isStructuredBankImportFormat(fileFormat),
+      layoutTraining: layoutTraining
+        ? {
+            modelId: layoutTraining.modelId,
+            modelVersion: layoutTraining.modelVersion,
+            layoutLabel: layoutTraining.layoutLabel,
+            similarityScore: layoutTraining.similarityScore,
+            similarityTier: layoutTraining.similarityTier,
+            isNewModel: layoutTraining.isNewModel,
+            message: layoutTraining.message,
+          }
+        : undefined,
       totals: {
         total: previewLines.length,
         duplicateCount,

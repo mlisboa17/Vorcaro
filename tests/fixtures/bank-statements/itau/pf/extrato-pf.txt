@@ -1,0 +1,10 @@
+Itaú Unibanco
+Extrato bancário
+Titular: MARIA COSTA
+CPF: 111.222.333-44
+Agência 1234 Conta Corrente 56789-0
+Saldo anterior R$ 950,00
+
+03/06/2026 PIX ENVIADO Loja 111 50,00 0,00 900,00
+04/06/2026 DOC RECEBIDO Cliente 222 0,00 100,00 1.000,00
+05/06/2026 BOLETO PAGO Agua 333 89,90 0,00 910,10

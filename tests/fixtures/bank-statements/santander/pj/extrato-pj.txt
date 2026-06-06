@@ -1,0 +1,10 @@
+Santander
+Extrato Empresarial
+Razão Social: LOGISTICA SANTANDER SA
+CNPJ: 55.666.777/0001-88
+Agência 0002 Conta Empresarial 54321-0
+Saldo anterior R$ 25.000,00
+
+03/06/2026 PIX RECEBIDO Recebivel 444 0,00 8.000,00 33.000,00
+04/06/2026 TED ENVIADA Fornecedor 555 4.000,00 0,00 29.000,00
+05/06/2026 DOC ENVIADO Servicos 666 500,00 0,00 28.500,00

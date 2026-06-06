@@ -1,0 +1,13 @@
+BANCO DO BRASIL
+Extrato Empresarial
+Razão Social: EMPRESA EXEMPLO LTDA
+CNPJ: 12.345.678/0001-90
+Agência: 4321-0
+Conta Empresarial: 98765-4
+Período de 01/06/2026 a 30/06/2026
+Saldo anterior R$ 15.000,00
+
+Data Histórico Documento Débito Crédito Saldo
+02/06/2026 PIX RECEBIDO Cliente Corp 2001 0,00 5.000,00 20.000,00
+03/06/2026 TED ENVIADA Fornecedor XYZ 2002 2.500,00 0,00 17.500,00
+04/06/2026 BOLETO PAGO Energia 2003 890,00 0,00 16.610,00
