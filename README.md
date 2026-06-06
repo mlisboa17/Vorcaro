@@ -55,9 +55,17 @@ Documentação técnica consolidada: pasta [`docs/`](docs/) (inventários, arqui
 | **14.9** | Auditoria inteligente de categorias (Vorcaro, API, dashboard) | Concluída |
 | **14.9.3** | Humanização consultiva da auditoria (Health Score, top 5, memória de preferências) | Concluída |
 | **14.9.2** | Auto-correção conversacional (context lock, critic, humanização) | Concluída |
+| **15** | Captura inteligente de documentos (PIX/TED, aprendizado, revisão humana) | Concluída |
 
 Detalhes por módulo: [`docs/project-state.md`](docs/project-state.md).  
 Sprint 14.9: [`docs/sprint-14.9-category-taxonomy-audit.md`](docs/sprint-14.9-category-taxonomy-audit.md).  
+Sprint 15: [`docs/sprint-15-intelligent-document-capture.md`](docs/sprint-15-intelligent-document-capture.md).  
+Sprint 15.0.2 (revisão segura): [`docs/sprint-15.0.2-document-review-hardening.md`](docs/sprint-15.0.2-document-review-hardening.md).  
+Sprint 15.1 (OCR Paddle local): [`docs/sprint-15.1-local-paddleocr.md`](docs/sprint-15.1-local-paddleocr.md) — `docker compose up -d ocr`.
+
+Sprint 15.1.2 (extratos + parcelamentos): [`docs/sprint-15.1.2-bank-statement-and-card-installments.md`](docs/sprint-15.1.2-bank-statement-and-card-installments.md).
+
+Sprint 15.1.1 (partes pagador/recebedor + reprocessamento): [`docs/sprint-15.1.1-document-review-reprocessing.md`](docs/sprint-15.1.1-document-review-reprocessing.md).  
 Sprint 14.9.3: [`docs/sprint-14.9.3-humanized-category-audit.md`](docs/sprint-14.9.3-humanized-category-audit.md).  
 Sprint 14.9.2: [`docs/sprint-14.9.2-conversation-self-correction.md`](docs/sprint-14.9.2-conversation-self-correction.md).  
 Sprint 13: [`docs/sprint-13-assisted-execution.md`](docs/sprint-13-assisted-execution.md).  

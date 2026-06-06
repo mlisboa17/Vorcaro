@@ -32,6 +32,21 @@ services:
       timeout: 5s
       retries: 5
 
+  ocr:
+    build: ./services/ocr
+    container_name: logos-ocr
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    environment:
+      - OCR_LANG=pt
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8008/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
 volumes:
   logos_postgres_data:
   logos_redis_data:

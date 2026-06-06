@@ -7,7 +7,7 @@ import {
 describe("dashboard-nav Sprint 14.8", () => {
   it("agrupa menu em blocos simplificados com menos itens no topo", () => {
     const allItems = DASHBOARD_NAV_GROUPS.flatMap((g) => g.items);
-    expect(allItems.length).toBe(17);
+    expect(allItems.length).toBe(18);
     expect(DASHBOARD_NAV_GROUPS.map((g) => g.title)).toEqual([
       "Visão Geral",
       "Financeiro",
@@ -21,6 +21,7 @@ describe("dashboard-nav Sprint 14.8", () => {
   it("preserva rotas existentes no menu", () => {
     const hrefs = new Set(DASHBOARD_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href)));
     expect(hrefs.has("/dashboard/inbox")).toBe(true);
+    expect(hrefs.has("/dashboard/import")).toBe(true);
     expect(hrefs.has("/dashboard/vorcaro")).toBe(true);
     expect(hrefs.has("/dashboard/rules")).toBe(true);
     expect(hrefs.has("/dashboard/vorcaro/timeline")).toBe(true);

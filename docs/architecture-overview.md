@@ -40,6 +40,20 @@ src/
 | **Memória** | `CategoryAuditPreferenceMemoryService` — rejeições na sessão (sem Prisma) |
 | **UI** | `/dashboard/categories/audit` — Health Score, top 5; códigos técnicos em painel debug |
 
+### Captura de documentos (Sprint 15 / 15.1.1)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **Módulo** | `src/modules/financial-documents/` |
+| **Pipeline** | Upload → OCR (`FinancialOcrProvider`) → parser → classificação → sugestão |
+| **OCR (15.1)** | `HybridFinancialOcrProvider` → `services/ocr` (PaddleOCR) ou fallback `BasicFinancialOcrProvider` |
+| **Partes (15.1.1)** | `FinancialPartiesMetadata` em `extractedJson.parties` / `metadata.parties` — **não** em `Transaction` |
+| **Aprendizado** | `FinancialDocumentLearningPattern` — pixKey, documentNumber, normalizedName (+ payer/receiver na 15.1.1) |
+| **Reprocessamento** | `POST /api/import/documents/:id/reprocess` + auditoria `REPROCESS_*` |
+| **Guardrails** | Lançamento somente via `POST .../suggestions/:id/approve` |
+| **UI** | `/dashboard/import/*` — blocos pagador/recebedor |
+| **Telegram** | `TelegramFinancialDocumentService` + callbacks `doc_*` (inline bloqueado se dados críticos ausentes) |
+
 ### Taxonomia de categorias (Sprint 14.8)
 
 | Aspecto | Detalhe |

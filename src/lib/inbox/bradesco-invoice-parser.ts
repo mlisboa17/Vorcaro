@@ -1,5 +1,6 @@
 import type { ImportedFinancialLine } from "@/modules/financial-inbox/domain/types/imported-financial-line";
 import { parseInstallmentStructure } from "@/lib/financial/installment-structural-parser";
+import { isBradescoBankStatementText } from "@/lib/inbox/bradesco-bank-statement-parser";
 
 export type BradescoInvoiceSummary = {
   totalProximasFaturas?: number;
@@ -121,6 +122,7 @@ function splitCamelCase(value: string): string {
 }
 
 export function isBradescoInvoiceText(text: string): boolean {
+  if (isBradescoBankStatementText(text)) return false;
   return BRADESCO_MARKERS.test(text);
 }
 

@@ -1,0 +1,7 @@
+-- Sprint 15.1.1 — auditoria de reprocessamento
+
+ALTER TYPE "FinancialDocumentAuditAction" ADD VALUE IF NOT EXISTS 'REPROCESS_REQUESTED';
+ALTER TYPE "FinancialDocumentAuditAction" ADD VALUE IF NOT EXISTS 'REPROCESS_SUCCEEDED';
+ALTER TYPE "FinancialDocumentAuditAction" ADD VALUE IF NOT EXISTS 'REPROCESS_FAILED';
+ALTER TYPE "FinancialDocumentAuditAction" ADD VALUE IF NOT EXISTS 'REOPENED_AFTER_REJECTION';
+ALTER TYPE "FinancialDocumentAuditAction" ADD VALUE IF NOT EXISTS 'PASSWORD_SUBMITTED';

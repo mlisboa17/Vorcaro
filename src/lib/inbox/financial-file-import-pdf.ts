@@ -6,6 +6,7 @@ import {
   parseBradescoInvoiceText,
   type BradescoInvoiceSummary,
 } from "./bradesco-invoice-parser";
+import { isBradescoBankStatementText, parseBradescoBankStatementText } from "./bradesco-bank-statement-parser";
 
 export type { BradescoInvoiceSummary };
 
@@ -63,7 +64,16 @@ function splitLines(text: string): string[] {
 }
 
 export function linesFromPdfText(text: string, fileName: string): ImportedFinancialLine[] {
-  if (isBradescoInvoiceText(text)) {
+  if (isBradescoBankStatementText(text)) {
+    return parseBradescoBankStatementText(text).map((tx) => ({
+      date: tx.date,
+      description: tx.description,
+      amount: tx.direction === "EXPENSE" ? -tx.amount : tx.amount,
+      rawContent: `${tx.date} ${tx.description} ${tx.amount}`,
+    }));
+  }
+
+  if (isBradescoInvoiceText(text) && !isBradescoBankStatementText(text)) {
     return parseBradescoInvoiceText(text, fileName).lines;
   }
 

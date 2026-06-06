@@ -18,6 +18,8 @@ import { RulesAutomationTool } from "../tools/rules-automation-tool";
 import { CategoryAuditTool } from "../tools/category-audit-tool";
 import { CategoryListTool } from "../tools/category-list-tool";
 import { CardListTool } from "../tools/card-list-tool";
+import { ImportDocumentTool } from "../tools/import-document-tool";
+import { ReviewDocumentTool } from "../tools/review-document-tool";
 import { buildFollowUpTool } from "@/lib/api/vorcaro-followups";
 
 function monthKey(d: Date): string {
@@ -44,6 +46,8 @@ const TOOL_TO_INTENT: Record<VorcaroToolName, VorcaroIntent> = {
   financial_achievements: "ACHIEVEMENTS",
   financial_trends: "TRENDS",
   follow_ups: "FOLLOWUPS",
+  import_document: "IMPORT_DOCUMENT",
+  review_document: "REVIEW_DOCUMENT",
 };
 
 export class VorcaroToolExecutorService {
@@ -54,6 +58,8 @@ export class VorcaroToolExecutorService {
   private readonly categoryAuditTool: CategoryAuditTool;
   private readonly categoryListTool: CategoryListTool;
   private readonly cardListTool: CardListTool;
+  private readonly importDocumentTool: ImportDocumentTool;
+  private readonly reviewDocumentTool: ReviewDocumentTool;
   private readonly memoryQuery: FinancialMemoryQueryService;
   private readonly timelineTool: FinancialTimelineTool;
   private readonly evolutionTool: FinancialEvolutionTool;
@@ -69,6 +75,8 @@ export class VorcaroToolExecutorService {
     this.categoryAuditTool = new CategoryAuditTool(prisma);
     this.categoryListTool = new CategoryListTool(prisma);
     this.cardListTool = new CardListTool(prisma);
+    this.importDocumentTool = new ImportDocumentTool(prisma);
+    this.reviewDocumentTool = new ReviewDocumentTool(prisma);
     this.memoryQuery = new FinancialMemoryQueryService(prisma);
     this.timelineTool = new FinancialTimelineTool(prisma);
     this.evolutionTool = new FinancialEvolutionTool(prisma);
@@ -124,6 +132,10 @@ export class VorcaroToolExecutorService {
         return this.trendTool.execute(userId);
       case "follow_ups":
         return this.followUpTool.execute(userId);
+      case "import_document":
+        return this.importDocumentTool.execute(userId, question);
+      case "review_document":
+        return this.reviewDocumentTool.execute(userId);
       default:
         return {
           intent: TOOL_TO_INTENT[toolName] ?? "UNKNOWN",

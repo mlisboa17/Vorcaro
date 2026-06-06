@@ -24,6 +24,13 @@ const telegramUserSchema = z.object({
   first_name: z.string().optional(),
 });
 
+const telegramDocumentSchema = z.object({
+  file_id: z.string(),
+  file_name: z.string().optional(),
+  mime_type: z.string().optional(),
+  file_size: z.number().optional(),
+});
+
 const telegramMessageSchema = z.object({
   message_id: z.number(),
   text: z.string().optional(),
@@ -31,7 +38,7 @@ const telegramMessageSchema = z.object({
   from: telegramUserSchema.optional(),
   photo: z.array(telegramPhotoSizeSchema).optional(),
   voice: telegramVoiceSchema.optional(),
-  document: z.unknown().optional(),
+  document: telegramDocumentSchema.optional(),
 });
 
 const telegramCallbackQuerySchema = z.object({
@@ -72,6 +79,10 @@ export function hasVoice(message: TelegramMessage): boolean {
   return Boolean(message.voice?.file_id);
 }
 
+export function hasDocument(message: TelegramMessage): boolean {
+  return Boolean(message.document?.file_id);
+}
+
 export function getLargestPhotoFileId(message: TelegramMessage): string | null {
   if (!message.photo?.length) {
     return null;
@@ -81,7 +92,7 @@ export function getLargestPhotoFileId(message: TelegramMessage): string | null {
   return largest.file_id;
 }
 
-/** @deprecated Use hasPhoto/hasVoice instead */
+/** @deprecated Use hasPhoto/hasVoice/hasDocument instead */
 export function hasMedia(message: TelegramMessage): boolean {
-  return hasPhoto(message) || hasVoice(message) || Boolean(message.document);
+  return hasPhoto(message) || hasVoice(message) || hasDocument(message);
 }

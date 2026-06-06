@@ -1,6 +1,60 @@
 # Estado do Projeto — Vorcaro Finance Control
 
-Documento de inventário técnico. Última revisão: 2026-06-04 (Sprint 14.9.3).
+Documento de inventário técnico. Última revisão: 2026-06-12 (Sprint 15.1.2).
+
+## Sprint 15.1.2 — Extratos e parcelamentos
+
+| Item | Detalhe |
+|------|---------|
+| **Parser extrato** | `bradesco-bank-statement-parser.ts` — débito/crédito multi-linha |
+| **Parcelas fatura** | `ExtractedInstallmentPurchase` + projeção de compromissos futuros |
+| **UI** | Tabela de revisão + checkbox parcelas futuras em `/dashboard/import/review` |
+| **API** | `GET/POST /api/import/documents/:id/lines` |
+| **Docs** | `docs/sprint-15.1.2-bank-statement-and-card-installments.md` |
+
+## Sprint 15.1.1 — Partes do documento e reprocessamento
+
+| Item | Detalhe |
+|------|---------|
+| **Metadados** | `FinancialPartiesMetadata` em `extractedJson.parties` e `metadata.parties` |
+| **UI** | Review/history com pagador/recebedor; ações de reprocessamento por status |
+| **API** | `POST .../reprocess`, `.../reopen`, `.../archive` |
+| **Auditoria** | `REPROCESS_*`, `REOPENED_AFTER_REJECTION`, `PASSWORD_SUBMITTED` |
+| **Docs** | `docs/sprint-15.1.1-document-review-reprocessing.md`, `docs/sprint-15.1.1-document-parties-metadata.md` |
+
+## Sprint 15.1 — OCR Real Local (PaddleOCR)
+
+| Campo | Detalhe |
+|-------|---------|
+| **Serviço** | `services/ocr` — FastAPI, porta **8008** |
+| **Provider** | `OCR_PROVIDER=paddle`, `OCR_SERVICE_URL` |
+| **Pipeline** | Hybrid: pdfjs (nativo) → Paddle (escaneado/imagem) → basic (fallback) |
+| **Docs** | `docs/sprint-15.1-local-paddleocr.md` |
+| **Status** | Concluída (validação manual pendente) |
+
+## Sprint 15.0.2 — Hardening Revisão e Aprovação Segura
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Revisão humana transparente, PDF protegido, auditoria, bloqueio baixa confiança |
+| **Threshold** | `AUTO_APPROVAL_THRESHOLD = 70` |
+| **Status PDF** | `PASSWORD_REQUIRED` + `POST /api/import/documents/:id/password` |
+| **Auditoria** | `FinancialDocumentAuditEvent` |
+| **Docs** | `docs/sprint-15.0.2-document-review-hardening.md` |
+| **Status** | Concluída |
+
+## Sprint 15 — Captura Inteligente de Documentos
+
+| Campo | Detalhe |
+|-------|---------|
+| **Objetivo** | Upload PDF/imagem → OCR → parser PIX/TED/Boleto/Cartão → sugestão → revisão humana → lançamento → aprendizado |
+| **Módulo** | `src/modules/financial-documents/` |
+| **APIs** | `/api/import/documents`, `/api/import/suggestions`, `/api/import/learning-patterns` |
+| **UI** | `/dashboard/import`, `/dashboard/import/review`, `/dashboard/import/history` |
+| **Vorcaro** | Intents `IMPORT_DOCUMENT`, `REVIEW_DOCUMENT` |
+| **Telegram** | Documentos com botões inline de confirmação |
+| **Docs** | `docs/sprint-15-intelligent-document-capture.md` |
+| **Status** | Concluída |
 
 ## Sprint 14.9.3 — Humanização Consultiva da Auditoria
 

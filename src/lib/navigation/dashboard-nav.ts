@@ -18,6 +18,7 @@ import {
   Target,
   WalletCards,
   Zap,
+  FileUp,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -54,6 +55,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     title: "Financeiro",
     items: [
       { href: "/dashboard/inbox", label: "Caixa", icon: Inbox },
+      { href: "/dashboard/import", label: "Importar comprovantes", icon: FileUp },
       { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
       { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
       { href: "/dashboard/installments", label: "Parcelamentos", icon: WalletCards },

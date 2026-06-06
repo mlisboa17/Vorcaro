@@ -5,6 +5,7 @@ import {
 } from "@/adapters/telegram/mappers/inbox.mapper";
 import {
   getLargestPhotoFileId,
+  hasDocument,
   hasPhoto,
   hasVoice,
   isHelpCommand,
@@ -24,6 +25,14 @@ import {
   parseActionProposalCallback,
   parseFollowUpDismissCallback,
 } from "@/lib/telegram/telegram-inline-actions";
+import {
+  buildDocumentSuggestionKeyboard,
+  parseDocumentSuggestionCallback,
+} from "@/lib/telegram/telegram-document-actions";
+import { buildFinancialDocumentServices } from "@/lib/api/financial-documents";
+import { TelegramFinancialDocumentService } from "@/modules/financial-documents/application/services/telegram-financial-document.service";
+import { FinancialDocumentUploadError } from "@/modules/financial-documents/application/services/financial-document-upload.service";
+import { FinancialDocumentSuggestionError } from "@/modules/financial-documents/application/services/financial-document-suggestion.service";
 import {
   answerTelegramCallbackQuery,
   sendTelegramMessageWithMode,
@@ -151,6 +160,48 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "image", inboxItemId: id, channel: "TELEGRAM_IMAGE" };
     }
 
+    if (hasDocument(message) && message.document) {
+      const mimeType = message.document.mime_type ?? "application/octet-stream";
+      const fileName = message.document.file_name ?? "documento";
+      const { buffer } = await downloadTelegramFile(message.document.file_id, mimeType);
+      const docService = new TelegramFinancialDocumentService(this.prisma);
+
+      try {
+        const result = await docService.ingestAndProcess({
+          userId,
+          fileName,
+          mimeType,
+          buffer,
+        });
+
+        if (result.suggestionId) {
+          if (result.immediateAck) {
+            await this.safeReply(chatId, result.immediateAck);
+          }
+          if (result.allowInlineApproval !== false) {
+            await sendTelegramMessageWithMode(chatId, result.summary, "HTML", {
+              inline_keyboard: buildDocumentSuggestionKeyboard(result.suggestionId),
+            });
+          } else {
+            await this.safeReply(chatId, result.summary);
+          }
+        } else {
+          if (result.immediateAck) {
+            await this.safeReply(chatId, result.immediateAck);
+          }
+          await this.safeReply(chatId, result.summary);
+        }
+        return { ok: true, handled: "document", channel: "TELEGRAM" };
+      } catch (error) {
+        const msg =
+          error instanceof FinancialDocumentUploadError
+            ? error.message
+            : "Não foi possível processar o documento. Tente novamente ou use o dashboard.";
+        await this.safeReply(chatId, msg);
+        return { ok: true, handled: "document_failed" };
+      }
+    }
+
     if (!text) {
       return { ok: true, skipped: "empty_message" };
     }
@@ -237,6 +288,50 @@ export class ProcessTelegramUpdateService {
         await answerTelegramCallbackQuery(callback.id, "Não foi possível dispensar.");
       }
       return { ok: true, handled: "followup_dismiss" };
+    }
+
+    const docAction = parseDocumentSuggestionCallback(data);
+    if (docAction) {
+      const { suggestion } = buildFinancialDocumentServices(this.prisma);
+      try {
+        if (docAction.action === "approve") {
+          try {
+            const result = await suggestion.approve(connection.userId, docAction.suggestionId);
+            await answerTelegramCallbackQuery(callback.id, "Lançamento criado!");
+            await this.safeReply(
+              chatId,
+              `Lançamento confirmado após sua revisão. ID: ${result.transactionId}`,
+            );
+          } catch (approveError) {
+            if (
+              approveError instanceof FinancialDocumentSuggestionError &&
+              approveError.code === "LOW_CONFIDENCE_REVIEW_REQUIRED"
+            ) {
+              await answerTelegramCallbackQuery(callback.id, "Revise no dashboard.");
+              await this.safeReply(
+                chatId,
+                "⚠️ Os dados extraídos possuem baixa confiança. Revise e edite em /dashboard/import/review antes de aprovar.",
+              );
+            } else {
+              throw approveError;
+            }
+          }
+        } else if (docAction.action === "reject") {
+          await suggestion.reject(connection.userId, docAction.suggestionId);
+          await answerTelegramCallbackQuery(callback.id, "Rejeitado.");
+          await this.safeReply(chatId, "Sugestão rejeitada. Nenhum lançamento foi criado.");
+        } else {
+          await answerTelegramCallbackQuery(callback.id, "Abra o dashboard.");
+          await this.safeReply(
+            chatId,
+            "Edite a sugestão em: /dashboard/import/review",
+          );
+        }
+        return { ok: true, handled: "document_suggestion_callback" };
+      } catch {
+        await answerTelegramCallbackQuery(callback.id, "Ação indisponível.");
+        return { ok: true, handled: "document_suggestion_callback_failed" };
+      }
     }
 
     const action = parseActionProposalCallback(data);

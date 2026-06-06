@@ -33,7 +33,9 @@ export class VorcaroIntentResponseFormatter {
     if (
       result.intent === "CATEGORY_AUDIT" ||
       result.intent === "CATEGORY_LIST" ||
-      result.intent === "CARD_LIST"
+      result.intent === "CARD_LIST" ||
+      result.intent === "IMPORT_DOCUMENT" ||
+      result.intent === "REVIEW_DOCUMENT"
     ) {
       return result.summary.trim();
     }

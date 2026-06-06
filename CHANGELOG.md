@@ -2,6 +2,64 @@
 
 ## [Unreleased]
 
+### Fixed — Hotfix Sprint 15.1.1 (Reimportação de documento rejeitado/falho)
+
+- Upload por fingerprint permite recuperar documentos `REJECTED`/`FAILED` (reutiliza registro existente)
+- Duplicidade bloqueia apenas documentos ativos; `APPROVED` retorna mensagem específica (409)
+- Documentos em revisão/processamento retornam o existente sem reprocessar
+- UI history/review: ações Reabrir revisão, Reprocessar, Enviar novamente; `APPROVED` exibe “Documento já aprovado”
+- Testes: `financial-document-reimport-hotfix.test.ts`
+
+### Added — Sprint 15.1.2 (Extratos bancários e parcelamentos de fatura)
+
+- Parser extrato Bradesco com débito/crédito e múltiplas transações
+- Revisão em tabela em `/dashboard/import/review` com seleção por linha
+- Detecção de compras parceladas em faturas (`ExtractedInstallmentPurchase`)
+- Confirmação de parcelas futuras como compromissos (fluxo de caixa previsto)
+- API `GET/POST /api/import/documents/:id/lines`
+- Telegram orienta revisão de parcelas no dashboard
+- Doc: [`docs/sprint-15.1.2-bank-statement-and-card-installments.md`](docs/sprint-15.1.2-bank-statement-and-card-installments.md)
+
+### Added — Sprint 15.1.1 (Hardening captura inteligente — partes e reprocessamento)
+
+- Metadados `FinancialPartiesMetadata` em `extractedJson` e `metadata` (pagador/recebedor/banco/PIX)
+- Parser PIX/TED com extração de origem e destino
+- UI review/history com blocos “Quem pagou” / “Quem recebeu” e “Não identificado”
+- Telegram com pagador/recebedor e bloqueio de aprovação inline quando faltam dados críticos
+- Endpoints `POST /api/import/documents/:id/reprocess`, `/reopen`, `/archive`
+- Auditoria: `REPROCESS_*`, `REOPENED_AFTER_REJECTION`, `PASSWORD_SUBMITTED`
+- Aprendizado ampliado (pixKey, documentos e nomes de partes)
+- Docs: [`docs/sprint-15.1.1-document-review-reprocessing.md`](docs/sprint-15.1.1-document-review-reprocessing.md), [`docs/sprint-15.1.1-document-parties-metadata.md`](docs/sprint-15.1.1-document-parties-metadata.md)
+
+### Added — Sprint 15.1 (OCR real local PaddleOCR)
+
+- Microserviço `services/ocr` — FastAPI + PaddleOCR (Docker `:8008`)
+- `PaddleOcrHttpProvider`, `HybridFinancialOcrProvider`, factory `OCR_PROVIDER=paddle`
+- PDF nativo via pdfjs; PDF escaneado e imagens via PaddleOCR
+- Sanitização anti-artefatos (`JFIF`/`PNG`/`WEBP`); fallback se serviço offline
+- Logs: `ocr_provider_used`, `ocr_elapsed_ms`, `ocr_confidence`, `ocr_fallback_used`
+- Docs: [`docs/sprint-15.1-local-paddleocr.md`](docs/sprint-15.1-local-paddleocr.md)
+
+### Added — Sprint 15.0.2 (Hardening revisão e PDF protegido)
+
+- Painel de revisão completo com OCR auditável, motivos de confiança e edição inline
+- `AUTO_APPROVAL_THRESHOLD = 70` — revisão obrigatória antes de aprovar
+- Status `PASSWORD_REQUIRED` + `POST /api/import/documents/:id/password`
+- Auditoria `FinancialDocumentAuditEvent` (editar/aprovar/rejeitar)
+- Telegram: ack imediato + resumo estruturado + bloqueio de baixa confiança
+- Histórico enriquecido (confiança, categorias, aprendizado)
+- Doc: [`docs/sprint-15.0.2-document-review-hardening.md`](docs/sprint-15.0.2-document-review-hardening.md)
+
+### Added — Sprint 15 (Captura Inteligente de Transações)
+
+- Modelos `FinancialDocument`, `FinancialDocumentSuggestion`, `FinancialDocumentLearningPattern`
+- Módulo `financial-documents` — OCR, parser PIX/TED/Boleto/Cartão, classificação, aprendizado
+- APIs `/api/import/*` com revisão humana obrigatória
+- Dashboard `/dashboard/import`, `/review`, `/history`
+- Telegram: documentos com botões inline de confirmação
+- Intents Vorcaro `IMPORT_DOCUMENT`, `REVIEW_DOCUMENT`
+- Doc: [`docs/sprint-15-intelligent-document-capture.md`](docs/sprint-15-intelligent-document-capture.md)
+
 ### Fixed — Sprint 14.9.4 (Saneamento TypeScript)
 
 - `handleTelegramWebhook` extraído de `route.ts` para `src/lib/telegram/handle-telegram-webhook.ts` — compatível com tipos gerados do Next.js App Router

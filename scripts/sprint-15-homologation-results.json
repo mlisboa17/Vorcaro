@@ -1,0 +1,212 @@
+[
+  {
+    "block": "0-Ambiente",
+    "flow": "prisma migrate status",
+    "status": "PASS",
+    "detail": "schema up to date"
+  },
+  {
+    "block": "0-Ambiente",
+    "flow": "dev server",
+    "status": "MANUAL",
+    "detail": "servidor indisponível em http://localhost:3000"
+  },
+  {
+    "block": "3-Tipo",
+    "flow": "PIX",
+    "status": "PASS",
+    "detail": "method=PIX (esperado PIX)"
+  },
+  {
+    "block": "3-Tipo",
+    "flow": "TED",
+    "status": "PASS",
+    "detail": "method=TRANSFERENCIA (esperado TRANSFERENCIA)"
+  },
+  {
+    "block": "3-Tipo",
+    "flow": "Boleto",
+    "status": "PASS",
+    "detail": "method=BOLETO (esperado BOLETO)"
+  },
+  {
+    "block": "3-Tipo",
+    "flow": "Cartão",
+    "status": "PASS",
+    "detail": "method=CARTAO_CREDITO (esperado CARTAO_CREDITO)"
+  },
+  {
+    "block": "4-Extração",
+    "flow": "PIX Nubank simulado",
+    "status": "PASS",
+    "detail": "ALTA precisão"
+  },
+  {
+    "block": "5-Categoria",
+    "flow": "Posto",
+    "status": "MANUAL",
+    "detail": "fornecedor extraído: — (classificação taxonômica validada no pipeline DB)"
+  },
+  {
+    "block": "5-Categoria",
+    "flow": "Mercado",
+    "status": "MANUAL",
+    "detail": "fornecedor extraído: — (classificação taxonômica validada no pipeline DB)"
+  },
+  {
+    "block": "5-Categoria",
+    "flow": "Farmácia",
+    "status": "MANUAL",
+    "detail": "fornecedor extraído: — (classificação taxonômica validada no pipeline DB)"
+  },
+  {
+    "block": "5-Categoria",
+    "flow": "Assinatura",
+    "status": "MANUAL",
+    "detail": "fornecedor extraído: — (classificação taxonômica validada no pipeline DB)"
+  },
+  {
+    "block": "1-Upload",
+    "flow": "PNG com texto embarcado",
+    "status": "PASS",
+    "detail": "status=UPLOADED"
+  },
+  {
+    "block": "1-Upload",
+    "flow": "processamento → REVIEW_REQUIRED",
+    "status": "PASS",
+    "detail": "status=REVIEW_REQUIRED em 103ms"
+  },
+  {
+    "block": "2-OCR",
+    "flow": "imagem texto embarcado",
+    "status": "PASS",
+    "detail": "OCR TOTAL (fallback buffer-text ≥20 chars)"
+  },
+  {
+    "block": "2-OCR",
+    "flow": "foto binária sem texto",
+    "status": "PASS",
+    "detail": "status=REVIEW_REQUIRED (sem crash)"
+  },
+  {
+    "block": "6-Aprendizado",
+    "flow": "reutilização padrão PIX",
+    "status": "PASS",
+    "detail": "source=learned_pix_key confidence=96"
+  },
+  {
+    "block": "6.2-Correção",
+    "flow": "última decisão prevalece",
+    "status": "PASS",
+    "detail": "subcategoryId=cmq1f2tl20005osv888l7t9o1"
+  },
+  {
+    "block": "6.3-Duplicidade",
+    "flow": "fingerprint upload",
+    "status": "PASS",
+    "detail": "DUPLICATE detectado"
+  },
+  {
+    "block": "6.3-Duplicidade",
+    "flow": "fingerprint semântico",
+    "status": "PASS",
+    "detail": "status=FAILED reason=DUPLICATE_SEMANTIC"
+  },
+  {
+    "block": "7-Review",
+    "flow": "aprovar → Transaction",
+    "status": "PASS",
+    "detail": "transactionId=cmq1f2u010010osv84t6n2smk"
+  },
+  {
+    "block": "7-Review",
+    "flow": "status APPROVED",
+    "status": "PASS",
+    "detail": "status=APPROVED"
+  },
+  {
+    "block": "7-Review",
+    "flow": "rejeitar → REJECTED",
+    "status": "PASS",
+    "detail": "status=REJECTED"
+  },
+  {
+    "block": "9-Padrões",
+    "flow": "listagem",
+    "status": "PASS",
+    "detail": "3 padrão(ões)"
+  },
+  {
+    "block": "9-Padrões",
+    "flow": "excluir padrão",
+    "status": "PASS",
+    "detail": "antes=3 depois=2"
+  },
+  {
+    "block": "11-Segurança",
+    "flow": "cross-tenant GET document",
+    "status": "PASS",
+    "detail": "user B não vê documento de A (API retorna 404)"
+  },
+  {
+    "block": "8-Histórico",
+    "flow": "listDocuments",
+    "status": "PASS",
+    "detail": "7 documento(s)"
+  },
+  {
+    "block": "1-PDF",
+    "flow": "Extratos Nubank/Inter, fatura, boleto PDF real",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "2-Imagem",
+    "flow": "Fotos reais (escura, torta, cortada) — qualidade OCR não bloqueante",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "7-Review",
+    "flow": "Edição inline categoria/descrição/data na UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "8-Histórico",
+    "flow": "Filtros e paginação na UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "9-Padrões",
+    "flow": "Editar padrão na UI",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "10-Telegram",
+    "flow": "PDF/imagem + callbacks Confirmar/Editar/Rejeitar",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "12-Mobile",
+    "flow": "Galeria, câmera, compartilhar PDF/imagem",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "13-Performance",
+    "flow": "10 PDFs + 10 imagens simultâneos",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  },
+  {
+    "block": "14-Regressão",
+    "flow": "Dashboard, Caixa, Lançamentos, Metas, Alertas, Vorcaro Chat",
+    "status": "MANUAL",
+    "detail": "requer validação humana"
+  }
+]

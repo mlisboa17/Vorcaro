@@ -19,6 +19,8 @@ export const VORCARO_INTENTS = [
   "ACHIEVEMENTS",
   "TRENDS",
   "FOLLOWUPS",
+  "IMPORT_DOCUMENT",
+  "REVIEW_DOCUMENT",
   "STRATEGIC_ADVICE",
   "GENERAL_CHAT",
   "UNKNOWN",
@@ -52,7 +54,9 @@ export type VorcaroToolName =
   | "financial_evolution"
   | "financial_achievements"
   | "financial_trends"
-  | "follow_ups";
+  | "follow_ups"
+  | "import_document"
+  | "review_document";
 
 import type { VorcaroToolAction } from "@/modules/vorcaro/actions/domain/types/vorcaro-action";
 

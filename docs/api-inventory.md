@@ -429,6 +429,90 @@ Total de **operações HTTP documentadas: 66** (rotas únicas; métodos listados
 
 ---
 
+## Importação inteligente de documentos (Sprint 15)
+
+### `GET` / `POST` — `/api/import/documents`
+
+**Descrição:** Lista documentos / upload multipart (PDF, PNG, JPG, WEBP) com processamento OCR+parser.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/import/documents/:id`
+
+**Descrição:** Detalhe do documento + sugestão.  
+**Auth:** Obrigatório (ownership).
+
+### `GET` / `POST` — `/api/import/documents/:id/lines`
+
+**Descrição:** Lista linhas de extrato/fatura para revisão (GET) ou confirma seleção + parcelas futuras (POST). Revisão humana obrigatória.  
+**Auth:** Obrigatório (ownership).
+
+### `POST` — `/api/import/documents/:id/reprocess`
+
+**Descrição:** Reprocessa documento (limpa erro, OCR+parser, atualiza sugestão, auditoria). Não cria lançamento.  
+**Auth:** Obrigatório (ownership). Body opcional: `{ password }` para PDF protegido.
+
+### `POST` — `/api/import/documents/:id/reopen`
+
+**Descrição:** Reabre documento `REJECTED` ou `FAILED` para `REVIEW_REQUIRED`.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/import/documents/:id/archive`
+
+**Descrição:** Arquiva documento rejeitado (`extractedJson.archived`).  
+**Auth:** Obrigatório.
+
+### `PATCH` — `/api/import/documents/:id`
+
+**Descrição:** Operações limitadas (`status: REJECTED` para documentos não aprovados).  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/import/documents/:id/process`
+
+**Descrição:** Reprocessa documento.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/import/documents/:id/password`
+
+**Descrição:** Envia senha de PDF protegido e reprocessa (status `PASSWORD_REQUIRED`).  
+**Auth:** Obrigatório.
+
+### Serviço externo — OCR Paddle (`POST http://localhost:8008/ocr`)
+
+**Descrição:** Microserviço local Sprint 15.1 — multipart `file`, optional `password`. Usado por `PaddleOcrHttpProvider` quando `OCR_PROVIDER=paddle`.  
+**Auth:** Rede interna / localhost.
+
+### `GET` — `/api/import/suggestions`
+
+**Descrição:** Lista sugestões (filtro `status`).  
+**Auth:** Obrigatório.
+
+### `PATCH` — `/api/import/suggestions/:id`
+
+**Descrição:** Edita sugestão pendente.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/import/suggestions/:id/approve`
+
+**Descrição:** Confirmação humana → cria `Transaction`.  
+**Auth:** Obrigatório.
+
+### `POST` — `/api/import/suggestions/:id/reject`
+
+**Descrição:** Rejeita sugestão.  
+**Auth:** Obrigatório.
+
+### `GET` — `/api/import/learning-patterns`
+
+**Descrição:** Padrões aprendidos (PIX/TED/nome).  
+**Auth:** Obrigatório.
+
+### `PATCH` / `DELETE` — `/api/import/learning-patterns/:id`
+
+**Descrição:** Edita ou remove padrão aprendido.  
+**Auth:** Obrigatório.
+
+---
+
 ## Aprendizado / regras
 
 ### `GET` — `/api/rules`

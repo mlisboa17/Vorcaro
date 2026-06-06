@@ -27,6 +27,30 @@ const CARD_LIST_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
   },
 ];
 
+const DOCUMENT_IMPORT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
+  {
+    intent: "REVIEW_DOCUMENT",
+    patterns: [
+      /documentos pendentes/i,
+      /importa[cç][oõ]es pendentes/i,
+      /revise minhas importa[cç][oõ]es/i,
+      /revisar importa[cç][oõ]es/i,
+      /comprovantes pendentes/i,
+    ],
+  },
+  {
+    intent: "IMPORT_DOCUMENT",
+    patterns: [
+      /analise este comprovante/i,
+      /analisar comprovante/i,
+      /o que voc[eê] encontrou nesse documento/i,
+      /importar comprovante/i,
+      /captura de documento/i,
+      /enviar comprovante/i,
+    ],
+  },
+];
+
 const CATEGORY_AUDIT_RULES: Array<{ intent: VorcaroIntent; patterns: RegExp[] }> = [
   {
     intent: "CATEGORY_AUDIT",
@@ -209,6 +233,12 @@ export class VorcaroIntentEngineService {
     }
 
     for (const rule of CARD_LIST_RULES) {
+      if (rule.patterns.some((pattern) => pattern.test(text))) {
+        return this.build(rule.intent, [], false);
+      }
+    }
+
+    for (const rule of DOCUMENT_IMPORT_RULES) {
       if (rule.patterns.some((pattern) => pattern.test(text))) {
         return this.build(rule.intent, [], false);
       }
