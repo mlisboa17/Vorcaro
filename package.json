@@ -18,6 +18,7 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "dev:all": "node scripts/dev-all.mjs",
+    "dev:safe": "prisma migrate dev && node scripts/dev-all.mjs",
     "dev:clean": "node scripts/dev-clean.mjs",
     "telegram:webhook": "node scripts/register-telegram-webhook.mjs",
     "worker:inbox": "npx tsx src/lib/queue/workers/financial-inbox.worker.ts",
@@ -32,9 +33,6 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:foundation": "npx tsx scripts/validate-foundation.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

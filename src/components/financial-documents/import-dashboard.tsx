@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, FileUp, Loader2, Pencil, Upload } from "lucide-react";
 import {
   acceptForBankImportFormat,
@@ -127,6 +128,7 @@ function formatDate(value: string | null) {
 }
 
 function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" }) {
+  const router = useRouter();
   const { pushToast } = useSettingsToast();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -286,6 +288,49 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
         return;
       }
       setStructuredPreview(body);
+    } finally {
+      setStructuredBusy(false);
+    }
+  }
+
+  async function uploadDirectOfx() {
+    if (!structuredFile) return;
+    if (!structuredContaId) {
+      pushToast("error", "Selecione a conta financeira de destino.");
+      return;
+    }
+
+    setStructuredBusy(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", structuredFile);
+      formData.set("accountId", structuredContaId);
+
+      const response = await fetch("/api/dashboard/statements/import", {
+        method: "POST",
+        body: formData,
+      });
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        pushToast("error", body?.error ?? "Falha ao importar o arquivo.");
+        return;
+      }
+
+      pushToast(
+        "success",
+        `Sucesso! ${body.data.importedCount} novas transações importadas, ${body.data.ignoredCount} ignoradas (já existiam).`
+      );
+
+      setStructuredFile(null);
+      setStructuredPreview(null);
+      
+      // Força a atualização dos dados do servidor para a aba "Extratos"
+      router.refresh();
+      await load();
+    } catch (error) {
+      pushToast("error", "Erro inesperado durante a importação.");
     } finally {
       setStructuredBusy(false);
     }
@@ -821,7 +866,25 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
               ) : null}
 
               <div className="flex flex-wrap gap-2">
-                {structuredFile && !structuredPreview ? (
+                {structuredFile && (importFormat === "OFX" || importFormat === "CSV") && (
+                  <button
+                    type="button"
+                    disabled={structuredBusy || !structuredContaId}
+                    onClick={() => void uploadDirectOfx()}
+                    className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+                  >
+                    {structuredBusy ? (
+                      <>
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                        Importando...
+                      </>
+                    ) : (
+                      "Importar Arquivo (OFX/CSV)"
+                    )}
+                  </button>
+                )}
+
+                {structuredFile && importFormat !== "OFX" && importFormat !== "CSV" && !structuredPreview ? (
                   <button
                     type="button"
                     disabled={structuredBusy || !structuredContaId}
@@ -831,7 +894,7 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
                     {structuredBusy ? "Gerando prévia…" : "Gerar prévia"}
                   </button>
                 ) : null}
-                {structuredPreview ? (
+                {structuredPreview && importFormat !== "OFX" && importFormat !== "CSV" ? (
                   <button
                     type="button"
                     disabled={structuredBusy}

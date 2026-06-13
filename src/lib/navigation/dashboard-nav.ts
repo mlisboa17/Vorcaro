@@ -42,59 +42,48 @@ export type VorcaroHubCard = {
   icon: LucideIcon;
 };
 
-/** Menu lateral — Sprint 14.8: blocos simplificados, rotas preservadas. */
+/** Menu lateral refatorado (Sprint 15) - 5 Macro-Categorias com Abas. */
 export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
   {
     title: "Visão Geral",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/dashboard/vorcaro", label: "Vorcaro", icon: Sparkles, exactMatch: true },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exactMatch: true },
     ],
   },
   {
     title: "Financeiro",
     items: [
-      { href: "/dashboard/inbox", label: "Caixa", icon: Inbox },
-      { href: "/dashboard/import", label: "Importar comprovantes", icon: FileUp },
-      { href: "/dashboard/transactions", label: "Extrato & Lançamentos", icon: History },
-      { href: "/dashboard/receivables", label: "Contas a Receber", icon: HandCoins },
-      { href: "/dashboard/installments", label: "Parcelamentos", icon: WalletCards },
+      { href: "/dashboard/transactions", label: "Transações", icon: History },
+      { href: "/dashboard/receivables", label: "Recebíveis", icon: HandCoins },
+      { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
     ],
   },
   {
-    title: "Planejamento",
+    title: "Bancos & Extratos",
     items: [
-      { href: "/dashboard/planning", label: "Planejamento Financeiro", icon: Target },
-      { href: "/dashboard/cashflow", label: "Fluxo Futuro", icon: LineChart },
-      { href: "/dashboard/commitments", label: "Compromissos", icon: CalendarClock },
+      { href: "/dashboard/accounts", label: "Contas Bancárias", icon: WalletCards },
+      { href: "/dashboard/statements", label: "Extratos & Importação", icon: FileUp },
     ],
   },
   {
-    title: "Inteligência",
+    title: "Inteligência & Inbox",
     items: [
-      { href: "/dashboard/alerts", label: "Alertas", icon: Bell },
+      { href: "/dashboard/inbox", label: "Caixa de Entrada", icon: Inbox },
+      { href: "/dashboard/vorcaro", label: "Assistente Vorcaro", icon: Sparkles },
+      { href: "/dashboard/automation/rules", label: "Regras de Automação", icon: Cpu },
+      { href: "/dashboard/planning", label: "Planejamento & Metas", icon: Target },
       {
         href: "/dashboard/notifications",
         label: "Notificações",
         icon: BellRing,
         badgeKey: "notifications",
       },
-      { href: "/dashboard/vorcaro/timeline", label: "Timeline", icon: History },
-      { href: "/dashboard/vorcaro/followups", label: "Pendências", icon: ListTodo },
-    ],
-  },
-  {
-    title: "Patrimônio",
-    items: [
-      { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
-      { href: "/dashboard/consorcios", label: "Consórcios", icon: Handshake },
     ],
   },
   {
     title: "Configurações",
     items: [
-      { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
-      { href: "/dashboard/rules", label: "Regras & Automações", icon: Cpu },
+      { href: "/dashboard/settings", label: "Ajustes Gerais", icon: Settings },
     ],
   },
 ];

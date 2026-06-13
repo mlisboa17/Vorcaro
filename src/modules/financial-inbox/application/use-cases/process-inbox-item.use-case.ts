@@ -82,6 +82,16 @@ export class ProcessInboxItemUseCase {
         rawContent,
       });
 
+      // Se o webhook do Telegram (ou outro) já pré-categorizou via CategoryRuleEngine, injetamos aqui
+      const channelMeta = item.channelMeta as Record<string, any>;
+      if (channelMeta && channelMeta.categoryId && !enrichment.extraction.categoryId) {
+        enrichment.extraction.categoryId = channelMeta.categoryId as string;
+        enrichment.extraction.confidence.categoryId = 1.0;
+        enrichment.overriddenFields.push("categoryId");
+        enrichment.overriddenCriticalFields.push("categoryId");
+        enrichment.fieldSources["categoryId"] = "rule"; // Mapeado via Camada 1
+      }
+
       const enrichedExtraction = enrichment.extraction;
       const status = this.resolveStatus(enrichedExtraction, enrichment);
       const confidence = this.toExtractionConfidence(enrichedExtraction, enrichment);

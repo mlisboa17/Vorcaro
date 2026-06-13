@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 
 export const QUEUE_NAMES = {
   FINANCIAL_INBOX: "financial-inbox",
+  STATEMENT_IMPORT: "statement-import",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -12,6 +13,16 @@ export type FinancialInboxJobName = "process-inbox-item";
 export interface FinancialInboxJobData {
   inboxItemId: string;
   userId: string;
+}
+
+export type StatementImportJobName = "process-statement-import";
+
+export interface StatementImportJobData {
+  fileId: string;
+  fileName: string;
+  userId: string;
+  chatId: number;
+  accountId: string;
 }
 
 type GlobalQueueState = {
@@ -84,6 +95,22 @@ export async function enqueueFinancialInboxProcessing(
 
   return queue.add("process-inbox-item" satisfies FinancialInboxJobName, data, {
     jobId: `inbox-${data.inboxItemId}`,
+    ...options,
+  });
+}
+
+export function getStatementImportQueue(): Queue<StatementImportJobData> {
+  return getOrCreateQueue(QUEUE_NAMES.STATEMENT_IMPORT) as Queue<StatementImportJobData>;
+}
+
+export async function enqueueStatementImport(
+  data: StatementImportJobData,
+  options?: JobsOptions,
+) {
+  const queue = getStatementImportQueue();
+
+  return queue.add("process-statement-import" satisfies StatementImportJobName, data, {
+    jobId: `stmt-import-${data.fileId}-${Date.now()}`,
     ...options,
   });
 }

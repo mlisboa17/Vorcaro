@@ -44,12 +44,14 @@ import { VorcaroConversationService } from "@/modules/vorcaro/conversation/appli
 import { detectReceivableTelegramHint } from "@/lib/telegram/detect-receivable-hint";
 import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegram-bot.client";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
-import { enqueueFinancialInboxProcessing } from "@/lib/queue";
+import { enqueueFinancialInboxProcessing, enqueueStatementImport, getRedisConnection } from "@/lib/queue";
+import { randomUUID } from "crypto";
 import { IngestInboxItemUseCase } from "@/modules/financial-inbox/application/use-cases/ingest-inbox-item.use-case";
 import { GeminiAiService } from "@/modules/financial-inbox/infrastructure/services/gemini-ai.service";
 import { PrismaInboxRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-inbox.repository";
 import type { PrismaClient } from "@prisma/client";
 import type { TelegramIntegrationPort } from "../domain/ports/telegram-integration.port";
+import { CategoryRuleEngine } from "@/modules/automation/services/CategoryRuleEngine";
 
 export type TelegramWebhookResult =
   | { ok: true; handled: string; inboxItemId?: string; channel?: string }
@@ -59,7 +61,7 @@ export class ProcessTelegramUpdateService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly telegramIntegration: TelegramIntegrationPort,
-  ) {}
+  ) { }
 
   async execute(message: TelegramMessage): Promise<TelegramWebhookResult> {
     const chatId = message.chat.id;
@@ -138,6 +140,7 @@ export class ProcessTelegramUpdateService {
       });
       const { id } = await ingestUseCase.execute(ingestInput);
       await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
+      await this.safeReply(chatId, "✅ Áudio recebido e enviado para transcrição na Caixa Financeira!");
       return { ok: true, handled: "voice", inboxItemId: id, channel: "TELEGRAM_VOICE" };
     }
 
@@ -157,12 +160,58 @@ export class ProcessTelegramUpdateService {
       });
       const { id } = await ingestUseCase.execute(ingestInput);
       await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
+      await this.safeReply(chatId, "✅ Imagem recebida e enviada para extração na Caixa Financeira!");
       return { ok: true, handled: "image", inboxItemId: id, channel: "TELEGRAM_IMAGE" };
     }
 
     if (hasDocument(message) && message.document) {
       const mimeType = message.document.mime_type ?? "application/octet-stream";
       const fileName = message.document.file_name ?? "documento";
+      const ext = fileName.split(".").pop()?.toLowerCase();
+
+      if (ext === "ofx" || ext === "csv") {
+        const accounts = await this.prisma.financialAccount.findMany({
+          where: { userId, isActive: true },
+          select: { id: true, name: true },
+        });
+
+        if (accounts.length === 0) {
+          await this.safeReply(chatId, "⚠️ Cadastre uma conta bancária ativa no Dashboard primeiro.");
+          return { ok: true, handled: "statement_no_account", channel: "TELEGRAM" };
+        }
+
+        if (accounts.length === 1) {
+          await enqueueStatementImport({
+            fileId: message.document.file_id,
+            fileName,
+            userId,
+            chatId,
+            accountId: accounts[0].id,
+          });
+          await this.safeReply(chatId, `✅ Arquivo de extrato recebido! O processamento em lote foi agendado na conta *${accounts[0].name}* e você será notificado assim que for concluído.`);
+          return { ok: true, handled: "statement_queued", channel: "TELEGRAM" };
+        }
+
+        const pendingId = randomUUID().split("-")[0];
+        const redis = getRedisConnection();
+        await redis.setex(
+          `telegram:stmt:${pendingId}`,
+          3600,
+          JSON.stringify({ fileId: message.document.file_id, fileName, userId, chatId })
+        );
+
+        const inline_keyboard = accounts.map(acc => [{
+          text: acc.name,
+          callback_data: `stmt_acc:${pendingId}:${acc.id}`
+        }]);
+
+        await sendTelegramMessageWithMode(chatId, "Detectamos mais de uma conta ativa. Selecione o destino do extrato:", "HTML", {
+          inline_keyboard
+        });
+
+        return { ok: true, handled: "statement_pending_account", channel: "TELEGRAM" };
+      }
+
       const { buffer } = await downloadTelegramFile(message.document.file_id, mimeType);
       const docService = new TelegramFinancialDocumentService(this.prisma);
 
@@ -249,14 +298,25 @@ export class ProcessTelegramUpdateService {
       await this.safeReply(chatId, `${receivableHint.message}${detail}`);
     }
 
+    const ruleEngine = new CategoryRuleEngine();
+    const match = await ruleEngine.execute(text, userId);
+
     const ingestInput = toTelegramTextIngestInput(userId, {
       rawContent: text,
       chatId,
       messageId: message.message_id,
       username,
     });
+
+    if (match) {
+      // @ts-ignore: Injetando categoryId no meta para o Inbox aproveitar
+      ingestInput.channelMeta.categoryId = match.categoryId;
+      // @ts-ignore
+      ingestInput.channelMeta.ruleId = match.ruleId;
+    }
     const { id } = await ingestUseCase.execute(ingestInput);
     await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
+    await this.safeReply(chatId, "✅ Recebido! Já enviei para classificação na Caixa Financeira.");
     // Integração futura: após worker classificar, enviar formatInboxClassificationReply via Telegram.
     return { ok: true, handled: "text", inboxItemId: id, channel: "TELEGRAM" };
   }
@@ -276,6 +336,28 @@ export class ProcessTelegramUpdateService {
     if (!connection) {
       await answerTelegramCallbackQuery(callback.id, "Chat não vinculado.");
       return { ok: true, skipped: "not_connected" };
+    }
+
+    if (data.startsWith("stmt_acc:")) {
+      const parts = data.split(":");
+      if (parts.length === 3) {
+        const pendingId = parts[1];
+        const accountId = parts[2];
+        const redis = getRedisConnection();
+        const payloadStr = await redis.get(`telegram:stmt:${pendingId}`);
+        if (!payloadStr) {
+          await answerTelegramCallbackQuery(callback.id, "Sessão expirada. Envie o arquivo novamente.");
+          return { ok: true, handled: "statement_expired" };
+        }
+        const payload = JSON.parse(payloadStr);
+        await enqueueStatementImport({
+          ...payload,
+          accountId
+        });
+        await answerTelegramCallbackQuery(callback.id, "Conta selecionada!");
+        await this.safeReply(chatId, "✅ Conta selecionada! O processamento em lote foi agendado.");
+        return { ok: true, handled: "statement_queued" };
+      }
     }
 
     const followUpId = parseFollowUpDismissCallback(data);

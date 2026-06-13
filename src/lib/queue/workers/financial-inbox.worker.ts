@@ -23,6 +23,7 @@ import {
 } from "@/modules/financial-instruments/infrastructure/repositories/prisma-financial-instrument.repositories";
 import { InboxClassificationService } from "@/modules/inbox-intelligence/application/services/inbox-classification.service";
 import { mergeClassificationIntoExtraction } from "@/lib/inbox/apply-inbox-classification";
+import { createStatementImportWorker } from "@/lib/queue/workers/statement-import.worker";
 
 function createProcessInboxItemUseCase(): ProcessInboxItemUseCase {
   const inboxRepository = new PrismaInboxRepository(prisma);
@@ -110,6 +111,10 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
 
 function startWorker(): void {
   const worker = createFinancialInboxWorker();
+  const statementWorker = createStatementImportWorker();
+
+  statementWorker.on("completed", (job) => console.info(`[statement-import] Job ${job.id} completed`));
+  statementWorker.on("failed", (job, error) => console.error(`[statement-import] Job ${job?.id} failed:`, error.message));
 
   worker.on("completed", (job) => {
     console.info(`[financial-inbox] Job ${job.id} completed`);

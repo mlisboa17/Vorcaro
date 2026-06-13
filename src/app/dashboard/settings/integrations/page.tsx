@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { TelegramIntegrationsPanel } from "@/components/settings/telegram-integrations-panel";
+import { IntegrationManagerCard } from "@/modules/integrations/components/integration-manager-card";
 import { ArrowLeft } from "lucide-react";
 
 export default async function SettingsIntegrationsPage() {
@@ -10,6 +12,21 @@ export default async function SettingsIntegrationsPage() {
   if (!session?.user?.id) {
     redirect("/api/auth/signin?callbackUrl=/dashboard/settings/integrations");
   }
+
+  const accounts = await prisma.financialAccount.findMany({
+    where: { userId: session.user.id },
+    select: { id: true, name: true, webhookToken: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const accountViewData = accounts.map((acc) => ({
+    id: acc.id,
+    name: acc.name,
+    hasToken: !!acc.webhookToken,
+  }));
+
+  // URL Base para o componente de cliente montar a string completa
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://api.logos.finance";
 
   return (
     <div className="space-y-6">
@@ -27,7 +44,11 @@ export default async function SettingsIntegrationsPage() {
         </p>
       </header>
 
-      <TelegramIntegrationsPanel />
+      <IntegrationManagerCard accounts={accountViewData} baseUrl={baseUrl} />
+      
+      <div className="mt-8 border-t border-slate-200 pt-8">
+        <TelegramIntegrationsPanel />
+      </div>
     </div>
   );
 }
