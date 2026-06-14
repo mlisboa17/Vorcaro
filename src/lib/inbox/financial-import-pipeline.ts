@@ -91,7 +91,22 @@ function extractInstallments(text: string): { installment?: number; totalInstall
 export function detectCardFromText(source: string): DetectedCardInfo {
   const bank = BANK_PATTERNS.find((entry) => entry.regex.test(source))?.name ?? null;
   const brand = BRAND_PATTERNS.find((entry) => entry.regex.test(source))?.name ?? null;
-  const lastFourDigits = source.match(/\b(?:final|fim|ending)?\s*(\d{4})\b/i)?.[1] ?? null;
+  
+  let lastFourDigits = null;
+  const explicitMatch = source.match(/\b(?:final|fim|ending|cartão|cartao|card)\s*[:\-]?\s*(\d{4})\b/i);
+  if (explicitMatch) {
+    lastFourDigits = explicitMatch[1];
+  } else {
+    const allMatches = source.matchAll(/\b(\d{4})\b/g);
+    for (const match of allMatches) {
+      const value = parseInt(match[1], 10);
+      if (value < 2020 || value > 2035) {
+        lastFourDigits = match[1];
+        break;
+      }
+    }
+  }
+
   const displayName = [bank, brand, lastFourDigits ? `Final ${lastFourDigits}` : null]
     .filter(Boolean)
     .join(" ");
