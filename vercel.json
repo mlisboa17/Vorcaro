@@ -1,0 +1,12 @@
+{
+    "experimentalServices": {
+        "frontend": {
+            "routePrefix": "/",
+            "framework": "nextjs"
+        },
+        "ocr": {
+            "root": "services/ocr",
+            "routePrefix": "/_/ocr"
+        }
+    }
+}
