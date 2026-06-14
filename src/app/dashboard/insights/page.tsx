@@ -13,11 +13,10 @@ export const metadata = {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-export default async function InsightsPage({
-  searchParams,
-}: {
-  searchParams: { year?: string; month?: string };
+export default async function InsightsPage(props: {
+  searchParams: Promise<{ year?: string; month?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/api/auth/signin");
