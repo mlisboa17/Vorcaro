@@ -17,24 +17,20 @@ export async function getResumoPorEmpresa(startDate?: Date, endDate?: Date) {
   if (startDate) whereDate.gte = startDate;
   if (endDate) whereDate.lte = endDate;
 
-  // Busca todas as transações que possuem externalCounterpartyId (agrupando via aggregation ou em memória)
   const transactions = await prisma.transaction.findMany({
     where: {
       userId,
-      externalCounterpartyId: { not: null },
-      ...(Object.keys(whereDate).length > 0 ? { date: whereDate } : {}),
-      status: { not: "CANCELLED" }
+      OR: [
+        { originId: { not: null } },
+        { destinationId: { not: null } }
+      ],
+      ...(Object.keys(whereDate).length > 0 ? { date: whereDate } : {})
     },
     select: {
       amount: true,
       type: true,
-      externalCounterparty: {
-        select: {
-          id: true,
-          name: true,
-          cnpjCpf: true
-        }
-      }
+      originCounterparty: { select: { id: true, name: true, cnpjCpf: true } },
+      destinationCounterparty: { select: { id: true, name: true, cnpjCpf: true } }
     }
   });
 
@@ -49,8 +45,10 @@ export async function getResumoPorEmpresa(startDate?: Date, endDate?: Date) {
   }>();
 
   for (const t of transactions) {
-    if (!t.externalCounterparty) continue;
-    const { id, name, cnpjCpf } = t.externalCounterparty;
+    const cp = t.type === "INCOME" ? t.originCounterparty : t.destinationCounterparty;
+    if (!cp) continue;
+    
+    const { id, name, cnpjCpf } = cp;
 
     const current = summary.get(id) || {
       empresaId: id,
@@ -91,7 +89,6 @@ export async function getTotalByEmpresa(empresaId: string, startDate?: Date, end
   if (startDate) whereDate.gte = startDate;
   if (endDate) whereDate.lte = endDate;
 
-  // Valida que a Counterparty pertence ao usuário (Isolamento Multitenant Absoluto)
   const counterparty = await prisma.counterparty.findUnique({
     where: { id: empresaId }
   });
@@ -99,19 +96,18 @@ export async function getTotalByEmpresa(empresaId: string, startDate?: Date, end
     throw new Error("Counterparty not found or unauthorized");
   }
 
-  const aggregates = await prisma.transaction.groupBy({
-    by: ['type'],
+  const transactions = await prisma.transaction.findMany({
     where: {
       userId,
-      externalCounterpartyId: empresaId,
-      ...(Object.keys(whereDate).length > 0 ? { date: whereDate } : {}),
-      status: { not: "CANCELLED" }
+      OR: [
+        { originId: empresaId },
+        { destinationId: empresaId }
+      ],
+      ...(Object.keys(whereDate).length > 0 ? { date: whereDate } : {})
     },
-    _sum: {
-      amount: true
-    },
-    _count: {
-      id: true
+    select: {
+      amount: true,
+      type: true
     }
   });
 
@@ -119,14 +115,14 @@ export async function getTotalByEmpresa(empresaId: string, startDate?: Date, end
   let totalSaidas = 0;
   let qtdTransacoes = 0;
 
-  for (const agg of aggregates) {
-    const sum = agg._sum.amount?.toNumber() || 0;
-    if (agg.type === "INCOME") {
+  for (const t of transactions) {
+    const sum = t.amount.toNumber();
+    if (t.type === "INCOME") {
       totalEntradas += sum;
     } else {
       totalSaidas += Math.abs(sum);
     }
-    qtdTransacoes += agg._count.id;
+    qtdTransacoes++;
   }
 
   return {
@@ -151,7 +147,6 @@ export async function getTransacoesByEmpresa(empresaId: string, startDate?: Date
   if (startDate) whereDate.gte = startDate;
   if (endDate) whereDate.lte = endDate;
 
-  // Valida que a Counterparty pertence ao usuário (Isolamento Multitenant Absoluto)
   const counterparty = await prisma.counterparty.findUnique({
     where: { id: empresaId }
   });
@@ -162,13 +157,15 @@ export async function getTransacoesByEmpresa(empresaId: string, startDate?: Date
   const transacoes = await prisma.transaction.findMany({
     where: {
       userId,
-      externalCounterpartyId: empresaId,
+      OR: [
+        { originId: empresaId },
+        { destinationId: empresaId }
+      ],
       ...(Object.keys(whereDate).length > 0 ? { date: whereDate } : {})
     },
     orderBy: { date: "desc" },
     include: {
-      category: { select: { id: true, name: true, color: true } },
-      bankAccount: { select: { id: true, name: true, bankName: true } }
+      category: { select: { id: true, name: true, color: true } }
     }
   });
 
