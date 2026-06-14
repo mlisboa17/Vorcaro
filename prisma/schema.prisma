@@ -61,6 +61,7 @@ model User {
   bankStatementLayoutCorrections    BankStatementLayoutCorrection[]
   bankStatementImports              BankStatementImport[]
   counterparties                    Counterparty[]
+  statementLineSuggestions          StatementLineSuggestion[]
 }
 
 model Account {
@@ -356,6 +357,7 @@ model Transaction {
   destinationId          String?
   identificationScore    Int?
   identificationStatus   IdentificationStatus @default(UNKNOWN)
+  status                 String?              @default("PENDING")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
@@ -1482,3 +1484,25 @@ model WebhookLog {
 
   @@index([tenantId, createdAt])
 }
+
+model StatementLineSuggestion {
+  id              String               @id @default(cuid())
+  userId          String
+  description     String
+  amount          Decimal              @db.Decimal(15, 2)
+  date            DateTime
+  cnpjCpf         String?
+  suggestedName   String?
+  originId        String?
+  destinationId   String?
+  score           Int
+  status          IdentificationStatus @default(UNKNOWN)
+  reconciliationMatchId String?
+  processed       Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+

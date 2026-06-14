@@ -16,7 +16,7 @@ import { InboxMetricsCards } from "./inbox-metrics-cards";
 import { QuickIngest } from "./quick-ingest";
 import { cn } from "@/lib/utils/cn";
 import { Loader2, Upload } from "lucide-react";
-import { FinancialFileImportModal } from "./financial-file-import-modal";
+import Link from "next/link";
 import { InboxBankImportPanel } from "./inbox-bank-import-panel";
 import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
 import { InboxBulkReviewModal } from "./inbox-bulk-review-modal";
@@ -69,7 +69,6 @@ function InboxDashboardContent() {
   const [authError, setAuthError] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkConfirmBusy, setBulkConfirmBusy] = useState(false);
@@ -686,19 +685,18 @@ function InboxDashboardContent() {
             Visão cognitiva do Logos — IA, regras automáticas e confirmações pendentes.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setImportOpen(true)}
+        <Link
+          href="/dashboard/statements?tab=import"
           className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
         >
           <Upload className="h-4 w-4" />
           Importar Extrato / Fatura
-        </button>
+        </Link>
       </header>
 
       <InboxMetricsCards items={allItems} />
 
-      <InboxBankImportPanel onOpenFullImport={() => setImportOpen(true)} />
+      <InboxBankImportPanel onOpenFullImport={() => router.push("/dashboard/statements?tab=import")} />
 
       <InboxIntelligenceMetricsCards metrics={intelligenceMetrics} />
 
@@ -821,17 +819,7 @@ function InboxDashboardContent() {
         onFeedbackRecorded={() => void fetchIntelligenceMetrics()}
       />
 
-      <FinancialFileImportModal
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImportSuccess={(result) => {
-          pushToast(
-            "success",
-            `Arquivo importado. ${result.imported} lançamentos enviados para revisão.`,
-          );
-          fetchInbox().catch(console.error);
-        }}
-      />
+
 
       <InboxBulkReviewModal
         open={bulkOpen}

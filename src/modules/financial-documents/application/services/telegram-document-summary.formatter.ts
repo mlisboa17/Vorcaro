@@ -42,7 +42,7 @@ export function formatTelegramDocumentSummary(input: {
 export const TELEGRAM_DOCUMENT_RECEIVED = "Documento recebido.\nProcessando…";
 
 export const TELEGRAM_PASSWORD_REQUIRED =
-  "Este documento está protegido por senha.\n\nInforme a senha no dashboard: /dashboard/import";
+  "Este documento está protegido por senha.\n\nPor favor, responda a esta mensagem enviando a senha do PDF (ou envie \"cancelar\" para desistir).";
 
 export const TELEGRAM_REVIEW_REQUIRED =
   "Informações críticas ausentes ou confiança insuficiente. Revise em /dashboard/import/review antes de aprovar.";

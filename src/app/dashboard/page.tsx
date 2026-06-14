@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { ExecutiveDashboard } from "@/components/executive-dashboard/executive-dashboard";
-import { AuditAlertBanner } from "./components/audit-alert-banner";
+import { PendingAlertsBanner } from "./components/pending-alerts-banner";
 
 export default function DashboardHomePage() {
   return (
@@ -12,8 +12,9 @@ export default function DashboardHomePage() {
         </div>
       }
     >
-      <AuditAlertBanner />
+      <PendingAlertsBanner />
       <ExecutiveDashboard />
     </Suspense>
   );
 }
+

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import type { CashFlowProjectionDTO } from "@/types/cashflow";
 import type { ExecutiveDashboardDTO } from "@/types/executive-dashboard";
-import { FinancialFileImportModal } from "@/components/inbox/financial-file-import-modal";
 import { SettingsToastProvider, useSettingsToast } from "@/components/settings/settings-toast";
 import { ExecutiveAlertsPanel } from "./executive-alerts-panel";
 import { ExecutiveBudgetCard } from "./executive-budget-card";
@@ -42,7 +41,6 @@ function ExecutiveDashboardInner() {
   const [authError, setAuthError] = useState(false);
   const [data, setData] = useState<ExecutiveDashboardDTO | null>(null);
   const [projection, setProjection] = useState<CashFlowProjectionDTO | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,14 +120,13 @@ function ExecutiveDashboardInner() {
               </Link>
             );
           })}
-          <button
-            type="button"
-            onClick={() => setImportOpen(true)}
+          <Link
+            href="/dashboard/statements?tab=import"
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-slate-800"
           >
             <Upload className="h-3.5 w-3.5" />
             Importar Extrato/Fatura
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -205,14 +202,7 @@ function ExecutiveDashboardInner() {
         </section>
       ) : null}
 
-      <FinancialFileImportModal
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImportSuccess={() => {
-          setImportOpen(false);
-          void load();
-        }}
-      />
+
     </div>
   );
 }

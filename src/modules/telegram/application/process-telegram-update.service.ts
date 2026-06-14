@@ -33,6 +33,7 @@ import {
 } from "@/lib/telegram/telegram-document-actions";
 import { buildFinancialDocumentServices } from "@/lib/api/financial-documents";
 import { TelegramFinancialDocumentService } from "@/modules/financial-documents/application/services/telegram-financial-document.service";
+import { TELEGRAM_PASSWORD_REQUIRED } from "@/modules/financial-documents/application/services/telegram-document-summary.formatter";
 import { FinancialDocumentUploadError } from "@/modules/financial-documents/application/services/financial-document-upload.service";
 import { FinancialDocumentSuggestionError } from "@/modules/financial-documents/application/services/financial-document-suggestion.service";
 import {
@@ -121,6 +122,43 @@ export class ProcessTelegramUpdateService {
     }
 
     const userId = connection.userId;
+    const redis = getRedisConnection();
+
+    if (text) {
+      const pendingPasswordKey = `telegram:password_pending:${chatId}`;
+      const pendingStr = await redis.get(pendingPasswordKey);
+      if (pendingStr) {
+        const { documentId } = JSON.parse(pendingStr);
+        if (text.toLowerCase() === "cancelar" || text.toLowerCase() === "sair") {
+          await redis.del(pendingPasswordKey);
+          await this.safeReply(chatId, "❌ Operação de desbloqueio cancelada.");
+          return { ok: true, handled: "password_cancelled", channel: "TELEGRAM" };
+        }
+
+        await this.safeReply(chatId, "🔑 Processando documento com a senha fornecida...");
+        const docService = new TelegramFinancialDocumentService(this.prisma);
+        const result = await docService.submitPasswordAndProcess(userId, documentId, text);
+
+        if (result.summary.startsWith("❌ Senha incorreta")) {
+          await this.safeReply(chatId, result.summary);
+        } else {
+          await redis.del(pendingPasswordKey);
+          if (result.suggestionId) {
+            if (result.allowInlineApproval !== false) {
+              await sendTelegramMessageWithMode(chatId, result.summary, "HTML", {
+                inline_keyboard: buildDocumentSuggestionKeyboard(result.suggestionId),
+              });
+            } else {
+              await this.safeReply(chatId, result.summary);
+            }
+          } else {
+            await this.safeReply(chatId, result.summary);
+          }
+        }
+        return { ok: true, handled: "password_submitted", channel: "TELEGRAM" };
+      }
+    }
+
     const repository = new PrismaInboxRepository(this.prisma);
     const ingestUseCase = new IngestInboxItemUseCase(repository);
 
@@ -255,6 +293,10 @@ export class ProcessTelegramUpdateService {
             await this.safeReply(chatId, result.immediateAck);
           }
           await this.safeReply(chatId, result.summary);
+          
+          if (result.summary === TELEGRAM_PASSWORD_REQUIRED) {
+            await redis.setex(`telegram:password_pending:${chatId}`, 300, JSON.stringify({ documentId: result.documentId }));
+          }
         }
         return { ok: true, handled: "document", channel: "TELEGRAM" };
       } catch (error) {

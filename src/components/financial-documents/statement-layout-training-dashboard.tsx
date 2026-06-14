@@ -328,13 +328,13 @@ function StatementLayoutTrainingInner() {
 
             [
 
-              ["/dashboard/import", "Upload"],
+              ["/dashboard/statements?tab=import", "Upload"],
 
-              ["/dashboard/import/layout-training", "Modelos"],
+              ["/dashboard/statements?tab=layout-training", "Modelos"],
 
-              ["/dashboard/import/layout-training/homologation", "Homologação real"],
+              ["/dashboard/statements?tab=layout-training-homologation", "Homologação real"],
 
-              ["/dashboard/import/review", "Revisão"],
+              ["/dashboard/statements?tab=import-review", "Revisão"],
 
             ] as const
 
@@ -350,7 +350,7 @@ function StatementLayoutTrainingInner() {
 
                 "rounded-lg border px-3 py-1.5",
 
-                href === "/dashboard/import/layout-training"
+                href === "/dashboard/statements?tab=layout-training"
 
                   ? "border-slate-900 bg-slate-900 text-white"
 
@@ -376,7 +376,7 @@ function StatementLayoutTrainingInner() {
 
         <Link
 
-          href="/dashboard/import/layout-training/homologation"
+          href="/dashboard/statements?tab=layout-training-homologation"
 
           className="rounded-lg bg-slate-900 px-3 py-1.5 text-white hover:bg-slate-800"
 
@@ -424,7 +424,7 @@ function StatementLayoutTrainingInner() {
 
             Importe um extrato ou rode{" "}
 
-            <Link href="/dashboard/import/layout-training/homologation" className="underline">
+            <Link href="/dashboard/statements?tab=layout-training-homologation" className="underline">
 
               homologação real
 

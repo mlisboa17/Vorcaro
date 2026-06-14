@@ -114,8 +114,8 @@ function RealBankHomologationInner() {
         <nav className="mt-4 flex flex-wrap gap-2 text-sm">
           {(
             [
-              ["/dashboard/import/layout-training", "Modelos treinados"],
-              ["/dashboard/import/layout-training/homologation", "Homologação real"],
+              ["/dashboard/statements?tab=layout-training", "Modelos treinados"],
+              ["/dashboard/statements?tab=layout-training-homologation", "Homologação real"],
             ] as const
           ).map(([href, label]) => (
             <Link

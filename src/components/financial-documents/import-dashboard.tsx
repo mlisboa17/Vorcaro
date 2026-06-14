@@ -735,10 +735,10 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
         <nav className="mt-4 flex flex-wrap gap-2 text-sm">
           {(
             [
-              ["/dashboard/import", "Upload"],
-              ["/dashboard/import/layout-training", "Treinamento de Extratos"],
-              ["/dashboard/import/review", "Revisão"],
-              ["/dashboard/import/history", "Histórico"],
+              ["/dashboard/statements?tab=import", "Upload"],
+              ["/dashboard/statements?tab=layout-training", "Treinamento de Extratos"],
+              ["/dashboard/statements?tab=import-review", "Revisão"],
+              ["/dashboard/statements?tab=import-history", "Histórico"],
             ] as const
           ).map(([href, label]) => (
             <Link
@@ -746,9 +746,9 @@ function ImportDashboardInner({ mode }: { mode: "upload" | "review" | "history" 
               href={href}
               className={cn(
                 "rounded-lg border px-3 py-1.5",
-                (href === "/dashboard/import" && mode === "upload") ||
-                  (href.includes("review") && mode === "review") ||
-                  (href.includes("history") && mode === "history")
+                (href.includes("tab=import") && mode === "upload") ||
+                  (href.includes("tab=import-review") && mode === "review") ||
+                  (href.includes("tab=import-history") && mode === "history")
                   ? "border-slate-900 bg-slate-900 text-white"
                   : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
               )}
