@@ -22,7 +22,7 @@ async function runSingleTest() {
   console.log(`- Lançamentos extraídos do extrato: ${parsedLines.length}`);
   
   // Pegar uma linha interessante (ex: PIX)
-  const pixLine = parsedLines.find(l => l.description.toUpperCase().includes("PIX")) || parsedLines[0];
+  const pixLine = parsedLines.find(l => l.description?.toUpperCase().includes("PIX")) || parsedLines[0];
   
   console.log("\n2. Mandando Lançamento Bruto pro Gemini:");
   console.log(pixLine.rawContent);
