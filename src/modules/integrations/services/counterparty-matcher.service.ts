@@ -132,9 +132,17 @@ export class CounterpartyMatcherService {
     }
 
     // 4. Fallback (Aprendizado / Criação): Nenhuma match encontrada.
-    // Cria uma nova Counterparty
-    const newCounterparty = await this.prisma.counterparty.create({
-      data: {
+    const newCounterparty = await this.prisma.counterparty.upsert({
+      where: {
+        userId_name: {
+          userId,
+          name: normalizedName,
+        }
+      },
+      update: {
+        ...(doc ? { cnpjCpf: doc } : {})
+      },
+      create: {
         userId,
         name: normalizedName,
         cnpjCpf: doc,
