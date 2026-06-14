@@ -32,3 +32,22 @@ export function parseFollowUpDismissCallback(data: string): string | null {
   const match = /^dismiss_fu:(.+)$/.exec(data);
   return match?.[1] ?? null;
 }
+
+export function buildCognitiveTransactionKeyboard(
+  inboxItemId: string,
+): TelegramInlineKeyboardButton[][] {
+  return [[
+    { text: "✅ Confirmar Lançamento", callback_data: `cog_ack:${inboxItemId}` },
+    { text: "❌ Descartar", callback_data: `cog_rej:${inboxItemId}` },
+  ]];
+}
+
+export function parseCognitiveTransactionCallback(
+  data: string,
+): { action: "ack" | "rej"; inboxItemId: string } | null {
+  const ack = /^cog_ack:(.+)$/.exec(data);
+  if (ack?.[1]) return { action: "ack", inboxItemId: ack[1] };
+  const rej = /^cog_rej:(.+)$/.exec(data);
+  if (rej?.[1]) return { action: "rej", inboxItemId: rej[1] };
+  return null;
+}

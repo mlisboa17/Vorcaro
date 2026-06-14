@@ -6,9 +6,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TransactionListTable, type TransactionListItemData } from "@/modules/transactions/components/transaction-list-table";
 import { TransactionSummaryCards } from "@/modules/transactions/components/transaction-summary-cards";
-import type { Prisma } from "@prisma/client";
-
-const PAGE_SIZE = 50;
+import { getTransactions } from "@/modules/transactions/actions/get-transactions";
 
 type PageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -35,74 +33,30 @@ export default async function TransactionsPage(props: PageProps) {
   }
 
   const userId = session.user.id;
-  const prisma = getTenantPrisma(userId);
-
   const currentPage = readPageParam(searchParams.page);
-  const skip = (currentPage - 1) * PAGE_SIZE;
 
   const accountId = readStringParam(searchParams.accountId);
   const categoryId = readStringParam(searchParams.categoryId);
   const search = readStringParam(searchParams.search);
+  const reviewRequired = readStringParam(searchParams.reviewRequired);
 
-  const where: Prisma.TransactionWhereInput = {
+  const {
+    transactions,
+    totalCount,
+    totalPages,
+    accounts,
+    categories,
+    income,
+    expense,
+    balance
+  } = await getTransactions({
     userId,
-    ...(accountId && { accountId }),
-    ...(categoryId && { categoryId }),
-    ...(search && {
-      description: {
-        contains: search,
-        mode: "insensitive",
-      },
-    }),
-  };
-
-  const [totalCount, rawTransactions, accounts, categories, incomeAgg, expenseAgg] = await Promise.all([
-    prisma.transaction.count({ where }),
-    prisma.transaction.findMany({
-      where,
-      take: PAGE_SIZE,
-      skip,
-      orderBy: { date: "desc" },
-      include: {
-        account: { select: { name: true } },
-        category: { select: { name: true } },
-      },
-    }),
-    prisma.financialAccount.findMany({
-      where: { userId, isActive: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.category.findMany({
-      where: { userId },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.transaction.aggregate({
-      where: { ...where, amount: { gt: 0 } },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { ...where, amount: { lt: 0 } },
-      _sum: { amount: true },
-    }),
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  const income = Number(incomeAgg._sum.amount ?? 0);
-  const expense = Number(expenseAgg._sum.amount ?? 0);
-  const balance = income + expense;
-
-  const transactions: TransactionListItemData[] = rawTransactions.map((tx) => ({
-    id: tx.id,
-    description: tx.description,
-    amount: Number(tx.amount),
-    type: tx.type,
-    date: tx.date,
-    accountName: tx.account?.name ?? null,
-    categoryName: tx.category?.name ?? null,
-  }));
+    page: currentPage,
+    accountId,
+    categoryId,
+    search,
+    reviewRequired,
+  });
 
   return (
     <div className="space-y-6">

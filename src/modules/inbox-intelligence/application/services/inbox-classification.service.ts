@@ -153,6 +153,7 @@ export type ClassifyInboxItemInput = {
   date?: string | null;
   cardId?: string | null;
   importHash?: string | null;
+  externalId?: string | null;
 };
 
 export class InboxClassificationService {
@@ -220,6 +221,7 @@ export class InboxClassificationService {
       date: input.date,
       cardId: input.cardId,
       importHash: input.importHash,
+      externalId: input.externalId,
       candidates: duplicateCandidates,
       excludeId: input.inboxItemId,
     });
@@ -274,6 +276,7 @@ export class InboxClassificationService {
         date: item.date,
         cardId: item.cardId,
         importHash: item.importHash,
+        externalId: item.externalId,
       });
     }
 
@@ -307,6 +310,7 @@ export class InboxClassificationService {
           id: true,
           rawContent: true,
           importHash: true,
+          externalId: true,
           metadata: true,
         },
         take: 100,
@@ -331,6 +335,7 @@ export class InboxClassificationService {
         date: meta?.date ?? null,
         cardId: meta?.cartaoId ?? null,
         importHash: item.importHash,
+        externalId: item.externalId,
       };
     });
 

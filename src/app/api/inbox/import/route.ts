@@ -94,6 +94,7 @@ export async function POST(request: Request) {
   let imported = 0;
   let skippedDuplicates = 0;
   let failed = 0;
+  const detailedErrors: string[] = [];
 
   try {
     const parsedLines = await parseImportFile({
@@ -160,8 +161,11 @@ export async function POST(request: Request) {
           });
 
           imported += 1;
-        } catch {
+        } catch (lineError) {
           failed += 1;
+          const msg = lineError instanceof Error ? lineError.message : "Desconhecido";
+          detailedErrors.push(`Linha omitida: ${line.description || "sem-descrição"}. Erro: ${msg}`);
+          console.warn(`[inbox/import][${file.name}] Falha na linha: ${line.description} | Erro:`, msg);
         }
       }
     });
@@ -175,6 +179,6 @@ export async function POST(request: Request) {
     return jsonError(message, 400);
   }
 
-  return NextResponse.json({ imported, skippedDuplicates, failed });
+  return NextResponse.json({ imported, skippedDuplicates, failed, detailedErrors });
 }
 

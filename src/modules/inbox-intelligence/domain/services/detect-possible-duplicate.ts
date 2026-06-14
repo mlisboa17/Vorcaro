@@ -8,6 +8,7 @@ export type DuplicateCandidate = {
   date?: string | null;
   cardId?: string | null;
   importHash?: string | null;
+  externalId?: string | null;
 };
 
 export type DuplicateDetectionResult = {
@@ -33,6 +34,7 @@ export function detectPossibleDuplicate(input: {
   date?: string | null;
   cardId?: string | null;
   importHash?: string | null;
+  externalId?: string | null;
   candidates: DuplicateCandidate[];
   excludeId?: string;
 }): DuplicateDetectionResult {
@@ -49,6 +51,18 @@ export function detectPossibleDuplicate(input: {
 
   for (const candidate of input.candidates) {
     if (input.excludeId && candidate.id === input.excludeId) continue;
+
+    if (
+      input.externalId &&
+      candidate.externalId &&
+      input.externalId === candidate.externalId
+    ) {
+      return {
+        possibleDuplicate: true,
+        duplicateReason: "Mesmo ID externo (FITID de OFX).",
+        duplicateConfidence: 100,
+      };
+    }
 
     if (
       input.importHash &&

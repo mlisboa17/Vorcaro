@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getDashboardInsights } from "@/modules/analytics/services/get-dashboard-insights";
+import { getCashflowProjection } from "@/modules/analytics/services/get-cashflow-projection";
 import { DashboardCharts } from "@/modules/analytics/components/dashboard-charts";
+import { ProjectionChart } from "@/modules/analytics/components/projection-chart";
 
 export const metadata = {
   title: "Insights | Vorcaro",
@@ -26,6 +28,7 @@ export default async function InsightsPage({
 
   const insights = await getDashboardInsights(session.user.id, { year, month });
   const { summary } = insights;
+  const projectionData = await getCashflowProjection(session.user.id);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-1 py-2">
@@ -86,6 +89,16 @@ export default async function InsightsPage({
             {summary.topCategoryName ?? "Nenhuma despesa categorizada no mês"}
           </li>
         </ul>
+      </section>
+
+      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+        <h2 className="text-base font-semibold text-slate-900">Projeção de Saldo Acumulado</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Visão preditiva baseada nos parcelamentos e recorrências dos próximos 6 meses.
+        </p>
+        <div className="mt-6">
+          <ProjectionChart data={projectionData} />
+        </div>
       </section>
     </div>
   );

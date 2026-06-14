@@ -1,17 +1,21 @@
 import { getTenantPrisma } from "@/lib/prisma-tenant";
 import { CategoryRuleEngine } from "@/modules/automation/services/CategoryRuleEngine";
-import type { BankWebhookPayload } from "../types/bank-webhook.types";
 import { Prisma } from "@prisma/client";
+import { WebhookParserFactory } from "../../integrations/parsers/webhook-parser.factory";
 
 export class ProcessBankWebhookUseCase {
-  async execute(userId: string, accountId: string, payload: BankWebhookPayload): Promise<{ success: boolean; transactionId?: string; ignored: boolean }> {
+  async execute(userId: string, accountId: string, provider: string, rawPayload: unknown): Promise<{ success: boolean; transactionId?: string; ignored: boolean }> {
     const prisma = getTenantPrisma(userId);
 
-    // 1. Aplica o motor de regras para tentar categorizar automaticamente
+    // 1. Resolve o parser e traduz o payload dinamicamente
+    const parser = WebhookParserFactory.getParser(provider);
+    const payload = parser.parse(rawPayload);
+
+    // 2. Aplica o motor de regras para tentar categorizar automaticamente
     const ruleEngine = new CategoryRuleEngine();
     const match = await ruleEngine.execute(payload.description, userId);
 
-    // 2. Insere a transação interceptando duplicatas para idempotência rigorosa
+    // 3. Insere a transação interceptando duplicatas para idempotência rigorosa
     try {
       const transaction = await prisma.transaction.create({
         data: {

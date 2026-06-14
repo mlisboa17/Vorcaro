@@ -24,6 +24,8 @@ import {
   buildActionProposalKeyboard,
   parseActionProposalCallback,
   parseFollowUpDismissCallback,
+  buildCognitiveTransactionKeyboard,
+  parseCognitiveTransactionCallback,
 } from "@/lib/telegram/telegram-inline-actions";
 import {
   buildDocumentSuggestionKeyboard,
@@ -46,12 +48,15 @@ import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegr
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { enqueueFinancialInboxProcessing, enqueueStatementImport, getRedisConnection } from "@/lib/queue";
 import { randomUUID } from "crypto";
+import { RegisterCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/register-cognitive-transaction.use-case";
+import { ConfirmCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/confirm-cognitive-transaction.use-case";
 import { IngestInboxItemUseCase } from "@/modules/financial-inbox/application/use-cases/ingest-inbox-item.use-case";
 import { GeminiAiService } from "@/modules/financial-inbox/infrastructure/services/gemini-ai.service";
 import { PrismaInboxRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-inbox.repository";
 import type { PrismaClient } from "@prisma/client";
 import type { TelegramIntegrationPort } from "../domain/ports/telegram-integration.port";
 import { CategoryRuleEngine } from "@/modules/automation/services/CategoryRuleEngine";
+import { uploadReceipt, deleteReceipt } from "@/lib/supabase-storage";
 
 export type TelegramWebhookResult =
   | { ok: true; handled: string; inboxItemId?: string; channel?: string }
@@ -130,18 +135,24 @@ export class ProcessTelegramUpdateService {
         mimeType,
         base64: bufferToBase64(buffer),
       });
-      const ingestInput = toTelegramVoiceIngestInput(userId, {
-        rawContent: transcription,
-        chatId,
-        messageId: message.message_id,
-        username,
-        voiceFileId: message.voice.file_id,
-        duration: message.voice.duration,
+
+      const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
+      
+      // Upload do Áudio para o Supabase
+      const mediaUrl = await uploadReceipt(buffer, mimeType, `${userId}/${randomUUID()}.ogg`);
+
+      // Passa a transcrição textual diretamente para a orquestração do caso de uso
+      const result = await cognitiveUseCase.execute(userId, transcription, "TELEGRAM_VOICE", mediaUrl);
+      
+      const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
+      const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
+      const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
+      
+      await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
+        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId),
       });
-      const { id } = await ingestUseCase.execute(ingestInput);
-      await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
-      await this.safeReply(chatId, "✅ Áudio recebido e enviado para transcrição na Caixa Financeira!");
-      return { ok: true, handled: "voice", inboxItemId: id, channel: "TELEGRAM_VOICE" };
+
+      return { ok: true, handled: "voice", inboxItemId: result.inboxItemId, channel: "TELEGRAM_VOICE" };
     }
 
     if (hasPhoto(message)) {
@@ -149,19 +160,24 @@ export class ProcessTelegramUpdateService {
       if (!fileId) {
         return { ok: true, skipped: "photo_without_file_id" };
       }
-      const { buffer, mimeType } = await downloadTelegramFile(fileId, "image/jpeg");
-      const ingestInput = toTelegramImageIngestInput(userId, {
-        chatId,
-        messageId: message.message_id,
-        username,
-        photoFileId: fileId,
-        mimeType,
-        imageBase64: bufferToBase64(buffer),
+      const { buffer } = await downloadTelegramFile(fileId, "image/jpeg");
+      
+      const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
+
+      // Upload da Imagem para o Supabase
+      const mediaUrl = await uploadReceipt(buffer, "image/jpeg", `${userId}/${randomUUID()}.jpg`);
+
+      const result = await cognitiveUseCase.execute(userId, buffer, "TELEGRAM_IMAGE", mediaUrl);
+      
+      const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
+      const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
+      const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
+      
+      await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
+        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId),
       });
-      const { id } = await ingestUseCase.execute(ingestInput);
-      await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
-      await this.safeReply(chatId, "✅ Imagem recebida e enviada para extração na Caixa Financeira!");
-      return { ok: true, handled: "image", inboxItemId: id, channel: "TELEGRAM_IMAGE" };
+
+      return { ok: true, handled: "image", inboxItemId: result.inboxItemId, channel: "TELEGRAM_IMAGE" };
     }
 
     if (hasDocument(message) && message.document) {
@@ -298,27 +314,18 @@ export class ProcessTelegramUpdateService {
       await this.safeReply(chatId, `${receivableHint.message}${detail}`);
     }
 
-    const ruleEngine = new CategoryRuleEngine();
-    const match = await ruleEngine.execute(text, userId);
-
-    const ingestInput = toTelegramTextIngestInput(userId, {
-      rawContent: text,
-      chatId,
-      messageId: message.message_id,
-      username,
+    const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
+    const result = await cognitiveUseCase.execute(userId, text, "TELEGRAM");
+    
+    const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
+    const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
+    const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
+    
+    await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
+        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId)
     });
 
-    if (match) {
-      // @ts-ignore: Injetando categoryId no meta para o Inbox aproveitar
-      ingestInput.channelMeta.categoryId = match.categoryId;
-      // @ts-ignore
-      ingestInput.channelMeta.ruleId = match.ruleId;
-    }
-    const { id } = await ingestUseCase.execute(ingestInput);
-    await enqueueFinancialInboxProcessing({ inboxItemId: id, userId });
-    await this.safeReply(chatId, "✅ Recebido! Já enviei para classificação na Caixa Financeira.");
-    // Integração futura: após worker classificar, enviar formatInboxClassificationReply via Telegram.
-    return { ok: true, handled: "text", inboxItemId: id, channel: "TELEGRAM" };
+    return { ok: true, handled: "text", inboxItemId: result.inboxItemId, channel: "TELEGRAM" };
   }
 
   async executeCallback(
@@ -413,6 +420,54 @@ export class ProcessTelegramUpdateService {
       } catch {
         await answerTelegramCallbackQuery(callback.id, "Ação indisponível.");
         return { ok: true, handled: "document_suggestion_callback_failed" };
+      }
+    }
+
+    const cognitiveAction = parseCognitiveTransactionCallback(data);
+    if (cognitiveAction) {
+      try {
+        if (cognitiveAction.action === "ack") {
+           const confirmUseCase = new ConfirmCognitiveTransactionUseCase();
+           const result = await confirmUseCase.execute(connection.userId, cognitiveAction.inboxItemId);
+           
+           if (!result.success) {
+             if ("alreadyProcessed" in result && result.alreadyProcessed) {
+               await answerTelegramCallbackQuery(callback.id, "Ação já processada.");
+             } else {
+               await answerTelegramCallbackQuery(callback.id, "Erro ao confirmar.");
+             }
+           } else {
+             await answerTelegramCallbackQuery(callback.id, "Confirmado!");
+             await this.safeReply(chatId, result.message);
+           }
+        } else {
+           const inboxItem = await this.prisma.financialInbox.findUnique({
+             where: { id: cognitiveAction.inboxItemId, userId: connection.userId },
+             select: { metadata: true }
+           });
+
+           await this.prisma.financialInbox.update({
+             where: { id: cognitiveAction.inboxItemId, userId: connection.userId },
+             data: { status: "ERROR", errorMessage: "Descartado pelo usuário via Telegram" }
+           });
+
+           // Executa deleção de forma non-blocking (background) para não segurar o response do Telegram
+           if (inboxItem?.metadata && typeof inboxItem.metadata === 'object') {
+             const meta = inboxItem.metadata as Record<string, any>;
+             if (meta.mediaUrl) {
+               deleteReceipt(meta.mediaUrl).catch((err) => {
+                 console.error("[Telegram] Erro silencioso ao deletar do Supabase:", err);
+               });
+             }
+           }
+
+           await answerTelegramCallbackQuery(callback.id, "Descartado.");
+           await this.safeReply(chatId, "❌ Lançamento descartado.");
+        }
+        return { ok: true, handled: "cognitive_callback" };
+      } catch (err) {
+        await answerTelegramCallbackQuery(callback.id, "Erro ao processar ação.");
+        return { ok: true, handled: "cognitive_callback_failed" };
       }
     }
 

@@ -1,0 +1,941 @@
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:NONE
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+
+<OFX>
+  <SIGNONMSGSRSV1>
+   <SONRS>
+    <STATUS>
+      <CODE>0</CODE>
+      <SEVERITY>INFO</SEVERITY>
+    </STATUS>
+    <DTSERVER>20260614144144[-3:BRT]</DTSERVER>
+    <LANGUAGE>POR</LANGUAGE>
+    <FI>
+     <ORG>Banco do Brasil</ORG>
+     <FID>1</FID>
+    </FI>
+   </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>1</TRNUID>
+        <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+       </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>1</BANKID>
+          <BRANCHID>2365</BRANCHID>
+          <ACCTID>56816</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+            <DTSTART>20260615000000[-3:BRT]</DTSTART>
+            <DTEND>20260614144144[-3:BRT]</DTEND>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260529000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo Anterior</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>427.470.640.174.211</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>01/06 17:42 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>710.00</TRNAMT>
+              <FITID>427.470.640.174.306</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>01/06 17:43 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1490.00</TRNAMT>
+              <FITID>427.470.640.174.358</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>01/06 17:43 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1450.00</TRNAMT>
+              <FITID>427.470.640.174.444</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>01/06 17:44 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>3800.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>01/06 20:55 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>100.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>01/06 20:58 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>29000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>31/05 16:21 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>715.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>31/05 17:03 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>13380.00</TRNAMT>
+              <FITID>12.053.588.802.162</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>01/06 20:53 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-50.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>01/06 21:31 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-29714.50</TRNAMT>
+              <FITID>60.101</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1336.26</TRNAMT>
+              <FITID>60.102</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>AMBEV S A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-21546.25</TRNAMT>
+              <FITID>60.103</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2.01</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260601000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>7900.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>02/06 19:32 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>6400.00</TRNAMT>
+              <FITID>21.935.099.267.831</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>02/06 19:35 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>8300.00</TRNAMT>
+              <FITID>21.938.163.256.841</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>02/06 19:38 24156978000105 REAL RECIFE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>4500.00</TRNAMT>
+              <FITID>21.940.314.864.192</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>02/06 19:40 08594700000163 M P DE LIMA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>200.00</TRNAMT>
+              <FITID>21.943.397.923.061</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>02/06 19:43 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>3600.00</TRNAMT>
+              <FITID>21.945.143.942.922</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>02/06 19:45 03008754000186 RIO DOCE CO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-420.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>02/06 21:02 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-675.00</TRNAMT>
+              <FITID>60.201</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>ALELO INSTITUICAO DE PAGAMENTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-29804.50</TRNAMT>
+              <FITID>60.202</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-0.50</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260602000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>427.470.459.175.816</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>04/06 17:58 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1364.00</TRNAMT>
+              <FITID>427.470.459.175.919</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>04/06 17:59 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>3000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>05/06 17:50 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>05/06 18:18 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>3000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>05/06 19:06 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1200.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>05/06 20:12 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>380.00</TRNAMT>
+              <FITID>51.739.154.137.221</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 17:39 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>7300.00</TRNAMT>
+              <FITID>51.800.578.862.401</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 18:00 24156978000105 REAL RECIFE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1000.00</TRNAMT>
+              <FITID>51.833.263.162.701</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 18:33 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>24300.00</TRNAMT>
+              <FITID>51.836.456.665.511</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 18:36 03008754000186 RIO DOCE CO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>900.00</TRNAMT>
+              <FITID>51.908.372.643.142</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 19:08 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>660.00</TRNAMT>
+              <FITID>51.941.523.747.751</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 19:41 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>400.00</TRNAMT>
+              <FITID>52.025.225.105.241</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>05/06 20:25 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-305.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>04/06 18:59 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1503.42</TRNAMT>
+              <FITID>60.501</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>INSTITUTO NACIONAL DE METROLOG</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-788.23</TRNAMT>
+              <FITID>60.502</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>INST. BRAS. DO MEIO AMB. E DOS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-767.83</TRNAMT>
+              <FITID>60.503</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>INST. BRAS. DO MEIO AMB. E DOS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-29804.50</TRNAMT>
+              <FITID>60.504</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-11999.99</TRNAMT>
+              <FITID>60.505</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>BANCO SANTANDER S/A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-299.00</TRNAMT>
+              <FITID>60.506</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>YAPAY PAGAMENTOS ONLINE LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1535.48</TRNAMT>
+              <FITID>60.507</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>AMBEV S A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-121.10</TRNAMT>
+              <FITID>60.508</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>SIND DAS EMP DE TRANSP DE PASS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-379.45</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260605000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1000.00</TRNAMT>
+              <FITID>427.470.519.174.859</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:48 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1660.00</TRNAMT>
+              <FITID>427.470.519.175.019</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:50 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>100.00</TRNAMT>
+              <FITID>427.470.519.175.053</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:50 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1900.00</TRNAMT>
+              <FITID>427.470.519.175.142</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:51 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1800.00</TRNAMT>
+              <FITID>427.470.519.175.232</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:52 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>427.470.519.175.636</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:56 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>192.00</TRNAMT>
+              <FITID>427.470.519.175.721</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>08/06 17:57 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>20835.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>07/06 17:48 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>12000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>08/06 19:26 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>480.00</TRNAMT>
+              <FITID>71.750.149.223.521</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>07/06 17:50 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>14100.00</TRNAMT>
+              <FITID>81.924.393.773.261</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>08/06 19:24 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>200.00</TRNAMT>
+              <FITID>82.006.178.873.091</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>08/06 20:06 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-79.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>08/06 20:37 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-380.00</TRNAMT>
+              <FITID>60.801</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>GAS4US SERVICOS E TECNOLOGIA D</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-21295.20</TRNAMT>
+              <FITID>60.802</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-4453.15</TRNAMT>
+              <FITID>60.803</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>ASSOCIACAO CALHETAS ENERGIA SO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-636.62</TRNAMT>
+              <FITID>60.804</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>MP LUB DISTRIBUIDORA LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-29804.50</TRNAMT>
+              <FITID>60.805</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>381.47</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260608000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1024.00</TRNAMT>
+              <FITID>427.470.459.174.423</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>09/06 17:44 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>427.470.459.174.501</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>09/06 17:45 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>316.00</TRNAMT>
+              <FITID>427.470.459.174.538</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>09/06 17:45 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>9100.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>09/06 17:22 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1050.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>09/06 18:14 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1300.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>09/06 18:52 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>5740.00</TRNAMT>
+              <FITID>91.340.345.089.041</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>09/06 13:40 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1420.00</TRNAMT>
+              <FITID>91.816.555.378.932</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>09/06 18:16 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>640.00</TRNAMT>
+              <FITID>91.904.106.069.451</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>09/06 19:04 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>900.00</TRNAMT>
+              <FITID>91.947.457.445.201</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>09/06 19:47 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-788.18</TRNAMT>
+              <FITID>60.901</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>COMPANHIA ENE DE PE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1053.68</TRNAMT>
+              <FITID>60.902</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>COMPANHIA ENE DE PE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-21295.20</TRNAMT>
+              <FITID>60.904</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-352.94</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260609000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>686.00</TRNAMT>
+              <FITID>427.470.459.171.330</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>10/06 17:13 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1850.00</TRNAMT>
+              <FITID>427.470.459.171.421</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>10/06 17:14 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>383.00</TRNAMT>
+              <FITID>427.470.459.171.501</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>10/06 17:15 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>3700.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>10/06 18:10 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1323.09</TRNAMT>
+              <FITID>61.001</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>OLINDA PREFEITURA ARRECADACAO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1414.48</TRNAMT>
+              <FITID>61.003</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>OLINDA PREFEITURA ARRECADACAO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-2865.77</TRNAMT>
+              <FITID>61.004</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>OLINDA PREFEITURA ARRECADACAO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-159.90</TRNAMT>
+              <FITID>61.005</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>LOG LINK INFORMATICA LTDA ME</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-746.61</TRNAMT>
+              <FITID>61.006</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>INST. BRAS. DO MEIO AMB. E DOS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-308.87</TRNAMT>
+              <FITID>46.301</FITID>
+              <NAME>Ourocap PM</NAME>
+              <MEMO>OUROCAP PM</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>199.72</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260610000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>834.00</TRNAMT>
+              <FITID>427.470.464.171.710</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>12/06 17:17 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>2000.00</TRNAMT>
+              <FITID>427.470.464.171.755</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>12/06 17:17 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1850.00</TRNAMT>
+              <FITID>427.470.464.171.847</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>12/06 17:18 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1429.00</TRNAMT>
+              <FITID>427.470.464.171.941</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>12/06 17:19 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>50.00</TRNAMT>
+              <FITID>427.470.464.172.015</FITID>
+              <NAME>Dep dinheiro ATM</NAME>
+              <MEMO>12/06 17:20 SAA-MARIM DOS CAETES</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>9960.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência recebida</NAME>
+              <MEMO>12/06 16:27 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>10920.00</TRNAMT>
+              <FITID>121.420.134.774.121</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>12/06 14:20 04284939000186 AUTO POSTO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-5000.00</TRNAMT>
+              <FITID>612.365.000.056.435</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>12/06 17:23 POSTO REAL LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-15065.25</TRNAMT>
+              <FITID>61.201</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>VIBRA ENERGIA S.A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-6605.37</TRNAMT>
+              <FITID>61.202</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>SOUZA CRUZ LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-372.38</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20260612000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20260615000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-39.15</TRNAMT>
+              <FITID>61.501</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>14/06 11:10 BLOX BRASIL LTDA</MEMO>
+            </STMTTRN>
+      </BANKTRANLIST>
+      <LEDGERBAL>
+        <BALAMT>-39.15</BALAMT>
+        <DTASOF>20260615000000[-3:BRT]</DTASOF>
+      </LEDGERBAL>
+    </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

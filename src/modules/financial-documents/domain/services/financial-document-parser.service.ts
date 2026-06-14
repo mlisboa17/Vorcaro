@@ -122,6 +122,23 @@ function extractTransferParties(text: string): Partial<ParsedFinancialFields> {
   };
 }
 
+function cleanPixReceiverString(raw: string): string {
+  let cleaned = raw.trim();
+  // Remove CPF/CNPJ appended at the end or middle
+  cleaned = cleaned.replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, "");
+  cleaned = cleaned.replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, "");
+  // Remove common bank names that might appear after the name
+  cleaned = cleaned.replace(/\b(banco do brasil|bradesco|itau|itaú|nubank|caixa economica|caixa econômica|santander|c6 bank|inter|sicoob|sicredi)\b/gi, "");
+  // Remove trailing institutions or codes like "BCO", "ISPB", "S.A."
+  cleaned = cleaned.replace(/\b(bco|ispb|s\.a\.|s\/a|ltda|me)\b/gi, "");
+  // Remove random alphanumeric strings long enough to be hashes or keys
+  cleaned = cleaned.replace(/\b[A-Za-z0-9]{20,}\b/g, "");
+  // Remove trailing isolated numbers and special characters
+  cleaned = cleaned.replace(/[\d/.-]+$/g, "");
+  // Clean up extra spaces
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
 function mergePartyFields(method: TransactionMethod, text: string, fields: ParsedFinancialFields): ParsedFinancialFields {
   const partyFields =
     method === "PIX"
@@ -130,13 +147,18 @@ function mergePartyFields(method: TransactionMethod, text: string, fields: Parse
         ? extractTransferParties(text)
         : {};
 
+  let rawReceiver = partyFields.receiverName ?? fields.receiverName ?? fields.payeeName ?? fields.supplier;
+  if (method === "PIX" && rawReceiver) {
+    rawReceiver = cleanPixReceiverString(rawReceiver);
+  }
+
   return {
     ...fields,
     ...partyFields,
     payerName: partyFields.payerName ?? fields.payerName,
-    receiverName: partyFields.receiverName ?? fields.receiverName ?? fields.payeeName ?? fields.supplier,
-    payeeName: partyFields.payeeName ?? fields.payeeName ?? partyFields.receiverName,
-    supplier: partyFields.supplier ?? fields.supplier ?? partyFields.receiverName,
+    receiverName: rawReceiver,
+    payeeName: partyFields.payeeName ?? fields.payeeName ?? rawReceiver,
+    supplier: partyFields.supplier ?? fields.supplier ?? rawReceiver,
     cpfCnpj: partyFields.receiverDocument ?? fields.cpfCnpj,
     bank: partyFields.receiverBank ?? partyFields.payerBank ?? fields.bank,
     agency: partyFields.receiverAgency ?? partyFields.payerAgency ?? fields.agency,

@@ -148,6 +148,13 @@ export async function suggestCategory(
   db: PrismaClient,
   userId: string,
   description: string,
+  lineContext?: {
+    amount?: number | null;
+    date?: string | null;
+    cardId?: string | null;
+    importHash?: string | null;
+    externalId?: string | null;
+  }
 ): Promise<CategorySuggestion & {
   classificationScore?: number;
   classificationExplanation?: string;
@@ -158,7 +165,15 @@ export async function suggestCategory(
     "@/modules/inbox-intelligence/application/services/inbox-classification.service"
   );
   const classifier = new InboxClassificationService(db);
-  const suggestion = await classifier.classify({ userId, description });
+  const suggestion = await classifier.classify({ 
+    userId, 
+    description,
+    amount: lineContext?.amount,
+    date: lineContext?.date,
+    cardId: lineContext?.cardId,
+    importHash: lineContext?.importHash,
+    externalId: lineContext?.externalId,
+  });
 
   return {
     categoryId: suggestion.categoryId,
@@ -334,8 +349,16 @@ export async function buildPreviewLines(params: {
         });
 
     const installments = extractInstallments(line.description ?? line.rawContent);
-    const category = await suggestCategory(params.db, params.userId, line.description ?? line.rawContent);
     const amount = typeof line.amount === "number" ? line.amount : null;
+    
+    const category = await suggestCategory(params.db, params.userId, line.description ?? line.rawContent, {
+      amount,
+      date: line.date,
+      cardId: params.cardId,
+      importHash,
+      externalId: line.externalId,
+    });
+    
     const installmentResolved =
       amount != null && amount > 0
         ? resolveInboxInstallment({

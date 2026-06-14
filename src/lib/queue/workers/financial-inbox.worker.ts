@@ -24,6 +24,8 @@ import {
 import { InboxClassificationService } from "@/modules/inbox-intelligence/application/services/inbox-classification.service";
 import { mergeClassificationIntoExtraction } from "@/lib/inbox/apply-inbox-classification";
 import { createStatementImportWorker } from "@/lib/queue/workers/statement-import.worker";
+import { resolveAutomationTier } from "@/modules/inbox-intelligence/domain/types/inbox-automation-policy";
+import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
 
 function createProcessInboxItemUseCase(): ProcessInboxItemUseCase {
   const inboxRepository = new PrismaInboxRepository(prisma);
@@ -89,9 +91,18 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
         const extractionRepo = new PrismaExtractionResultRepository(prisma);
         await extractionRepo.updateExtractedData(result.extractionResultId, merged);
 
-        console.info(
-          `[financial-inbox] Item ${inboxItemId} → ${result.status} (extraction: ${result.extractionResultId})`,
-        );
+        const tier = resolveAutomationTier(suggestion.confidence, Boolean(suggestion.categoryId));
+        
+        if (tier === "auto") {
+          await handleInboxSmartBatchExecute(prisma, userId, [inboxItemId], { recordFeedback: false });
+          console.info(`[financial-inbox] Item ${inboxItemId} → AUTO_EFFECTUATED (confidence: ${suggestion.confidence})`);
+        } else {
+          // Force NEEDS_CONFIRMATION for anything below threshold
+          await inboxRepository.updateStatus(inboxItemId, "NEEDS_CONFIRMATION");
+          console.info(
+            `[financial-inbox] Item ${inboxItemId} → NEEDS_CONFIRMATION (extraction: ${result.extractionResultId}, confidence: ${suggestion.confidence})`,
+          );
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown processing error";
 

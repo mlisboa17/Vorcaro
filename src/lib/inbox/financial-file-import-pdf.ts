@@ -3,6 +3,7 @@ import { PdfParseError, toPdfParseError } from "@/lib/parsers/pdf-import-errors"
 import type { ImportedFinancialLine } from "@/modules/financial-inbox/domain/types/imported-financial-line";
 import { resolveBankStatement } from "@/lib/bank-parsers";
 import { isBradescoInvoiceText, parseBradescoInvoiceText, type BradescoInvoiceSummary } from "./bradesco-invoice-parser";
+import { parseInstallmentStructure } from "@/lib/financial/installment-structural-parser";
 
 export type { BradescoInvoiceSummary };
 
@@ -26,6 +27,12 @@ function normalizeDateToYyyyMmDd(value: string): string | null {
   const compact = raw.match(/^(\d{4})(\d{2})(\d{2})/);
   if (compact) {
     return `${compact[1]}-${compact[2]}-${compact[3]}`;
+  }
+
+  const shortBr = raw.match(/^(\d{2})\/(\d{2})$/);
+  if (shortBr) {
+    const year = new Date().getFullYear();
+    return `${year}-${shortBr[2]}-${shortBr[1]}`;
   }
 
   return null;
@@ -86,21 +93,31 @@ export function linesFromPdfText(text: string, fileName: string): ImportedFinanc
 
   const result: ImportedFinancialLine[] = [];
 
-  for (const line of lines.slice(0, 500)) {
-    const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})/);
+  for (const line of lines.slice(0, 800)) {
+    // Exclude header/footer lines that are not transactions
+    if (/^(fatura|limite|pagamento|resumo|saldo|total|vencimento)/i.test(line)) continue;
+
+    const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2}|\b\d{2}\/\d{2}\b)/);
     const amountMatch = line.match(/(-?\d{1,3}(\.\d{3})*,\d{2}|-?\d+(\.\d+)?)/);
 
     const date = dateMatch ? normalizeDateToYyyyMmDd(dateMatch[1]) : null;
     const amount = amountMatch ? safeNumber(amountMatch[0]) : null;
 
-    if (amount === null && date === null) {
+    const isForeignCurrency = /(IOF|US\$|cotacao|cotação|conversão)/i.test(line);
+
+    if (amount === null && date === null && !isForeignCurrency) {
       continue;
     }
+
+    const description = normalizeWhitespace(line).slice(0, 140);
+    const parsedInstallment = parseInstallmentStructure(description);
 
     result.push({
       date: date ?? undefined,
       amount: amount ?? undefined,
-      description: normalizeWhitespace(line).slice(0, 140) || undefined,
+      description: parsedInstallment.descricaoBase || description || undefined,
+      installment: parsedInstallment.hadInstallmentMarker ? parsedInstallment.numeroParcela : undefined,
+      totalInstallments: parsedInstallment.hadInstallmentMarker ? parsedInstallment.totalParcelas : undefined,
       rawContent: normalizeWhitespace(line),
     });
   }

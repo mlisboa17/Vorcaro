@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, FileSearch, Search } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, FileSearch, Search, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -13,6 +13,8 @@ export type TransactionListItemData = {
   date: Date;
   accountName: string | null;
   categoryName: string | null;
+  reviewRequired?: boolean;
+  mediaUrl?: string;
 };
 
 type AccountOption = { id: string; name: string };
@@ -142,6 +144,8 @@ function TransactionListFilters({
   );
 }
 
+import { getTransactionFileUrl } from "../actions/get-transaction-file-url";
+
 export function TransactionListTable({
   transactions,
   page,
@@ -202,7 +206,31 @@ export function TransactionListTable({
                         }).format(new Date(tx.date))}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-medium text-slate-800">{tx.description}</span>
+                        <span className="flex items-center gap-2 font-medium text-slate-800">
+                          {tx.description}
+                          {tx.reviewRequired && (
+                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                              Revisão Necessária
+                            </span>
+                          )}
+                          {tx.mediaUrl && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const signedUrl = await getTransactionFileUrl(tx.mediaUrl!);
+                                  window.open(signedUrl, "_blank");
+                                } catch (error) {
+                                  console.error("Erro ao gerar URL", error);
+                                  alert("Não foi possível carregar o anexo.");
+                                }
+                              }}
+                              className="inline-flex items-center justify-center rounded bg-slate-100 p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                              title="Ver Comprovante Original"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                            </button>
+                          )}
+                        </span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-slate-500">{tx.accountName ?? "—"}</td>
                       <td className="whitespace-nowrap px-6 py-4">

@@ -11,5 +11,9 @@ export function containsBinaryOcrArtifacts(text: string): boolean {
 
 export function sanitizeOcrText(text: string): string {
   if (containsBinaryOcrArtifacts(text)) return "";
-  return text.replace(/\r\n/g, "\n").trim();
+  let cleaned = text.replace(/\r\n/g, "\n");
+  // OCR usually introduces multiple spaces and blank lines
+  cleaned = cleaned.replace(/[ \t]{2,}/g, " "); // Replace multiple spaces with a single space
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n"); // Keep max 2 newlines
+  return cleaned.trim();
 }
