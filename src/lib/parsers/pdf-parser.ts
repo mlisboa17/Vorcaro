@@ -1,4 +1,4 @@
-import { PdfParseError, toPdfParseError } from "./pdf-import-errors";
+import { PdfParseError, toPdfParseError, isPasswordRelatedPdfError } from "./pdf-import-errors";
 
 export interface PdfParseOptions {
   pdfPassword?: string;
@@ -41,8 +41,27 @@ export async function parsePdf(buffer: Buffer, options?: PdfParseOptions): Promi
 
     await pdfDoc.destroy();
     return fullText;
-  } catch (error) {
-    throw toPdfParseError(error, hadPassword);
+  } catch (primaryError) {
+    // Se falhar na Vercel por dependências nativas/ESM, cai no fallback do pdf-parse
+    try {
+      const pdfModule = (await import("pdf-parse")) as any;
+      const pdf = pdfModule.default || pdfModule;
+      const optionsObj: any = {};
+      if (options?.pdfPassword) {
+        optionsObj.ownerPassword = options.pdfPassword;
+        optionsObj.userPassword = options.pdfPassword;
+      }
+      const parsedData = await pdf(buffer, optionsObj);
+      return parsedData.text || "";
+    } catch (fallbackError) {
+      if (isPasswordRelatedPdfError(fallbackError)) {
+        throw toPdfParseError(fallbackError, hadPassword);
+      }
+      if (isPasswordRelatedPdfError(primaryError)) {
+        throw toPdfParseError(primaryError, hadPassword);
+      }
+      throw toPdfParseError(fallbackError, hadPassword);
+    }
   }
 }
 

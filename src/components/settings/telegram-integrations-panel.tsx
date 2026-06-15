@@ -176,11 +176,28 @@ export function TelegramIntegrationsPanel() {
 
             {pendingCode ? (
               <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
-                <p className="text-sm font-medium text-sky-900">Envie no Telegram:</p>
-                <p className="mt-2 font-mono text-lg tracking-widest text-sky-950">{pendingCode.command}</p>
-                <p className="mt-2 text-xs text-sky-800">
-                  Expira em {pendingCode.ttlMinutes} min ({new Date(pendingCode.expiresAt).toLocaleTimeString("pt-BR")})
-                </p>
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <p className="text-sm font-medium text-sky-900">Opção 1: Copie e envie no chat do bot:</p>
+                    <p className="font-mono text-base tracking-wider text-sky-950 bg-white px-3 py-1.5 rounded border border-sky-200 inline-block">{pendingCode.command}</p>
+                    <p className="text-sm font-medium text-sky-900 mt-4 pt-2">Opção 2: Aponte a câmera do celular para o QR Code:</p>
+                    <p className="text-xs text-sky-800">
+                      O código expira em {pendingCode.ttlMinutes} min ({new Date(pendingCode.expiresAt).toLocaleTimeString("pt-BR")})
+                    </p>
+                  </div>
+                  {status?.telegramWebhook?.botUsername && (
+                    <div className="flex flex-col items-center p-3 bg-white rounded-lg border border-sky-200 shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                          `https://t.me/${status.telegramWebhook.botUsername}?start=${pendingCode.code}`
+                        )}`}
+                        alt="QR Code Integração Telegram"
+                        className="h-[150px] w-[150px] object-contain"
+                      />
+                      <span className="mt-2 text-xs font-semibold text-slate-700">Scan para Conectar</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : null}
           </div>

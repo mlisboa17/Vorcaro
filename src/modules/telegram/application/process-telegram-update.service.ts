@@ -77,14 +77,6 @@ export class ProcessTelegramUpdateService {
 
     const text = message.text?.trim();
 
-    if (text && (isStartCommand(text) || isHelpCommand(text))) {
-      await this.safeReply(
-        chatId,
-        "Olá! Vorcaro Finance Control.\n\n1) Em <b>Cadastros → Integrações</b>, gere um código.\n2) Envie aqui: <code>/connect SEUCODIGO</code>\n3) Envie comprovantes ou converse com o Vorcaro.\n\nComandos: /status /alertas /gastos /metas /oportunidades /recebiveis\nOu: <code>Vorcaro, como estou financeiramente?</code>",
-      );
-      return { ok: true, handled: "command" };
-    }
-
     const connectCode = text ? parseConnectCommand(text) : null;
     if (connectCode) {
       try {
@@ -110,6 +102,14 @@ export class ProcessTelegramUpdateService {
         await this.safeReply(chatId, reply);
         return { ok: true, handled: "connect_failed" };
       }
+    }
+
+    if (text && (isStartCommand(text) || isHelpCommand(text))) {
+      await this.safeReply(
+        chatId,
+        "Olá! Vorcaro Finance Control.\n\n1) Em <b>Cadastros → Integrações</b>, gere um código.\n2) Envie aqui: <code>/connect SEUCODIGO</code>\n3) Envie comprovantes ou converse com o Vorcaro.\n\nComandos: /status /alertas /gastos /metas /oportunidades /recebiveis\nOu: <code>Vorcaro, como estou financeiramente?</code>",
+      );
+      return { ok: true, handled: "command" };
     }
 
     const connection = await this.telegramIntegration.findActiveConnectionByChatId(BigInt(chatId));
