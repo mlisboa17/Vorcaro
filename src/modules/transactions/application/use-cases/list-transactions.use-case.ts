@@ -1,6 +1,6 @@
 import type { PrismaClient, TransactionType } from "@prisma/client";
 import { isThirdPartyExpenseTransaction } from "@/lib/financial/receivable-transaction-metadata";
-import { resolvePeriodPreset } from "@/lib/utils/date-periods";
+import { resolvePeriodPreset, type PeriodPreset } from "@/lib/utils/date-periods";
 import type { TransactionSummary } from "@/types/transactions";
 import type {
   ListTransactionsFilters,
@@ -16,7 +16,7 @@ export interface ListTransactionsInput {
   categoryId?: string;
   startDate?: Date;
   endDate?: Date;
-  period?: "current_month" | "previous_month";
+  period?: PeriodPreset;
   limit?: number;
   offset?: number;
 }
@@ -34,7 +34,12 @@ export class ListTransactionsUseCase {
   ) {}
 
   async execute(input: ListTransactionsInput): Promise<ListTransactionsOutput> {
-    const period = resolvePeriodPreset(input.period ?? "current_month");
+    const period = resolvePeriodPreset(
+      input.period ?? "current_month",
+      new Date(),
+      input.startDate,
+      input.endDate
+    );
     const startDate = input.startDate ?? period.startDate;
     const endDate = input.endDate ?? period.endDate;
 

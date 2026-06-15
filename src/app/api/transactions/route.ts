@@ -24,7 +24,7 @@ const querySchema = z.object({
   categoryId: z.string().min(1).optional(),
   startDate: z.string().min(1).optional(),
   endDate: z.string().min(1).optional(),
-  period: z.enum(["current_month", "previous_month"]).optional(),
+  period: z.enum(["today", "last_7_days", "current_month", "previous_month", "custom"]).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });

@@ -48,7 +48,7 @@ export interface TransactionListResponse {
   summary: TransactionSummary;
 }
 
-export type PeriodPreset = "current_month" | "previous_month";
+export type PeriodPreset = "today" | "last_7_days" | "current_month" | "previous_month" | "custom";
 
 export interface TransactionFilters {
   accountId?: string;

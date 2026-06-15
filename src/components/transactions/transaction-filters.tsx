@@ -3,30 +3,30 @@
 import type { FinanceCatalog, PeriodPreset } from "@/types/transactions";
 import { cn } from "@/lib/utils/cn";
 import { Filter } from "lucide-react";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface TransactionFiltersProps {
   catalog: FinanceCatalog;
   accountId: string;
   categoryId: string;
   period: PeriodPreset;
+  startDate?: string;
+  endDate?: string;
   onAccountChange: (accountId: string) => void;
   onCategoryChange: (categoryId: string) => void;
-  onPeriodChange: (period: PeriodPreset) => void;
+  onDateRangeChange: (next: { period: PeriodPreset; startDate?: string; endDate?: string }) => void;
 }
-
-const PERIOD_OPTIONS: { value: PeriodPreset; label: string }[] = [
-  { value: "current_month", label: "Mês atual" },
-  { value: "previous_month", label: "Mês anterior" },
-];
 
 export function TransactionFilters({
   catalog,
   accountId,
   categoryId,
   period,
+  startDate,
+  endDate,
   onAccountChange,
   onCategoryChange,
-  onPeriodChange,
+  onDateRangeChange,
 }: TransactionFiltersProps) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -72,22 +72,14 @@ export function TransactionFilters({
 
         <div className="space-y-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Período</span>
-          <div className="flex gap-2">
-            {PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onPeriodChange(option.value)}
-                className={cn(
-                  "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                  period === option.value
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="w-full">
+            <DateRangePicker
+              period={period}
+              startDate={startDate}
+              endDate={endDate}
+              onChange={onDateRangeChange}
+              className="w-full"
+            />
           </div>
         </div>
       </div>

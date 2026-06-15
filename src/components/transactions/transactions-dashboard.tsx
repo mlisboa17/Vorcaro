@@ -31,6 +31,8 @@ function TransactionsDashboardContent() {
   const accountId = searchParams.get("accountId") ?? "";
   const categoryId = searchParams.get("categoryId") ?? "";
   const period = parsePeriodPreset(searchParams.get("period"));
+  const startDate = searchParams.get("startDate") ?? "";
+  const endDate = searchParams.get("endDate") ?? "";
   const offset = Math.max(0, Number(searchParams.get("offset") ?? "0") || 0);
 
   const [data, setData] = useState<TransactionListResponse | null>(null);
@@ -69,8 +71,13 @@ function TransactionsDashboardContent() {
 
     params.set("period", period);
 
+    if (period === "custom") {
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+    }
+
     return params.toString();
-  }, [accountId, categoryId, period]);
+  }, [accountId, categoryId, period, startDate, endDate]);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams(filterQueryString);
@@ -122,12 +129,16 @@ function TransactionsDashboardContent() {
     accountId?: string;
     categoryId?: string;
     period?: PeriodPreset;
+    startDate?: string;
+    endDate?: string;
   }) {
     const params = new URLSearchParams(searchParams.toString());
 
     const nextAccountId = next.accountId ?? accountId;
     const nextCategoryId = next.categoryId ?? categoryId;
     const nextPeriod = next.period ?? period;
+    const nextStartDate = next.startDate !== undefined ? next.startDate : startDate;
+    const nextEndDate = next.endDate !== undefined ? next.endDate : endDate;
 
     if (nextAccountId) {
       params.set("accountId", nextAccountId);
@@ -142,6 +153,15 @@ function TransactionsDashboardContent() {
     }
 
     params.set("period", nextPeriod);
+
+    if (nextPeriod === "custom") {
+      if (nextStartDate) params.set("startDate", nextStartDate);
+      if (nextEndDate) params.set("endDate", nextEndDate);
+    } else {
+      params.delete("startDate");
+      params.delete("endDate");
+    }
+
     params.delete("offset");
 
     router.push(`/dashboard/transactions?${params.toString()}`);
@@ -378,9 +398,15 @@ function TransactionsDashboardContent() {
         accountId={accountId}
         categoryId={categoryId}
         period={period}
+        startDate={startDate}
+        endDate={endDate}
         onAccountChange={(value) => updateFilters({ accountId: value })}
         onCategoryChange={(value) => updateFilters({ categoryId: value })}
-        onPeriodChange={(value) => updateFilters({ period: value })}
+        onDateRangeChange={(range) => updateFilters({
+          period: range.period,
+          startDate: range.startDate,
+          endDate: range.endDate
+        })}
       />
 
       {actionMessage && (
