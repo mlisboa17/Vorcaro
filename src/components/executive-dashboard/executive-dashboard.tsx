@@ -120,13 +120,6 @@ function ExecutiveDashboardInner() {
               </Link>
             );
           })}
-          <Link
-            href="/dashboard/statements?tab=import"
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-slate-800"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Importar Extrato/Fatura
-          </Link>
         </div>
       </header>
 
