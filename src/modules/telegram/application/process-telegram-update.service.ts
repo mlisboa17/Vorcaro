@@ -124,6 +124,15 @@ export class ProcessTelegramUpdateService {
     const userId = connection.userId;
     const redis = getRedisConnection();
 
+    if (message.message_id) {
+      const idempotencyKey = `telegram:msg:${message.message_id}`;
+      const isNew = await redis.setnx(idempotencyKey, "1");
+      if (isNew === 0) {
+        return { ok: true, skipped: "duplicate_message" };
+      }
+      await redis.expire(idempotencyKey, 86400); // 24h
+    }
+
     if (text) {
       const pendingPasswordKey = `telegram:password_pending:${chatId}`;
       const pendingStr = await redis.get(pendingPasswordKey);
@@ -163,34 +172,23 @@ export class ProcessTelegramUpdateService {
     const ingestUseCase = new IngestInboxItemUseCase(repository);
 
     if (hasVoice(message) && message.voice) {
-      const { buffer, mimeType } = await downloadTelegramFile(
-        message.voice.file_id,
-        message.voice.mime_type ?? "audio/ogg",
-      );
-      const aiService = new GeminiAiService();
-      const transcription = await aiService.transcribeAudio({
-        type: "audio",
-        mimeType,
-        base64: bufferToBase64(buffer),
+      const inboxItem = await this.prisma.financialInbox.create({
+        data: {
+          userId,
+          channel: "TELEGRAM_VOICE",
+          status: "PENDING",
+          rawContent: "[Audio Message]",
+          channelMeta: {
+            telegramFileId: message.voice.file_id,
+            mimeType: message.voice.mime_type ?? "audio/ogg",
+            chatId: chatId,
+          },
+        },
       });
 
-      const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
-      
-      // Upload do Áudio para o Supabase
-      const mediaUrl = await uploadReceipt(buffer, mimeType, `${userId}/${randomUUID()}.ogg`);
-
-      // Passa a transcrição textual diretamente para a orquestração do caso de uso
-      const result = await cognitiveUseCase.execute(userId, transcription, "TELEGRAM_VOICE", mediaUrl);
-      
-      const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
-      const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
-      const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
-      
-      await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
-        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId),
-      });
-
-      return { ok: true, handled: "voice", inboxItemId: result.inboxItemId, channel: "TELEGRAM_VOICE" };
+      await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
+      await this.safeReply(chatId, "⏳ Áudio recebido. Processando com Inteligência Artificial...");
+      return { ok: true, handled: "voice_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM_VOICE" };
     }
 
     if (hasPhoto(message)) {
@@ -198,24 +196,24 @@ export class ProcessTelegramUpdateService {
       if (!fileId) {
         return { ok: true, skipped: "photo_without_file_id" };
       }
-      const { buffer } = await downloadTelegramFile(fileId, "image/jpeg");
       
-      const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
-
-      // Upload da Imagem para o Supabase
-      const mediaUrl = await uploadReceipt(buffer, "image/jpeg", `${userId}/${randomUUID()}.jpg`);
-
-      const result = await cognitiveUseCase.execute(userId, buffer, "TELEGRAM_IMAGE", mediaUrl);
-      
-      const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
-      const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
-      const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
-      
-      await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
-        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId),
+      const inboxItem = await this.prisma.financialInbox.create({
+        data: {
+          userId,
+          channel: "TELEGRAM_IMAGE",
+          status: "PENDING",
+          rawContent: "[Image Message]",
+          channelMeta: {
+            telegramFileId: fileId,
+            mimeType: "image/jpeg",
+            chatId: chatId,
+          },
+        },
       });
 
-      return { ok: true, handled: "image", inboxItemId: result.inboxItemId, channel: "TELEGRAM_IMAGE" };
+      await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
+      await this.safeReply(chatId, "⏳ Imagem recebida. Extraindo dados do comprovante...");
+      return { ok: true, handled: "image_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM_IMAGE" };
     }
 
     if (hasDocument(message) && message.document) {
@@ -356,18 +354,22 @@ export class ProcessTelegramUpdateService {
       await this.safeReply(chatId, `${receivableHint.message}${detail}`);
     }
 
-    const cognitiveUseCase = new RegisterCognitiveTransactionUseCase();
-    const result = await cognitiveUseCase.execute(userId, text, "TELEGRAM");
-    
-    const valueStr = Math.abs(result.extractedData.amount).toFixed(2).replace('.', ',');
-    const typeStr = result.extractedData.type === 'INCOME' ? 'Receita' : 'Despesa';
-    const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extractedData.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extractedData.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
-    
-    await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
-        inline_keyboard: buildCognitiveTransactionKeyboard(result.inboxItemId)
+    const inboxItem = await this.prisma.financialInbox.create({
+      data: {
+        userId,
+        channel: "TELEGRAM",
+        status: "PENDING",
+        rawContent: text,
+        channelMeta: {
+          chatId: chatId,
+        },
+      },
     });
 
-    return { ok: true, handled: "text", inboxItemId: result.inboxItemId, channel: "TELEGRAM" };
+    await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
+    await this.safeReply(chatId, "⏳ Processando lançamento...");
+
+    return { ok: true, handled: "text_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM" };
   }
 
   async executeCallback(

@@ -43,9 +43,15 @@ export async function handleTelegramWebhook(request: Request) {
 
     const result = await service.execute(update.message);
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Telegram webhook failed";
+    
+    if (message.includes("Supabase") || message.includes("Storage") || message.includes("Bucket") || message.includes("storage")) {
+      console.error("[Telegram Webhook Error] Falha de Storage:", message);
+      return NextResponse.json({ success: false, error: 'storage_missing_handled' }, { status: 200 });
+    }
+
     console.error("[telegram/webhook]", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 200 });
   }
 }

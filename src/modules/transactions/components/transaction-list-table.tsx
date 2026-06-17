@@ -1,9 +1,31 @@
 "use client";
 
-import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, FileSearch, Search, Paperclip } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, FileSearch, Search, Paperclip, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  createColumnHelper,
+  getSortedRowModel,
+  SortingState,
+  getFilteredRowModel,
+  ColumnFiltersState,
+  RowSelectionState
+} from "@tanstack/react-table";
+import { bulkDeleteTransactions } from "../actions/bulk-delete-transactions";
+import { bulkUpdateCategory } from "../actions/bulk-update-category";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "@/components/ui/table";
 
 export type TransactionListItemData = {
   id: string;
@@ -15,6 +37,7 @@ export type TransactionListItemData = {
   categoryName: string | null;
   reviewRequired?: boolean;
   mediaUrl?: string;
+  paymentDate?: Date;
 };
 
 type AccountOption = { id: string; name: string };
@@ -158,8 +181,250 @@ export function TransactionListTable({
   const prevHref = buildTransactionsHref(filters, page > 1 ? page - 1 : 1);
   const nextHref = buildTransactionsHref(filters, page < totalPages ? page + 1 : totalPages);
 
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [isPending, startTransition] = useTransition();
+
+  const columnHelper = createColumnHelper<TransactionListItemData>();
+
+  const columns = [
+    columnHelper.display({
+      id: "select",
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+        />
+      ),
+    }),
+    columnHelper.accessor("date", {
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Data
+          <ArrowUpDown className="h-3 w-3" />
+        </button>
+      ),
+      cell: (info) => new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(info.getValue())),
+    }),
+    columnHelper.accessor("description", {
+      header: ({ column }) => (
+        <div className="flex flex-col gap-2">
+          <button
+            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Descrição
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+          <input
+            type="text"
+            value={(column.getFilterValue() ?? "") as string}
+            onChange={(e) => column.setFilterValue(e.target.value)}
+            placeholder="Filtrar..."
+            className="block w-full max-w-[150px] rounded border-0 py-1 px-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-slate-900 sm:text-xs sm:leading-5 font-normal normal-case"
+          />
+        </div>
+      ),
+      cell: (info) => {
+        const tx = info.row.original;
+        return (
+          <span className="flex items-center gap-2 font-medium text-slate-800">
+            {tx.description}
+            {tx.reviewRequired && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                Revisão Necessária
+              </span>
+            )}
+            {tx.mediaUrl && (
+              <button
+                onClick={async () => {
+                  try {
+                    const signedUrl = await getTransactionFileUrl(tx.mediaUrl!);
+                    window.open(signedUrl, "_blank");
+                  } catch (error) {
+                    console.error("Erro ao gerar URL", error);
+                    alert("Não foi possível carregar o anexo.");
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded bg-slate-100 p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                title="Ver Comprovante Original"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+            )}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("paymentDate", {
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Data Pgto
+          <ArrowUpDown className="h-3 w-3" />
+        </button>
+      ),
+      cell: (info) => {
+        const val = info.getValue();
+        if (!val) return <span className="text-slate-400">—</span>;
+        return new Intl.DateTimeFormat("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(val));
+      },
+    }),
+    columnHelper.accessor("accountName", {
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Conta
+          <ArrowUpDown className="h-3 w-3" />
+        </button>
+      ),
+      cell: (info) => <span className="text-slate-500">{info.getValue() ?? "—"}</span>,
+    }),
+    columnHelper.accessor("categoryName", {
+      header: ({ column }) => (
+        <div className="flex flex-col gap-2">
+          <button
+            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Categoria
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+          <select
+            value={(column.getFilterValue() ?? "") as string}
+            onChange={(e) => column.setFilterValue(e.target.value)}
+            className="block w-full max-w-[150px] rounded border-0 py-1 pl-2 pr-6 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-slate-900 sm:text-xs sm:leading-5 font-normal normal-case"
+          >
+            <option value="">Todas</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.name}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ),
+      cell: (info) => {
+        const cat = info.getValue();
+        return cat ? (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+            {cat}
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-400">
+            Sem Categoria
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("amount", {
+      header: ({ column }) => (
+        <div className="flex justify-end">
+          <button
+            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Valor
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+        </div>
+      ),
+      cell: (info) => {
+        const tx = info.row.original;
+        const isExpense = tx.type === "EXPENSE" || tx.amount < 0;
+        const absAmount = Math.abs(tx.amount);
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            {isExpense ? (
+              <ArrowDownCircle className="h-4 w-4 text-red-500" />
+            ) : (
+              <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+            )}
+            <span className={`font-semibold ${isExpense ? "text-red-600" : "text-emerald-600"}`}>
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(absAmount)}
+            </span>
+          </div>
+        );
+      },
+    }),
+  ];
+
+  const table = useReactTable({
+    data: transactions,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      rowSelection,
+    },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  const totalValue = table.getFilteredRowModel().rows.reduce((sum, row) => sum + row.original.amount, 0);
+  const selectedRows = table.getSelectedRowModel().rows;
+  const hasSelection = selectedRows.length > 0;
+
+  const handleBulkDelete = () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedRows.length} transações?`)) return;
+    const ids = selectedRows.map(r => r.original.id);
+    startTransition(async () => {
+      await bulkDeleteTransactions(ids);
+      setRowSelection({});
+    });
+  };
+
+  const handleBulkCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const catId = e.target.value;
+    if (!catId) return;
+    if (!confirm(`Tem certeza que deseja alterar a categoria de ${selectedRows.length} transações?`)) {
+      e.target.value = "";
+      return;
+    }
+    const ids = selectedRows.map(r => r.original.id);
+    startTransition(async () => {
+      await bulkUpdateCategory(ids, catId);
+      setRowSelection({});
+      e.target.value = "";
+    });
+  };
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 relative">
       <TransactionListFilters accounts={accounts} categories={categories} filters={filters} />
 
       {transactions.length === 0 ? (
@@ -180,90 +445,88 @@ export function TransactionListTable({
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">Data</th>
-                  <th className="px-6 py-4">Descrição</th>
-                  <th className="px-6 py-4">Conta</th>
-                  <th className="px-6 py-4">Categoria</th>
-                  <th className="px-6 py-4 text-right">Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {transactions.map((tx) => {
-                  const isExpense = tx.type === "EXPENSE" || tx.amount < 0;
-                  const absAmount = Math.abs(tx.amount);
+          <Table>
+            <TableHeader className="bg-slate-50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const isHidden = ['date', 'paymentDate', 'accountName', 'categoryName'].includes(header.column.id);
+                    return (
+                      <TableHead key={header.id} className={isHidden ? "hidden md:table-cell px-6 py-4" : "px-6 py-4"}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody className="divide-y divide-slate-100">
+              {table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} className="transition-colors hover:bg-slate-50/50">
+                  {row.getVisibleCells().map((cell) => {
+                    const isHidden = ['date', 'paymentDate', 'accountName', 'categoryName'].includes(cell.column.id);
+                    return (
+                      <TableCell key={cell.id} className={`${isHidden ? "hidden md:table-cell" : ""} whitespace-nowrap px-6 py-4 ${cell.column.id === 'date' ? 'font-medium text-slate-900' : ''}`}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="bg-slate-50 font-medium">
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-4 text-right text-slate-700 font-bold hidden md:table-cell">
+                  Total da Página:
+                </TableCell>
+                <TableCell colSpan={2} className="px-6 py-4 text-right text-slate-700 font-bold md:hidden">
+                  Total:
+                </TableCell>
+                <TableCell className="px-6 py-4 text-right">
+                  <span className={`font-bold ${totalValue < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(Math.abs(totalValue))}
+                  </span>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+      )}
 
-                  return (
-                    <tr key={tx.id} className="transition-colors hover:bg-slate-50/50">
-                      <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900">
-                        {new Intl.DateTimeFormat("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        }).format(new Date(tx.date))}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="flex items-center gap-2 font-medium text-slate-800">
-                          {tx.description}
-                          {tx.reviewRequired && (
-                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                              Revisão Necessária
-                            </span>
-                          )}
-                          {tx.mediaUrl && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const signedUrl = await getTransactionFileUrl(tx.mediaUrl!);
-                                  window.open(signedUrl, "_blank");
-                                } catch (error) {
-                                  console.error("Erro ao gerar URL", error);
-                                  alert("Não foi possível carregar o anexo.");
-                                }
-                              }}
-                              className="inline-flex items-center justify-center rounded bg-slate-100 p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-                              title="Ver Comprovante Original"
-                            >
-                              <Paperclip className="h-4 w-4" />
-                            </button>
-                          )}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-slate-500">{tx.accountName ?? "—"}</td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        {tx.categoryName ? (
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            {tx.categoryName}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-400">
-                            Sem Categoria
-                          </span>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {isExpense ? (
-                            <ArrowDownCircle className="h-4 w-4 text-red-500" />
-                          ) : (
-                            <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
-                          )}
-                          <span className={`font-semibold ${isExpense ? "text-red-600" : "text-emerald-600"}`}>
-                            {new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            }).format(absAmount)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {hasSelection && (
+        <div className="sticky bottom-4 mx-auto flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-lg w-[90%] max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+              {selectedRows.length}
+            </span>
+            <span className="text-sm font-medium text-slate-700">Selecionadas</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              disabled={isPending}
+              onChange={handleBulkCategoryChange}
+              className="block w-full max-w-xs rounded-lg border-slate-300 py-2 pl-3 pr-10 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            >
+              <option value="">Alterar Categoria...</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              disabled={isPending}
+              onClick={handleBulkDelete}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+            >
+              Excluir
+            </button>
           </div>
         </div>
       )}

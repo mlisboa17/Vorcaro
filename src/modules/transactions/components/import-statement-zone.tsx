@@ -38,11 +38,6 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
       return;
     }
 
-    if (!accountId) {
-      setError("Selecione uma conta bancária de destino antes de importar.");
-      return;
-    }
-
     const formData = new FormData();
     formData.append("file", file);
     formData.append("accountId", accountId);
@@ -63,7 +58,6 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!accountId) return; // Só permite drag visual se a conta estiver selecionada
     setIsDragging(true);
   };
 
@@ -75,11 +69,6 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    if (!accountId) {
-      setError("Selecione uma conta bancária de destino antes de importar.");
-      return;
-    }
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       validateAndUpload(e.dataTransfer.files[0]);
@@ -94,10 +83,6 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
   };
 
   const triggerFileInput = () => {
-    if (!accountId) {
-      setError("Selecione uma conta bancária de destino antes de importar.");
-      return;
-    }
     fileInputRef.current?.click();
   };
 
@@ -114,34 +99,7 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
         </p>
       </div>
 
-      {/* Conta Destino Select */}
-      <div className="space-y-3">
-        <label htmlFor="account-select" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Conta de Destino
-        </label>
-        <div className="relative">
-          <select
-            id="account-select"
-            value={accountId}
-            onChange={(e) => {
-              setAccountId(e.target.value);
-              setError(null);
-            }}
-            disabled={isPending}
-            className="w-full appearance-none rounded-xl border border-neutral-200 bg-white/50 px-4 py-3 pr-10 text-neutral-900 shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20 disabled:opacity-50"
-          >
-            <option value="" disabled>
-              -- Selecione a Conta Bancária --
-            </option>
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.type})
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-neutral-400" />
-        </div>
-      </div>
+
 
       {/* Dropzone Area */}
       <div
@@ -150,9 +108,7 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
         onDrop={onDrop}
         onClick={triggerFileInput}
         className={`relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 transition-all duration-300 ease-in-out ${
-          !accountId
-            ? "cursor-not-allowed border-neutral-200 bg-neutral-50/50 opacity-60 dark:border-neutral-800 dark:bg-neutral-900/20"
-            : isPending
+            isPending
             ? "cursor-wait border-indigo-200 bg-indigo-50/30 dark:border-indigo-900/50 dark:bg-indigo-900/10"
             : isDragging
             ? "scale-[1.02] border-indigo-500 bg-indigo-50/50 shadow-lg shadow-indigo-500/10 dark:border-indigo-400 dark:bg-indigo-500/10"
@@ -165,7 +121,7 @@ export function ImportStatementZone({ accounts }: ImportStatementZoneProps) {
           onChange={handleFileSelect}
           accept=".ofx,.csv"
           className="hidden"
-          disabled={!accountId || isPending}
+          disabled={isPending}
         />
 
         <div className="flex flex-col items-center gap-4 text-center">

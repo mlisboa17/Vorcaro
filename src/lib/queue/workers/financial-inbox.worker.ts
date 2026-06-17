@@ -26,6 +26,11 @@ import { mergeClassificationIntoExtraction } from "@/lib/inbox/apply-inbox-class
 import { createStatementImportWorker } from "@/lib/queue/workers/statement-import.worker";
 import { resolveAutomationTier } from "@/modules/inbox-intelligence/domain/types/inbox-automation-policy";
 import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
+import { downloadTelegramFile, sendTelegramMessageWithMode } from "@/lib/telegram/telegram-bot.client";
+import { buildCognitiveTransactionKeyboard } from "@/lib/telegram/telegram-inline-actions";
+import { uploadReceipt } from "@/lib/supabase-storage";
+import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
+import { randomUUID } from "crypto";
 
 function createProcessInboxItemUseCase(): ProcessInboxItemUseCase {
   const inboxRepository = new PrismaInboxRepository(prisma);
@@ -75,6 +80,33 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
       await inboxRepository.updateStatus(inboxItemId, "PROCESSING");
 
       try {
+        let meta = (item.channelMeta as Record<string, any>) || {};
+
+        if (item.channel.startsWith("TELEGRAM") && meta.telegramFileId && !meta.imageBase64 && !meta.audioBase64) {
+          const { buffer, mimeType } = await downloadTelegramFile(meta.telegramFileId, meta.mimeType);
+          const base64 = bufferToBase64(buffer);
+          
+          if (item.channel === "TELEGRAM_IMAGE") {
+             meta.imageBase64 = base64;
+          } else if (item.channel === "TELEGRAM_VOICE") {
+             meta.audioBase64 = base64;
+          }
+          meta.mimeType = mimeType;
+
+          const ext = mimeType.includes("image") ? "jpg" : "ogg";
+          try {
+            const mediaUrl = await uploadReceipt(buffer, mimeType, `${userId}/${randomUUID()}.${ext}`);
+            meta.mediaUrl = mediaUrl;
+          } catch (e) {
+            console.error("[financial-inbox] Supabase upload failed:", e);
+          }
+
+          await prisma.financialInbox.update({
+            where: { id: inboxItemId },
+            data: { channelMeta: meta },
+          });
+        }
+
         const useCase = createProcessInboxItemUseCase();
         const result = await useCase.execute({ inboxItemId, userId });
 
@@ -102,6 +134,19 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
           console.info(
             `[financial-inbox] Item ${inboxItemId} → NEEDS_CONFIRMATION (extraction: ${result.extractionResultId}, confidence: ${suggestion.confidence})`,
           );
+        }
+
+        if (item.channel.startsWith("TELEGRAM")) {
+          const chatId = (item.channelMeta as any)?.chatId;
+          if (chatId) {
+             const valueStr = Math.abs(result.extraction.amount || 0).toFixed(2).replace('.', ',');
+             const typeStr = result.extraction.type === 'INCOME' ? 'Receita' : 'Despesa';
+             const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extraction.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extraction.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
+             
+             await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
+                inline_keyboard: buildCognitiveTransactionKeyboard(inboxItemId),
+             });
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown processing error";

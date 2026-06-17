@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";

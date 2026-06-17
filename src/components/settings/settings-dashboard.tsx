@@ -14,6 +14,9 @@ import { PaymentMethodsSettingsPanel } from "./panels/payment-methods-settings-p
 import { SettingsComingSoon } from "./settings-shared";
 import { SettingsToastProvider } from "./settings-toast";
 import { RecurringDashboard } from "@/components/recurring/recurring-dashboard";
+import { PatrimonyDashboard } from "@/components/patrimony/patrimony-dashboard";
+import { PatrimonyLiabilitiesDashboard } from "@/components/patrimony/patrimony-liabilities-dashboard";
+import { ConsortiumDashboard } from "@/components/consortium/consortium-dashboard";
 import { buildListUrl, fetchInstrumentList } from "@/lib/instruments/instrument-api";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -27,6 +30,7 @@ import {
   Scale,
   Tag,
   TrendingDown,
+  Handshake,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -40,6 +44,7 @@ const TAB_ICONS = {
   orcamentos: PiggyBank,
   ativos: Building2,
   passivos: TrendingDown,
+  consorcios: Handshake,
 } as const;
 
 interface SettingsData {
@@ -91,7 +96,8 @@ export function SettingsDashboard() {
       activeTab === "recorrentes" ||
       activeTab === "orcamentos" ||
       activeTab === "ativos" ||
-      activeTab === "passivos"
+      activeTab === "passivos" ||
+      activeTab === "consorcios"
     ) {
       setLoading(false);
       return;
@@ -208,32 +214,10 @@ export function SettingsDashboard() {
         {activeTab === "recorrentes" ? <RecurringDashboard embedded /> : null}
 
         {activeTab === "orcamentos" ? <SettingsComingSoon title="Orçamentos" /> : null}
-        {activeTab === "ativos" ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-            <p className="text-sm text-slate-600">
-              A gestão de ativos e patrimônio está na área dedicada.
-            </p>
-            <a
-              href="/dashboard/patrimony?tab=ativos"
-              className="mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-            >
-              Abrir Patrimônio → Ativos
-            </a>
-          </div>
-        ) : null}
-        {activeTab === "passivos" ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-            <p className="text-sm text-slate-600">
-              A gestão de passivos e dívidas está na área dedicada.
-            </p>
-            <a
-              href="/dashboard/patrimony?tab=passivos"
-              className="mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-            >
-              Abrir Patrimônio → Passivos
-            </a>
-          </div>
-        ) : null}
+        
+        {activeTab === "ativos" ? <PatrimonyDashboard /> : null}
+        {activeTab === "passivos" ? <PatrimonyLiabilitiesDashboard /> : null}
+        {activeTab === "consorcios" ? <ConsortiumDashboard /> : null}
       </div>
     </SettingsToastProvider>
   );

@@ -85,6 +85,7 @@ export async function getTransactions(params: GetTransactionsParams) {
       amount: Number(tx.amount),
       type: tx.type,
       date: tx.date,
+      paymentDate: tx.dataCaixa ?? undefined,
       accountName: tx.account?.name ?? null,
       categoryName: tx.category?.name ?? null,
       reviewRequired: meta?.reviewRequired === true, // 2. Indicação de Badge

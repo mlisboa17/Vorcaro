@@ -46,16 +46,16 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-full w-64 shrink-0 flex-col bg-slate-950 text-slate-100",
+        "flex h-full w-64 shrink-0 flex-col bg-[#1d2736] text-slate-200 border-r border-slate-800/60",
         mobile && "shadow-2xl",
       )}
       aria-label="Menu principal"
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+      <div className="flex items-center justify-between border-b border-slate-800/80 px-4 py-3">
         <Link
-          href="/dashboard/inbox"
+          href="/dashboard"
           onClick={onClose}
-          className="text-lg font-bold tracking-[0.2em] text-white transition hover:text-emerald-300"
+          className="text-base font-bold tracking-[0.2em] text-white transition hover:text-sky-400"
         >
           LOGOS
         </Link>
@@ -63,21 +63,21 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
             aria-label="Fechar menu"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         ) : null}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
         {DASHBOARD_NAV_GROUPS.map((group, groupIndex) => (
           <div
             key={group.title}
-            className={cn(groupIndex > 0 && "mt-6 border-t border-white/10 pt-5")}
+            className={cn(groupIndex > 0 && "mt-4 border-t border-slate-800/80 pt-3")}
           >
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="mb-1 px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
               {group.title}
             </p>
             <ul className="space-y-0.5">
@@ -92,21 +92,21 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
                       prefetch={false}
                       onClick={onClose}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",
+                        "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors duration-150",
                         active
-                          ? "border-l-2 border-emerald-400 bg-white/10 pl-[10px] text-white"
-                          : "text-slate-300 hover:bg-white/5 hover:text-white",
+                          ? "border-l-2 border-sky-400 bg-slate-800/80 pl-[8px] text-white"
+                          : "text-slate-300 hover:bg-slate-800/40 hover:text-white",
                       )}
                     >
                       <Icon
                         className={cn(
-                          "h-5 w-5 shrink-0",
-                          active ? "text-emerald-400" : "text-slate-400",
+                          "h-4 w-4 shrink-0",
+                          active ? "text-sky-400" : "text-slate-400",
                         )}
                       />
                       <span className="flex-1">{item.label}</span>
                       {item.badgeKey === "notifications" && unreadNotifications > 0 ? (
-                        <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        <span className="inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-bold text-white leading-none">
                           {unreadNotifications > 99 ? "99+" : unreadNotifications}
                         </span>
                       ) : null}
@@ -119,16 +119,16 @@ export function Sidebar({ userEmail, mobile = false, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 px-4 py-4">
-        <div className="rounded-lg bg-white/5 px-3 py-3">
-          <p className="truncate text-xs text-slate-400">Conectado como</p>
-          <p className="mt-0.5 truncate text-sm font-medium text-white">{userEmail}</p>
+      <div className="border-t border-slate-800/80 px-3 py-3">
+        <div className="rounded-md bg-slate-800/30 px-2.5 py-2.5 border border-slate-800/40">
+          <p className="truncate text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Conectado como</p>
+          <p className="mt-0.5 truncate text-xs font-medium text-slate-200">{userEmail}</p>
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
+            className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-700/60 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-800/60 hover:text-white"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-3 w-3" />
             Sair
           </button>
         </div>
@@ -184,7 +184,9 @@ export function DashboardShell({ userEmail, children }: DashboardShellProps) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-bold tracking-[0.18em] text-slate-900">LOGOS</span>
+          <Link href="/dashboard" className="text-sm font-bold tracking-[0.18em] text-slate-900 transition hover:text-slate-700">
+            LOGOS
+          </Link>
         </header>
 
         <main className="flex-1 overflow-y-auto">

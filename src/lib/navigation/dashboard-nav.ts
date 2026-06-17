@@ -11,6 +11,7 @@ import {
   ListTodo,
   History,
   Sparkles,
+  Settings,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -39,10 +40,13 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     items: [
       { href: "/dashboard/inbox", label: "Caixa Financeiro", icon: Inbox },
       { href: "/dashboard/cashflow", label: "Fluxo de Caixa", icon: CalendarClock },
-      { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
-      { href: "/dashboard/consorcios", label: "Consórcios", icon: Handshake },
-      { href: "/dashboard/settings?tab=orcamentos", label: "Orçamentos", icon: PiggyBank },
       { href: "/dashboard/statements", label: "Importar Extrato/Fatura", icon: FileUp },
+    ],
+  },
+  {
+    title: "Configurações",
+    items: [
+      { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
     ],
   },
 ];

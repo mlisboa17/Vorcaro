@@ -308,67 +308,7 @@ function StatementLayoutTrainingInner() {
 
   return (
 
-    <div className="mx-auto max-w-7xl space-y-6 p-6">
-
-      <header>
-
-        <h1 className="text-2xl font-semibold text-slate-900">Treinamento de Extratos</h1>
-
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
-
-          Modelos aprendidos a partir dos seus extratos. Novos modelos iniciam em{" "}
-
-          <strong>TESTING</strong> até homologação e revisão humana.
-
-        </p>
-
-        <nav className="mt-4 flex flex-wrap gap-2 text-sm">
-
-          {(
-
-            [
-
-              ["/dashboard/statements?tab=import", "Upload"],
-
-              ["/dashboard/statements?tab=layout-training", "Modelos"],
-
-              ["/dashboard/statements?tab=layout-training-homologation", "Homologação real"],
-
-              ["/dashboard/statements?tab=import-review", "Revisão"],
-
-            ] as const
-
-          ).map(([href, label]) => (
-
-            <Link
-
-              key={href}
-
-              href={href}
-
-              className={cn(
-
-                "rounded-lg border px-3 py-1.5",
-
-                href === "/dashboard/statements?tab=layout-training"
-
-                  ? "border-slate-900 bg-slate-900 text-white"
-
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-
-              )}
-
-            >
-
-              {label}
-
-            </Link>
-
-          ))}
-
-        </nav>
-
-      </header>
+    <div className="space-y-6">
 
 
 
@@ -446,27 +386,27 @@ function StatementLayoutTrainingInner() {
 
               <tr>
 
-                <th className="px-3 py-3">Banco</th>
+                <th className="px-3 py-2">Banco</th>
 
-                <th className="px-3 py-3">Formato</th>
+                <th className="px-3 py-2">Formato</th>
 
-                <th className="px-3 py-3">Layout</th>
+                <th className="px-3 py-2">Layout</th>
 
-                <th className="px-3 py-3">Qualidade</th>
+                <th className="px-3 py-2">Qualidade</th>
 
-                <th className="px-3 py-3">Risco</th>
+                <th className="px-3 py-2">Risco</th>
 
-                <th className="px-3 py-3">Similaridade</th>
+                <th className="px-3 py-2">Similaridade</th>
 
-                <th className="px-3 py-3">Acerto</th>
+                <th className="px-3 py-2">Acerto</th>
 
-                <th className="px-3 py-3">Imports</th>
+                <th className="px-3 py-2">Imports</th>
 
-                <th className="px-3 py-3">Versão</th>
+                <th className="px-3 py-2">Versão</th>
 
-                <th className="px-3 py-3">Operacional</th>
+                <th className="px-3 py-2">Operacional</th>
 
-                <th className="px-3 py-3">Ações</th>
+                <th className="px-3 py-2">Ações</th>
 
               </tr>
 
@@ -478,7 +418,7 @@ function StatementLayoutTrainingInner() {
 
                 <tr key={item.id} className="border-t border-slate-100 align-top">
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2">
 
                     <p className="font-medium text-slate-900">{item.bankName}</p>
 
@@ -486,11 +426,11 @@ function StatementLayoutTrainingInner() {
 
                   </td>
 
-                  <td className="px-3 py-3">{item.accountType ?? item.profile}</td>
+                  <td className="px-3 py-2">{item.accountType ?? item.profile}</td>
 
-                  <td className="px-3 py-3">{item.layoutLabel}</td>
+                  <td className="px-3 py-2">{item.layoutLabel}</td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2">
 
                     <span
 
@@ -510,21 +450,21 @@ function StatementLayoutTrainingInner() {
 
                   </td>
 
-                  <td className={cn("px-3 py-3 font-medium", riskClass(item.riskLevel))}>
+                  <td className={cn("px-3 py-2 font-medium", riskClass(item.riskLevel))}>
 
                     {RISK_LABELS[item.riskLevel]}
 
                   </td>
 
-                  <td className="px-3 py-3">{formatSimilarity(item.lastSimilarityScore)}</td>
+                  <td className="px-3 py-2">{formatSimilarity(item.lastSimilarityScore)}</td>
 
-                  <td className="px-3 py-3">{formatPercent(item.accuracyRate)}</td>
+                  <td className="px-3 py-2">{formatPercent(item.accuracyRate)}</td>
 
-                  <td className="px-3 py-3">{item.realImportCount}</td>
+                  <td className="px-3 py-2">{item.realImportCount}</td>
 
-                  <td className="px-3 py-3">v{item.version}</td>
+                  <td className="px-3 py-2">v{item.version}</td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2">
 
                     <span
 
@@ -546,7 +486,7 @@ function StatementLayoutTrainingInner() {
 
                   </td>
 
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2">
 
                     <div className="flex max-w-[14rem] flex-wrap gap-1">
 
@@ -704,7 +644,7 @@ function StatementLayoutTrainingInner() {
 
 
 
-export function StatementLayoutTrainingDashboard() {
+export function LayoutTrainingPanel() {
 
   return (
 

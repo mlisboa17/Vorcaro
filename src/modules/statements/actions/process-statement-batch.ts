@@ -10,6 +10,10 @@ export interface ProcessStatementBatchResponse {
   success: boolean;
   importedCount: number;
   error?: string;
+  diagnostic?: {
+    format: string;
+    linesProcessed: number;
+  };
 }
 
 export async function processStatementBatch(formData: FormData): Promise<ProcessStatementBatchResponse> {
@@ -26,9 +30,6 @@ export async function processStatementBatch(formData: FormData): Promise<Process
     }
 
     const contaFinanceiraId = String(formData.get("contaFinanceiraId") ?? "").trim() || null;
-    if (!contaFinanceiraId) {
-      return { success: false, importedCount: 0, error: "Conta de destino obrigatória" };
-    }
 
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!ext || !["ofx", "csv", "pdf", "xls", "xlsx"].includes(ext)) {
@@ -37,7 +38,183 @@ export async function processStatementBatch(formData: FormData): Promise<Process
 
     // Lê o arquivo para buffer
     const buffer = Buffer.from(await file.arrayBuffer());
-    
+
+    // --- DETECÇÃO EM MEMÓRIA DE NOVA CONTA/CARTÃO ---
+    let bankName = "Banco";
+    let agency: string | null = null;
+    let accountNumber: string | null = null;
+    let cardLastFour: string | null = null;
+    let isCheckingAccount = true;
+
+    const fileContentStr = buffer.toString("utf-8").substring(0, 15000);
+    const fileNameUpper = file.name.toUpperCase();
+
+    if (fileNameUpper.includes("NUBANK")) {
+      bankName = "NUBANK";
+      if (fileNameUpper.includes("FATURA") || fileNameUpper.includes("CARD")) {
+        isCheckingAccount = false;
+      }
+    } else if (fileNameUpper.includes("ITAU")) {
+      bankName = "ITAÚ";
+    } else if (fileNameUpper.includes("BRADESCO")) {
+      bankName = "BRADESCO";
+    } else if (fileNameUpper.includes("SANTANDER")) {
+      bankName = "SANTANDER";
+    } else if (fileNameUpper.includes("INTER")) {
+      bankName = "INTER";
+    }
+
+    if (ext === "ofx") {
+      const bankIdMatch = fileContentStr.match(/<BANKID>([^<\n\r]+)/i);
+      const acctIdMatch = fileContentStr.match(/<ACCTID>([^<\n\r]+)/i);
+      const acctTypeMatch = fileContentStr.match(/<ACCTTYPE>([^<\n\r]+)/i);
+      
+      if (bankIdMatch) {
+        const bId = bankIdMatch[1].trim();
+        if (bId === "260") bankName = "NUBANK";
+        else if (bId === "341" || bId === "0341") bankName = "ITAÚ";
+        else if (bId === "237" || bId === "0237") bankName = "BRADESCO";
+        else if (bId === "033" || bId === "0033") bankName = "SANTANDER";
+        else if (bId === "077" || bId === "0077") bankName = "INTER";
+        else bankName = `Banco (${bId})`;
+      }
+      if (acctIdMatch) {
+        accountNumber = acctIdMatch[1].trim();
+      }
+      if (acctTypeMatch && /credit/i.test(acctTypeMatch[1])) {
+        isCheckingAccount = false;
+      }
+    } else {
+      const agencyMatch = fileContentStr.match(/(?:agencia|agência|ag)\s*[:\-]?\s*(\d{4})/i);
+      if (agencyMatch) agency = agencyMatch[1];
+
+      const accountMatch = fileContentStr.match(/(?:conta|c\/c|cc)\s*[:\-]?\s*(\d{5,9}-?\d?)/i);
+      if (accountMatch) accountNumber = accountMatch[1];
+
+      const cardMatch = fileContentStr.match(/(?:cartao|cartão|card|final|fim)\s*[:\-]?\s*(\d{4})\b/i);
+      if (cardMatch) {
+        cardLastFour = cardMatch[1];
+        isCheckingAccount = false;
+      }
+    }
+
+    if (ext === "pdf" && process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenerativeAI, SchemaType } = await import("@google/generative-ai");
+        const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = client.getGenerativeModel({
+          model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: SchemaType.OBJECT,
+              properties: {
+                bankName: { type: SchemaType.STRING },
+                agency: { type: SchemaType.STRING },
+                accountNumber: { type: SchemaType.STRING },
+                cardLastFour: { type: SchemaType.STRING },
+                type: { type: SchemaType.STRING }
+              },
+              required: ["bankName", "type"]
+            } as unknown as import("@google/generative-ai").Schema
+          }
+        });
+        const prompt = "Analise o extrato e retorne as informações da conta/cartão emissor do extrato: bankName, agency, accountNumber, cardLastFour, type (CHECKING ou CREDIT_CARD).";
+        const base64 = buffer.toString("base64");
+        const result = await model.generateContent({
+          contents: [
+            { role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "application/pdf", data: base64 } }] }
+          ]
+        });
+        const resText = result.response.text()?.trim();
+        if (resText) {
+          const parsed = JSON.parse(resText);
+          if (parsed.bankName) bankName = parsed.bankName;
+          if (parsed.agency) agency = parsed.agency;
+          if (parsed.accountNumber) accountNumber = parsed.accountNumber;
+          if (parsed.cardLastFour) cardLastFour = parsed.cardLastFour;
+          if (parsed.type) isCheckingAccount = parsed.type === "CHECKING";
+        }
+      } catch (err) {
+        console.error("Gemini metadata extraction failed:", err);
+      }
+    }
+
+    // Check if the account or card already exists in the database
+    let resolvedAccountId = contaFinanceiraId;
+    let accountOrCardExists = false;
+    if (isCheckingAccount) {
+      const existingAcc = accountNumber
+        ? await prisma.financialAccount.findFirst({
+            where: {
+              userId,
+              isActive: true,
+              OR: [
+                { name: { contains: accountNumber } },
+                { name: { contains: bankName, mode: "insensitive" } },
+                { institutionName: { contains: bankName, mode: "insensitive" } }
+              ]
+            }
+          })
+        : await prisma.financialAccount.findFirst({
+            where: {
+              userId,
+              isActive: true,
+              OR: [
+                { name: { contains: bankName, mode: "insensitive" } },
+                { institutionName: { contains: bankName, mode: "insensitive" } }
+              ]
+            }
+          });
+      accountOrCardExists = !!existingAcc;
+      if (existingAcc && !resolvedAccountId) {
+        resolvedAccountId = existingAcc.id;
+      }
+    } else {
+      const existingCard = cardLastFour
+        ? await prisma.card.findFirst({
+            where: {
+              userId,
+              isActive: true,
+              OR: [
+                { lastFourDigits: cardLastFour },
+                { name: { contains: bankName, mode: "insensitive" } },
+                { institutionName: { contains: bankName, mode: "insensitive" } }
+              ]
+            }
+          })
+        : await prisma.card.findFirst({
+            where: {
+              userId,
+              isActive: true,
+              OR: [
+                { name: { contains: bankName, mode: "insensitive" } },
+                { institutionName: { contains: bankName, mode: "insensitive" } }
+              ]
+            }
+          });
+      accountOrCardExists = !!existingCard;
+      if (existingCard && !resolvedAccountId) {
+        resolvedAccountId = existingCard.id;
+      }
+    }
+
+    if (!accountOrCardExists) {
+      await prisma.statementLineSuggestion.create({
+        data: {
+          userId,
+          description: `Nova Conta Bancária Detectada: ${bankName}. Deseja vinculá-la ao seu perfil?`,
+          amount: 0,
+          date: new Date(),
+          suggestedName: `__PENDING_ACCOUNT__:${bankName}:${isCheckingAccount ? "CHECKING" : "CREDIT_CARD"}:${agency || ""}:${accountNumber || ""}:${cardLastFour || ""}`,
+          score: -99,
+          status: "UNKNOWN",
+          processed: false,
+        }
+      });
+    }
+
     // Faz o parser das linhas brutas
     const parsedLines = await parseImportFile({
       buffer,
@@ -51,7 +228,7 @@ export async function processStatementBatch(formData: FormData): Promise<Process
       userId,
       importType: "EXTRATO_BANCARIO",
       sourceFileName: file.name,
-      accountId: contaFinanceiraId,
+      accountId: resolvedAccountId,
       parsedLines,
     });
 
@@ -323,6 +500,11 @@ export async function processStatementBatch(formData: FormData): Promise<Process
         status: matchResult.status,
         reconciliationMatchId: bestMatchId,
         processed: false,
+        financialAccountId: resolvedAccountId,
+        fileHash: file.name + "_" + buffer.length.toString(),
+        type: direction as "INCOME" | "EXPENSE",
+        isDuplicateAlert: false,
+        suggestedCategoryId: suggestedCategoryId,
       });
       importedCount++;
     }
@@ -333,8 +515,18 @@ export async function processStatementBatch(formData: FormData): Promise<Process
       });
     }
 
+    let formatStr = ext.toUpperCase();
+    if (formatStr === "PDF") formatStr = "PDF_BANCO";
+
     revalidatePath("/dashboard/statements");
-    return { success: true, importedCount };
+    return { 
+      success: true, 
+      importedCount,
+      diagnostic: {
+        format: formatStr,
+        linesProcessed: importedCount,
+      }
+    };
   } catch (error) {
     console.error("[processStatementBatch] Erro ao processar lote:", error);
     return {

@@ -4,6 +4,9 @@ import { getDashboardInsights } from "@/modules/analytics/services/get-dashboard
 import { getCashflowProjection } from "@/modules/analytics/services/get-cashflow-projection";
 import { DashboardCharts } from "@/modules/analytics/components/dashboard-charts";
 import { ProjectionChart } from "@/modules/analytics/components/projection-chart";
+import { AILearningsPanel, AILearningPatternPreview } from "@/modules/statements/components/ai-learnings-panel";
+import { prisma } from "@/lib/prisma";
+import { analyzeRecurringUncategorized } from "@/modules/ai/services/suggestion-engine";
 
 export const metadata = {
   title: "Insights | Vorcaro",
@@ -28,6 +31,28 @@ export default async function InsightsPage(props: {
   const insights = await getDashboardInsights(session.user.id, { year, month });
   const { summary } = insights;
   const projectionData = await getCashflowProjection(session.user.id);
+
+  // AI Suggestion Engine
+  // Opcional: Aciona o motor silenciosamente em background se desejar (neste caso executamos no carregamento da view)
+  await analyzeRecurringUncategorized(session.user.id);
+
+  const pendingPatterns = await prisma.userLearningPattern.findMany({
+    where: { userId: session.user.id, status: "PENDING", patternType: "BULK_CATEGORY" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const aiPatternsPreview: AILearningPatternPreview[] = pendingPatterns.map(p => {
+    const output = p.outputSignal as any;
+    const input = p.inputSignal as any;
+    return {
+      id: p.id,
+      normalizedDescription: input.normalizedDescription || "",
+      originalExample: input.originalExample || "",
+      suggestedCategoryName: output.suggestedCategoryName || "Diversos",
+      isNewCategory: !!output.isNewCategory,
+      occurrences: p.occurrences,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-1 py-2">
@@ -98,6 +123,19 @@ export default async function InsightsPage(props: {
         <div className="mt-6">
           <ProjectionChart data={projectionData} />
         </div>
+      </section>
+
+      {/* AI Insights Panel */}
+      <section className="rounded-2xl bg-indigo-50/50 p-5 shadow-sm ring-1 ring-indigo-100 dark:bg-indigo-950/10 dark:ring-indigo-900/30">
+        <header className="mb-6">
+          <h2 className="text-lg font-bold text-indigo-950 dark:text-indigo-100 flex items-center gap-2">
+            <span className="bg-indigo-600 text-white p-1 rounded-md">✨</span> Motor de Sugestões Proativas
+          </h2>
+          <p className="mt-1 text-sm text-indigo-700/80 dark:text-indigo-300">
+            A Inteligência Artificial varre seus lançamentos e sugere categorizações em lote para atalhar seu trabalho.
+          </p>
+        </header>
+        <AILearningsPanel initialPatterns={aiPatternsPreview} />
       </section>
     </div>
   );

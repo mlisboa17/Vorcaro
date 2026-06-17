@@ -31,18 +31,23 @@ export async function uploadReceipt(
   path: string
 ): Promise<string> {
   const supabase = getSupabaseClient();
-  const bucketName = "receipts";
+  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "receipts";
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .upload(path, buffer, {
-      contentType: mimeType,
-      upsert: false,
-    });
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, buffer, {
+        contentType: mimeType,
+        upsert: false,
+      });
 
-  if (error) {
-    console.error("[SupabaseStorage] Falha no upload:", error);
-    throw new Error(`Upload para Supabase falhou: ${error.message}`);
+    if (error) {
+      throw new Error(`Upload para Supabase falhou: ${error.message}`);
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Telegram Webhook Error] Falha de Storage:", message);
+    throw new Error(`Storage Error: ${message}`);
   }
 
   // Retorna apenas o caminho multitenant para ser salvo com segurança no banco
@@ -56,7 +61,7 @@ export async function uploadReceipt(
  */
 export async function deleteReceipt(path: string): Promise<void> {
   const supabase = getSupabaseClient();
-  const bucketName = "receipts";
+  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "receipts";
 
   const { error } = await supabase.storage
     .from(bucketName)
@@ -77,7 +82,7 @@ export async function deleteReceipt(path: string): Promise<void> {
  */
 export async function getSignedReceiptUrl(path: string, expiresIn: number = 900): Promise<string> {
   const supabase = getSupabaseClient();
-  const bucketName = "receipts";
+  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "receipts";
 
   const { data, error } = await supabase.storage
     .from(bucketName)

@@ -24,6 +24,9 @@ vi.mock('@/lib/prisma', () => {
       financialAccount: {
         findUnique: vi.fn(),
       },
+      webhookLog: {
+        create: vi.fn(),
+      },
     },
   };
 });

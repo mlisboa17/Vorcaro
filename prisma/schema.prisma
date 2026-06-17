@@ -8,60 +8,57 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Auth.js (NextAuth) ───────────────────────────────────────────────────────
-
 model User {
-  id            String      @id @default(cuid())
-  email         String      @unique
-  name          String?
-  cnpjCpf       String?
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  vorcaroTone   VorcaroTone @default(PROFESSIONAL)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
+  id                                String                             @id @default(cuid())
+  email                             String                             @unique
+  name                              String?
+  cnpjCpf                           String?
+  emailVerified                     DateTime?
+  image                             String?
+  passwordHash                      String?
+  vorcaroTone                       VorcaroTone                        @default(PROFESSIONAL)
+  createdAt                         DateTime                           @default(now())
+  updatedAt                         DateTime                           @updatedAt
   authAccounts                      Account[]
-  sessions                          Session[]
-  passwordResetTokens               PasswordResetToken[]
-  financialAccounts                 FinancialAccount[]
+  advisorRecommendationStates       AdvisorRecommendationState[]
+  bankStatementImports              BankStatementImport[]
+  bankStatementLayoutCorrections    BankStatementLayoutCorrection[]
+  bankStatementLayoutModels         BankStatementLayoutModel[]
   cards                             Card[]
-  transactions                      Transaction[]
   categories                        Category[]
-  paymentMethods                    PaymentMethod[]
+  consortiums                       Consortium[]
+  counterparties                    Counterparty[]
+  financialAccounts                 FinancialAccount[]
+  financialAchievements             FinancialAchievement[]
+  financialAlerts                   FinancialAlert[]
+  financialDocuments                FinancialDocument[]
+  financialDocumentAuditEvents      FinancialDocumentAuditEvent[]
+  financialDocumentLearningPatterns FinancialDocumentLearningPattern[]
+  financialGoals                    FinancialGoal[]
   inboxItems                        FinancialInbox[]
-  userRules                         UserRule[]
-  transactionRules                  TransactionRule[]
-  learningPatterns                  UserLearningPattern[]
+  financialMetricSnapshots          FinancialMetricSnapshot[]
+  financialTimelineEvents           FinancialTimelineEvent[]
   lancamentosRecorrentes            LancamentoRecorrente[]
+  notifications                     Notification[]
+  notificationPreferences           NotificationPreference[]
+  passwordResetTokens               PasswordResetToken[]
   patrimonyAssets                   PatrimonyAsset[]
   patrimonyLiabilities              PatrimonyLiability[]
   patrimonyTransactions             PatrimonyTransaction[]
-  consortiums                       Consortium[]
-  telegramConnections               TelegramConnection[]
-  telegramConnectCodes              TelegramConnectCode[]
-  financialGoals                    FinancialGoal[]
+  paymentMethods                    PaymentMethod[]
   receivables                       Receivable[]
-  financialAlerts                   FinancialAlert[]
-  advisorRecommendationStates       AdvisorRecommendationState[]
-  notifications                     Notification[]
-  notificationPreferences           NotificationPreference[]
-  vorcaroMessageHistory             VorcaroMessageHistory[]
-  vorcaroConversations              VorcaroConversation[]
-  financialTimelineEvents           FinancialTimelineEvent[]
-  financialMetricSnapshots          FinancialMetricSnapshot[]
-  financialAchievements             FinancialAchievement[]
-  vorcaroActionProposals            VorcaroActionProposal[]
-  vorcaroFollowUps                  VorcaroFollowUp[]
-  financialDocuments                FinancialDocument[]
-  financialDocumentLearningPatterns FinancialDocumentLearningPattern[]
-  financialDocumentAuditEvents      FinancialDocumentAuditEvent[]
-  bankStatementLayoutModels         BankStatementLayoutModel[]
-  bankStatementLayoutCorrections    BankStatementLayoutCorrection[]
-  bankStatementImports              BankStatementImport[]
-  counterparties                    Counterparty[]
+  sessions                          Session[]
   statementLineSuggestions          StatementLineSuggestion[]
+  telegramConnectCodes              TelegramConnectCode[]
+  telegramConnections               TelegramConnection[]
+  transactions                      Transaction[]
+  transactionRules                  TransactionRule[]
+  learningPatterns                  UserLearningPattern[]
+  userRules                         UserRule[]
+  vorcaroActionProposals            VorcaroActionProposal[]
+  vorcaroConversations              VorcaroConversation[]
+  vorcaroFollowUps                  VorcaroFollowUp[]
+  vorcaroMessageHistory             VorcaroMessageHistory[]
 }
 
 model Account {
@@ -69,15 +66,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -86,8 +82,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -105,36 +100,934 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
-// ─── Domínio Financeiro ───────────────────────────────────────────────────────
-
 model FinancialAccount {
-  id              String      @id @default(cuid())
-  userId          String
-  name            String
-  institutionName String?
-  type            AccountType
-  currency        String      @default("BRL")
-  balance         Decimal     @default(0) @db.Decimal(15, 2)
-  isActive        Boolean     @default(true)
-  webhookToken    String?     @unique
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cards                  Card[]
-  transactions           Transaction[]
-  lancamentosRecorrentes LancamentoRecorrente[]
+  id                     String                 @id @default(cuid())
+  userId                 String
+  name                   String
+  institutionName        String?
+  type                   AccountType
+  currency               String                 @default("BRL")
+  balance                Decimal                @default(0) @db.Decimal(15, 2)
+  isActive               Boolean                @default(true)
+  webhookToken           String?                @unique
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
   bankStatementImports   BankStatementImport[]
+  cards                  Card[]
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentosRecorrentes LancamentoRecorrente[]
+  transactions           Transaction[]
 
   @@unique([userId, name])
   @@index([userId])
+}
+
+model Card {
+  id                     String                 @id @default(cuid())
+  userId                 String
+  financialAccountId     String?
+  name                   String
+  institutionName        String?
+  brand                  CardBrand
+  type                   CardType
+  lastFourDigits         String?
+  creditLimit            Decimal?               @db.Decimal(15, 2)
+  closingDay             Int?
+  dueDay                 Int?
+  isActive               Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  financialAccount       FinancialAccount?      @relation(fields: [financialAccountId], references: [id])
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentosRecorrentes LancamentoRecorrente[]
+  transactions           Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([financialAccountId])
+}
+
+model Category {
+  id                     String                 @id @default(cuid())
+  userId                 String
+  name                   String
+  type                   CategoryType
+  icon                   String?
+  color                  String?
+  isSystem               Boolean                @default(false)
+  isActive               Boolean                @default(true)
+  parentCategoryId       String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  parentCategory         Category?              @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: Restrict)
+  subcategories          Category[]             @relation("CategoryHierarchy")
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentosRecorrentes LancamentoRecorrente[]
+  transactions           Transaction[]
+  transactionRules       TransactionRule[]
+
+  @@unique([userId, name, parentCategoryId])
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([parentCategoryId])
+}
+
+model TransactionRule {
+  id               String        @id @default(cuid())
+  userId           String
+  targetCategoryId String
+  keyword          String
+  priority         Int           @default(0)
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  transactions     Transaction[]
+  targetCategory   Category      @relation(fields: [targetCategoryId], references: [id], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, keyword])
+  @@index([userId, isActive])
+}
+
+model PaymentMethod {
+  id                     String                 @id @default(cuid())
+  userId                 String
+  name                   String
+  type                   PaymentMethodType
+  isDefault              Boolean                @default(false)
+  isActive               Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  lancamentosRecorrentes LancamentoRecorrente[]
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions           Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Counterparty {
+  id                      String              @id @default(cuid())
+  userId                  String
+  name                    String
+  cnpjCpf                 String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  user                    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aliases                 CounterpartyAlias[]
+  destinationTransactions Transaction[]       @relation("DestinationTransactions")
+  originTransactions      Transaction[]       @relation("OriginTransactions")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([cnpjCpf])
+}
+
+model CounterpartyAlias {
+  id             String       @id @default(cuid())
+  counterpartyId String
+  alias          String
+  createdAt      DateTime     @default(now())
+  counterparty   Counterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
+
+  @@unique([counterpartyId, alias])
+  @@index([counterpartyId])
+}
+
+model Transaction {
+  id                      String                 @id @default(cuid())
+  userId                  String
+  accountId               String?
+  categoryId              String?
+  ruleId                  String?
+  paymentMethodId         String?
+  cardId                  String?
+  inboxItemId             String?                @unique
+  type                    TransactionType
+  amount                  Decimal                @db.Decimal(15, 2)
+  description             String
+  date                    DateTime
+  dataCompra              DateTime?
+  dataCaixa               DateTime?
+  dataVencimentoFatura    DateTime?
+  notes                   String?
+  metadata                Json?
+  installments            Int                    @default(1)
+  installmentGroup        String?
+  currentInstallment      Int?
+  totalInstallments       Int?
+  numeroParcela           Int?
+  totalParcelas           Int?
+  idGrupoParcelamento     String?
+  observacoesInternas     String?
+  lancamentoRecorrenteId  String?
+  dataRecorrencia         DateTime?
+  liabilityId             String?
+  fitId                   String?
+  providerEventId         String?                @unique
+  parentInstallmentId     String?
+  originId                String?
+  destinationId           String?
+  identificationScore     Int?
+  identificationStatus    IdentificationStatus   @default(UNKNOWN)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  status                  String?                @default("PENDING")
+  patrimonyTransactions   PatrimonyTransaction[]
+  receivable              Receivable?
+  account                 FinancialAccount?      @relation(fields: [accountId], references: [id])
+  card                    Card?                  @relation(fields: [cardId], references: [id])
+  category                Category?              @relation(fields: [categoryId], references: [id])
+  destinationCounterparty Counterparty?          @relation("DestinationTransactions", fields: [destinationId], references: [id])
+  inboxItem               FinancialInbox?        @relation(fields: [inboxItemId], references: [id])
+  lancamentoRecorrente    LancamentoRecorrente?  @relation(fields: [lancamentoRecorrenteId], references: [id])
+  liability               PatrimonyLiability?    @relation(fields: [liabilityId], references: [id])
+  originCounterparty      Counterparty?          @relation("OriginTransactions", fields: [originId], references: [id])
+  parentInstallment       Transaction?           @relation("InstallmentSeries", fields: [parentInstallmentId], references: [id], onDelete: Cascade)
+  childInstallments       Transaction[]          @relation("InstallmentSeries")
+  paymentMethod           PaymentMethod?         @relation(fields: [paymentMethodId], references: [id])
+  rule                    TransactionRule?       @relation(fields: [ruleId], references: [id])
+  user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId, fitId])
+  @@index([userId, date])
+  @@index([userId, accountId])
+  @@index([userId, categoryId])
+  @@index([userId, ruleId])
+  @@index([userId, createdAt])
+  @@index([userId, accountId, date])
+  @@index([userId, categoryId, date])
+  @@index([accountId])
+  @@index([cardId])
+  @@index([installmentGroup])
+  @@index([lancamentoRecorrenteId, dataRecorrencia])
+  @@index([liabilityId])
+  @@index([originId])
+  @@index([destinationId])
+}
+
+model BankStatementImport {
+  id                String           @id @default(cuid())
+  userId            String
+  accountId         String
+  fileName          String
+  importHash        String
+  status            String           @default("COMPLETED")
+  transactionsCount Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  account           FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId, importHash])
+  @@index([userId])
+}
+
+model LancamentoRecorrente {
+  id                 String                   @id @default(cuid())
+  userId             String
+  descricao          String
+  tipo               TipoLancamentoRecorrente
+  valor              Decimal                  @db.Decimal(15, 2)
+  frequencia         FrequenciaRecorrencia
+  dataInicio         DateTime
+  dataFim            DateTime?
+  proximaExecucao    DateTime
+  estaAtivo          Boolean                  @default(true)
+  categoryId         String
+  financialAccountId String
+  paymentMethodId    String
+  cardId             String?
+  observacoes        String?
+  liabilityId        String?
+  defaultAllocations Json?
+  diaInicioOriginal  Int
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  consortiums        Consortium[]
+  card               Card?                    @relation(fields: [cardId], references: [id])
+  category           Category                 @relation(fields: [categoryId], references: [id])
+  financialAccount   FinancialAccount         @relation(fields: [financialAccountId], references: [id])
+  liability          PatrimonyLiability?      @relation(fields: [liabilityId], references: [id])
+  paymentMethod      PaymentMethod            @relation(fields: [paymentMethodId], references: [id])
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
+
+  @@index([userId, estaAtivo, proximaExecucao])
+  @@index([userId])
+  @@index([liabilityId])
+}
+
+model FinancialInbox {
+  id                String             @id @default(cuid())
+  userId            String
+  status            InboxStatus        @default(PENDING)
+  channel           InboxChannel
+  rawContent        String
+  channelMeta       Json?
+  metadata          Json?
+  externalId        String?
+  importHash        String?
+  errorMessage      String?
+  processedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  attachments       Attachment[]
+  extractionResults ExtractionResult[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction       Transaction?
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([userId, channel, externalId])
+  @@index([userId, channel, importHash])
+}
+
+model Attachment {
+  id                String             @id @default(cuid())
+  inboxItemId       String
+  fileName          String
+  mimeType          String
+  storageKey        String
+  sizeBytes         Int
+  createdAt         DateTime           @default(now())
+  inboxItem         FinancialInbox     @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
+  extractionResults ExtractionResult[]
+
+  @@index([inboxItemId])
+}
+
+model ExtractionResult {
+  id            String         @id @default(cuid())
+  inboxItemId   String
+  attachmentId  String?
+  provider      String
+  extractedData Json
+  confidence    Json
+  tokensUsed    Int?
+  processingMs  Int?
+  createdAt     DateTime       @default(now())
+  attachment    Attachment?    @relation(fields: [attachmentId], references: [id])
+  inboxItem     FinancialInbox @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
+
+  @@index([inboxItemId])
+}
+
+model UserRule {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  condition   Json
+  action      Json
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model UserLearningPattern {
+  id             String   @id @default(cuid())
+  userId         String
+  patternType    String
+  inputSignal    Json
+  outputSignal   Json
+  confidence     Float
+  occurrences    Int      @default(1)
+  
+  // Rejection Tracker
+  rejectionCount Int      @default(0)
+  status         String   @default("PENDING") // PENDING | APPROVED | MUTED
+
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, patternType])
+  @@index([userId, status])
+}
+
+model PatrimonyAsset {
+  id                String                 @id @default(cuid())
+  userId            String
+  nome              String
+  descricao         String?
+  tipo              AssetType
+  valorAquisicao    Decimal                @db.Decimal(15, 2)
+  valorAtual        Decimal                @db.Decimal(15, 2)
+  dataAquisicao     DateTime?
+  estaAtivo         Boolean                @default(true)
+  observacoes       String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  linkedLiabilityId String?                @map("liabilityId")
+  consortium        Consortium?
+  linkedLiability   PatrimonyLiability?    @relation(fields: [linkedLiabilityId], references: [id])
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movimentacoes     PatrimonyTransaction[]
+
+  @@index([userId, estaAtivo])
+  @@index([userId, tipo])
+}
+
+model Consortium {
+  id                     String                @id @default(cuid())
+  userId                 String
+  nome                   String
+  tipo                   ConsortiumType
+  status                 ConsortiumStatus
+  valorCredito           Decimal               @db.Decimal(15, 2)
+  valorLance             Decimal               @default(0) @db.Decimal(15, 2)
+  valorPago              Decimal               @default(0) @db.Decimal(15, 2)
+  valorTaxas             Decimal               @default(0) @db.Decimal(15, 2)
+  quantidadeParcelas     Int
+  parcelasPagas          Int                   @default(0)
+  dataContratacao        DateTime?
+  dataContemplacao       DateTime?
+  dataQuitacao           DateTime?
+  assetId                String?               @unique
+  lancamentoRecorrenteId String?
+  estaAtivo              Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  asset                  PatrimonyAsset?       @relation(fields: [assetId], references: [id])
+  lancamentoRecorrente   LancamentoRecorrente? @relation(fields: [lancamentoRecorrenteId], references: [id])
+  usuario                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, estaAtivo])
+  @@index([userId, status])
+}
+
+model PatrimonyLiability {
+  id                     String                 @id @default(cuid())
+  userId                 String
+  nome                   String
+  descricao              String?
+  tipo                   LiabilityType
+  saldoOriginal          Decimal                @db.Decimal(15, 2)
+  saldoAtual             Decimal                @db.Decimal(15, 2)
+  taxaJuros              Decimal?               @db.Decimal(8, 4)
+  dataContratacao        DateTime?
+  dataQuitacaoPrevista   DateTime?
+  estaAtivo              Boolean                @default(true)
+  observacoes            String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  lancamentosRecorrentes LancamentoRecorrente[]
+  assets                 PatrimonyAsset[]
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movimentacoes          PatrimonyTransaction[]
+  transactions           Transaction[]
+
+  @@index([userId, estaAtivo])
+  @@index([userId, tipo])
+}
+
+model PatrimonyTransaction {
+  id                String              @id @default(cuid())
+  userId            String
+  assetId           String?
+  liabilityId       String?
+  tipo              PatrimonyTxType
+  valorTotal        Decimal             @db.Decimal(15, 2)
+  data              DateTime
+  descricao         String?
+  mainTransactionId String?
+  createdAt         DateTime            @default(now())
+  asset             PatrimonyAsset?     @relation(fields: [assetId], references: [id])
+  liability         PatrimonyLiability? @relation(fields: [liabilityId], references: [id])
+  mainTransaction   Transaction?        @relation(fields: [mainTransactionId], references: [id])
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, data])
+  @@index([assetId])
+  @@index([liabilityId])
+  @@index([mainTransactionId])
+}
+
+model FinancialGoal {
+  id            String            @id @default(cuid())
+  userId        String
+  nome          String
+  descricao     String?
+  tipo          FinancialGoalType
+  valorObjetivo Decimal           @db.Decimal(15, 2)
+  valorAtual    Decimal           @default(0) @db.Decimal(15, 2)
+  aporteMensal  Decimal?          @db.Decimal(15, 2)
+  dataObjetivo  DateTime?
+  prioridade    GoalPriority
+  status        GoalStatus        @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model TelegramConnection {
+  id             String   @id @default(cuid())
+  userId         String
+  telegramChatId BigInt   @unique
+  telegramUserId BigInt?
+  username       String?
+  firstName      String?
+  isActive       Boolean  @default(true)
+  connectedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model TelegramConnectCode {
+  id        String    @id @default(cuid())
+  userId    String
+  code      String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Receivable {
+  id            String           @id @default(cuid())
+  userId        String
+  descricao     String
+  devedorNome   String
+  valorOriginal Decimal          @db.Decimal(15, 2)
+  valorRecebido Decimal          @default(0) @db.Decimal(15, 2)
+  valorPendente Decimal          @db.Decimal(15, 2)
+  status        ReceivableStatus @default(OPEN)
+  origem        String?
+  observacoes   String?
+  expectedDate  DateTime?
+  receivedAt    DateTime?
+  transactionId String?          @unique
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  transaction   Transaction?     @relation(fields: [transactionId], references: [id])
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, expectedDate])
+}
+
+model FinancialAlert {
+  id          String                 @id @default(cuid())
+  userId      String
+  type        FinancialAlertType
+  severity    FinancialAlertSeverity
+  title       String
+  description String
+  status      FinancialAlertStatus   @default(OPEN)
+  fingerprint String
+  metadata    Json?
+  actionUrl   String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  resolvedAt  DateTime?
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([userId, severity])
+  @@index([createdAt])
+}
+
+model AdvisorRecommendationState {
+  id                 String                      @id @default(cuid())
+  userId             String
+  recommendationHash String
+  actionType         String
+  status             AdvisorRecommendationStatus @default(PENDING)
+  dismissReason      DismissReason?
+  dismissedUntil     DateTime?
+  clickedAt          DateTime?
+  clickCount         Int                         @default(0)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  user               User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recommendationHash])
+  @@index([userId, status])
+  @@index([userId, dismissedUntil])
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  userId      String
+  type        NotificationType
+  severity    NotificationSeverity
+  status      NotificationStatus   @default(PENDING)
+  title       String
+  message     String
+  channel     NotificationChannel
+  fingerprint String
+  payload     Json?
+  createdAt   DateTime             @default(now())
+  sentAt      DateTime?
+  readAt      DateTime?
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+  @@index([userId, channel])
+  @@index([userId, type])
+  @@index([userId, severity])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id               String           @id @default(cuid())
+  userId           String
+  notificationType NotificationType
+  dashboardEnabled Boolean          @default(true)
+  telegramEnabled  Boolean          @default(false)
+  digestEnabled    Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@index([userId])
+}
+
+model VorcaroMessageHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  templateId String
+  category   String
+  usedAt     DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+  @@index([userId, templateId])
+  @@index([userId, category])
+}
+
+model VorcaroConversation {
+  id          String                     @id @default(cuid())
+  userId      String
+  channel     VorcaroConversationChannel
+  title       String?
+  activeTopic String?
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  user        User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    VorcaroMessage[]
+
+  @@index([userId, channel])
+  @@index([userId, updatedAt])
+}
+
+model VorcaroMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  role           VorcaroMessageRole
+  content        String
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  conversation   VorcaroConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model FinancialTimelineEvent {
+  id          String                       @id @default(cuid())
+  userId      String
+  eventType   FinancialTimelineEventType
+  title       String
+  description String
+  eventDate   DateTime
+  impactLevel FinancialTimelineImpactLevel
+  metadata    Json?
+  fingerprint String
+  createdAt   DateTime                     @default(now())
+  user        User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, eventDate])
+  @@index([userId, eventType])
+}
+
+model FinancialMetricSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  snapshotDate    DateTime @db.Date
+  healthScore     Int
+  netWorth        Decimal  @db.Decimal(15, 2)
+  totalDebt       Decimal  @db.Decimal(15, 2)
+  monthlyIncome   Decimal  @db.Decimal(15, 2)
+  monthlyExpenses Decimal  @db.Decimal(15, 2)
+  monthlyCashflow Decimal  @db.Decimal(15, 2)
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, snapshotDate])
+  @@index([userId, snapshotDate])
+}
+
+model FinancialAchievement {
+  id             String   @id @default(cuid())
+  userId         String
+  achievementKey String
+  title          String
+  description    String
+  unlockedAt     DateTime @default(now())
+  metadata       Json?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementKey])
+  @@index([userId, unlockedAt])
+}
+
+model VorcaroActionProposal {
+  id            String              @id @default(cuid())
+  userId        String
+  actionType    String
+  title         String
+  description   String
+  payload       Json
+  status        VorcaroActionStatus @default(PENDING)
+  approvedAt    DateTime?
+  executedAt    DateTime?
+  failedAt      DateTime?
+  expiresAt     DateTime
+  failureReason String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model VorcaroFollowUp {
+  id                String                @id @default(cuid())
+  userId            String
+  fingerprint       String
+  relatedEntityId   String?
+  relatedEntityType String?
+  title             String
+  description       String
+  status            VorcaroFollowUpStatus @default(PENDING)
+  nextCheckAt       DateTime
+  lastReminderAt    DateTime?
+  checkCount        Int                   @default(0)
+  version           Int                   @default(0)
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+  @@index([nextCheckAt])
+}
+
+model FinancialDocument {
+  id            String                        @id @default(cuid())
+  userId        String
+  fileName      String
+  mimeType      String
+  fileSize      Int
+  storageKey    String?
+  fingerprint   String
+  status        FinancialDocumentStatus       @default(UPLOADED)
+  extractedText String?
+  extractedJson Json?
+  method        TransactionMethod?
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+  user          User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditEvents   FinancialDocumentAuditEvent[]
+  suggestions   FinancialDocumentSuggestion[]
+
+  @@unique([userId, fingerprint])
+  @@index([userId, status])
+}
+
+model FinancialDocumentSuggestion {
+  id               String                            @id @default(cuid())
+  userId           String
+  documentId       String
+  status           FinancialDocumentSuggestionStatus @default(PENDING)
+  amount           Decimal?                          @db.Decimal(15, 2)
+  date             DateTime?
+  description      String?
+  supplier         String?
+  method           TransactionMethod?
+  categoryId       String?
+  subcategoryId    String?
+  confidence       Int
+  isLearnedPattern Boolean                           @default(false)
+  metadata         Json?
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+  document         FinancialDocument                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([documentId])
+}
+
+model FinancialDocumentLearningPattern {
+  id             String            @id @default(cuid())
+  userId         String
+  method         TransactionMethod
+  pixKey         String?
+  documentNumber String?
+  normalizedName String?
+  categoryId     String?
+  subcategoryId  String?
+  occurrences    Int               @default(1)
+  lastUsedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, method])
+}
+
+model FinancialDocumentAuditEvent {
+  id            String                       @id @default(cuid())
+  userId        String
+  documentId    String
+  suggestionId  String?
+  action        FinancialDocumentAuditAction
+  changedFields Json?
+  createdAt     DateTime                     @default(now())
+  document      FinancialDocument            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, documentId])
+  @@index([suggestionId])
+}
+
+model BankStatementLayoutModel {
+  id                     String                            @id @default(cuid())
+  userId                 String
+  bankId                 String
+  bankName               String
+  profile                String                            @default("UNKNOWN")
+  fileFormat             BankStatementLayoutFormat         @default(UNKNOWN)
+  layoutLabel            String
+  accountType            String?
+  fingerprint            Json
+  structureRules         Json
+  version                Int                               @default(1)
+  accuracyRate           Float                             @default(0)
+  usageCount             Int                               @default(0)
+  successCount           Int                               @default(0)
+  correctionCount        Int                               @default(0)
+  lastUsedAt             DateTime?
+  lastSimilarityScore    Float?
+  status                 BankStatementLayoutStatus         @default(ACTIVE)
+  approvalStatus         BankStatementLayoutApprovalStatus @default(TESTING)
+  riskLevel              BankStatementLayoutRiskLevel      @default(MEDIUM)
+  humanReviewConfirmedAt DateTime?
+  realImportCount        Int                               @default(0)
+  parentModelId          String?
+  isBuiltIn              Boolean                           @default(false)
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
+  corrections            BankStatementLayoutCorrection[]
+  parentModel            BankStatementLayoutModel?         @relation("LayoutModelVersions", fields: [parentModelId], references: [id])
+  childVersions          BankStatementLayoutModel[]        @relation("LayoutModelVersions")
+  user                   User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, bankId, fileFormat, status])
+  @@index([userId, status])
+}
+
+model BankStatementLayoutCorrection {
+  id                   String                   @id @default(cuid())
+  userId               String
+  layoutModelId        String
+  originalLine         String
+  correctedDate        String?
+  correctedDescription String?
+  correctedAmount      Decimal?                 @db.Decimal(15, 2)
+  sourceDocumentId     String?
+  sourceFileName       String?
+  appliedToModel       Boolean                  @default(false)
+  createdAt            DateTime                 @default(now())
+  layoutModel          BankStatementLayoutModel @relation(fields: [layoutModelId], references: [id], onDelete: Cascade)
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, layoutModelId])
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  methodPath     String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+
+  @@index([key])
+  @@index([createdAt])
+}
+
+model WebhookLog {
+  id           String   @id @default(cuid())
+  tenantId     String   @map("userId")
+  provider     String
+  eventId      String?
+  status       String
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+model StatementLineSuggestion {
+  id                    String               @id @default(cuid())
+  userId                String
+  description           String
+  amount                Decimal              @db.Decimal(15, 2)
+  date                  DateTime
+  cnpjCpf               String?
+  suggestedName         String?
+  originId              String?
+  destinationId         String?
+  score                 Int
+  status                IdentificationStatus @default(UNKNOWN)
+  processed             Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+  reconciliationMatchId String?
+  
+  // Detecção e Rastreabilidade (Fiori Horizon Staging)
+  financialAccountId    String?
+  fileHash              String?
+  
+  // Classificação Aplicada
+  type                  TransactionType      @default(EXPENSE)
+  isDuplicateAlert      Boolean              @default(false)
+  suggestedCategoryId   String?
+
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, date])
+  @@index([fileHash])
 }
 
 enum AccountType {
@@ -152,32 +1045,6 @@ enum AccountType {
   CARTEIRA_DINHEIRO
   INTERNACIONAL
   PJ
-}
-
-model Card {
-  id                 String    @id @default(cuid())
-  userId             String
-  financialAccountId String?
-  name               String
-  institutionName    String?
-  brand              CardBrand
-  type               CardType
-  lastFourDigits     String?
-  creditLimit        Decimal?  @db.Decimal(15, 2)
-  closingDay         Int?
-  dueDay             Int?
-  isActive           Boolean   @default(true)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  financialAccount       FinancialAccount?      @relation(fields: [financialAccountId], references: [id], onDelete: SetNull)
-  transactions           Transaction[]
-  lancamentosRecorrentes LancamentoRecorrente[]
-
-  @@unique([userId, name])
-  @@index([userId])
-  @@index([financialAccountId])
 }
 
 enum CardBrand {
@@ -200,71 +1067,10 @@ enum CategoryType {
   DESPESA
 }
 
-model Category {
-  id               String       @id @default(cuid())
-  userId           String
-  name             String
-  type             CategoryType
-  icon             String?
-  color            String?
-  isSystem         Boolean      @default(false)
-  isActive         Boolean      @default(true)
-  parentCategoryId String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentCategory         Category?              @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: Restrict)
-  subcategories          Category[]             @relation("CategoryHierarchy")
-  transactions           Transaction[]
-  transactionRules       TransactionRule[]
-  lancamentosRecorrentes LancamentoRecorrente[]
-
-  @@unique([userId, name, parentCategoryId])
-  @@index([userId])
-  @@index([userId, isActive])
-  @@index([parentCategoryId])
-}
-
 enum TransactionType {
   INCOME
   EXPENSE
   TRANSFER
-}
-
-model TransactionRule {
-  id               String   @id @default(cuid())
-  userId           String
-  targetCategoryId String
-  keyword          String
-  priority         Int      @default(0)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetCategory Category      @relation(fields: [targetCategoryId], references: [id], onDelete: Cascade)
-  transactions   Transaction[]
-
-  @@unique([userId, keyword])
-  @@index([userId, isActive])
-}
-
-model PaymentMethod {
-  id        String            @id @default(cuid())
-  userId    String
-  name      String
-  type      PaymentMethodType
-  isDefault Boolean           @default(false)
-  isActive  Boolean           @default(true)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions           Transaction[]
-  lancamentosRecorrentes LancamentoRecorrente[]
-
-  @@unique([userId, name])
-  @@index([userId])
 }
 
 enum PaymentMethodType {
@@ -291,131 +1097,6 @@ enum IdentificationStatus {
   UNKNOWN
 }
 
-model Counterparty {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  cnpjCpf   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user                    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aliases                 CounterpartyAlias[]
-  originTransactions      Transaction[]       @relation("OriginTransactions")
-  destinationTransactions Transaction[]       @relation("DestinationTransactions")
-
-  @@unique([userId, name])
-  @@index([userId])
-  @@index([cnpjCpf])
-}
-
-model CounterpartyAlias {
-  id             String   @id @default(cuid())
-  counterpartyId String
-  alias          String
-  createdAt      DateTime @default(now())
-
-  counterparty Counterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
-
-  @@unique([counterpartyId, alias])
-  @@index([counterpartyId])
-}
-
-model Transaction {
-  id                     String               @id @default(cuid())
-  userId                 String
-  accountId              String?
-  categoryId             String?
-  ruleId                 String?
-  paymentMethodId        String?
-  cardId                 String?
-  inboxItemId            String?              @unique
-  type                   TransactionType
-  amount                 Decimal              @db.Decimal(15, 2)
-  description            String
-  date                   DateTime
-  dataCompra             DateTime?
-  dataCaixa              DateTime?
-  dataVencimentoFatura   DateTime?
-  notes                  String?
-  metadata               Json?
-  installments           Int                  @default(1)
-  installmentGroup       String?
-  currentInstallment     Int?
-  totalInstallments      Int?
-  numeroParcela          Int?
-  totalParcelas          Int?
-  idGrupoParcelamento    String?
-  observacoesInternas    String?
-  lancamentoRecorrenteId String?
-  dataRecorrencia        DateTime?
-  liabilityId            String?
-  fitId                  String?
-  providerEventId        String?              @unique
-  parentInstallmentId    String?
-  originId               String?
-  destinationId          String?
-  identificationScore    Int?
-  identificationStatus   IdentificationStatus @default(UNKNOWN)
-  status                 String?              @default("PENDING")
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-
-  user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  liability               PatrimonyLiability?    @relation(fields: [liabilityId], references: [id], onDelete: SetNull)
-  account                 FinancialAccount?      @relation(fields: [accountId], references: [id])
-  category                Category?              @relation(fields: [categoryId], references: [id])
-  rule                    TransactionRule?       @relation(fields: [ruleId], references: [id], onDelete: SetNull)
-  paymentMethod           PaymentMethod?         @relation(fields: [paymentMethodId], references: [id])
-  card                    Card?                  @relation(fields: [cardId], references: [id])
-  inboxItem               FinancialInbox?        @relation(fields: [inboxItemId], references: [id])
-  lancamentoRecorrente    LancamentoRecorrente?  @relation(fields: [lancamentoRecorrenteId], references: [id], onDelete: SetNull)
-  patrimonyTransactions   PatrimonyTransaction[]
-  receivable              Receivable?
-  parentInstallment       Transaction?           @relation("InstallmentSeries", fields: [parentInstallmentId], references: [id], onDelete: Cascade)
-  childInstallments       Transaction[]          @relation("InstallmentSeries")
-  originCounterparty      Counterparty?          @relation("OriginTransactions", fields: [originId], references: [id], onDelete: SetNull)
-  destinationCounterparty Counterparty?          @relation("DestinationTransactions", fields: [destinationId], references: [id], onDelete: SetNull)
-
-  @@unique([userId, accountId, fitId])
-  @@index([userId, date])
-  @@index([userId, accountId])
-  @@index([userId, categoryId])
-  @@index([userId, ruleId])
-  @@index([userId, createdAt])
-  @@index([userId, accountId, date])
-  @@index([userId, categoryId, date])
-  @@index([accountId])
-  @@index([cardId])
-  @@index([installmentGroup])
-  @@index([lancamentoRecorrenteId, dataRecorrencia])
-  @@index([liabilityId])
-  @@index([originId])
-  @@index([destinationId])
-}
-
-// ─── Importação de Extratos (OFX/CSV) ─────────────────────────────────────────
-
-model BankStatementImport {
-  id                String   @id @default(cuid())
-  userId            String
-  accountId         String
-  fileName          String
-  importHash        String
-  status            String   @default("COMPLETED") // PENDING, COMPLETED, ERROR
-  transactionsCount Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, accountId, importHash])
-  @@index([userId])
-}
-
-// ─── Lançamentos Recorrentes ──────────────────────────────────────────────────
-
 enum FrequenciaRecorrencia {
   SEMANAL
   QUINZENAL
@@ -430,44 +1111,6 @@ enum TipoLancamentoRecorrente {
   RECEITA
   DESPESA
 }
-
-model LancamentoRecorrente {
-  id                 String                   @id @default(cuid())
-  userId             String
-  descricao          String
-  tipo               TipoLancamentoRecorrente
-  valor              Decimal                  @db.Decimal(15, 2)
-  frequencia         FrequenciaRecorrencia
-  dataInicio         DateTime
-  dataFim            DateTime?
-  proximaExecucao    DateTime
-  estaAtivo          Boolean                  @default(true)
-  categoryId         String
-  financialAccountId String
-  paymentMethodId    String
-  cardId             String?
-  observacoes        String?
-  liabilityId        String?
-  defaultAllocations Json?
-  diaInicioOriginal  Int
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  liability        PatrimonyLiability? @relation(fields: [liabilityId], references: [id], onDelete: SetNull)
-  category         Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  financialAccount FinancialAccount    @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
-  paymentMethod    PaymentMethod       @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
-  card             Card?               @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  transactions     Transaction[]
-  consortiums      Consortium[]
-
-  @@index([userId, estaAtivo, proximaExecucao])
-  @@index([userId])
-  @@index([liabilityId])
-}
-
-// ─── Caixa Financeira (Financial Inbox) ───────────────────────────────────────
 
 enum InboxStatus {
   PENDING
@@ -488,102 +1131,6 @@ enum InboxChannel {
   TELEGRAM_IMAGE
   WHATSAPP
 }
-
-model FinancialInbox {
-  id           String       @id @default(cuid())
-  userId       String
-  status       InboxStatus  @default(PENDING)
-  channel      InboxChannel
-  rawContent   String       @db.Text
-  channelMeta  Json?
-  metadata     Json?
-  externalId   String?
-  importHash   String?
-  errorMessage String?
-  processedAt  DateTime?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attachments       Attachment[]
-  extractionResults ExtractionResult[]
-  transaction       Transaction?
-
-  @@index([userId, status])
-  @@index([status, createdAt])
-  @@index([userId, channel, externalId])
-  @@index([userId, channel, importHash])
-}
-
-model Attachment {
-  id          String   @id @default(cuid())
-  inboxItemId String
-  fileName    String
-  mimeType    String
-  storageKey  String
-  sizeBytes   Int
-  createdAt   DateTime @default(now())
-
-  inboxItem         FinancialInbox     @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
-  extractionResults ExtractionResult[]
-
-  @@index([inboxItemId])
-}
-
-model ExtractionResult {
-  id            String   @id @default(cuid())
-  inboxItemId   String
-  attachmentId  String?
-  provider      String
-  extractedData Json
-  confidence    Json
-  tokensUsed    Int?
-  processingMs  Int?
-  createdAt     DateTime @default(now())
-
-  inboxItem  FinancialInbox @relation(fields: [inboxItemId], references: [id], onDelete: Cascade)
-  attachment Attachment?    @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
-
-  @@index([inboxItemId])
-}
-
-// ─── Motor de Aprendizado ─────────────────────────────────────────────────────
-
-model UserRule {
-  id          String   @id @default(cuid())
-  userId      String
-  name        String
-  description String?
-  condition   Json
-  action      Json
-  priority    Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isActive])
-}
-
-model UserLearningPattern {
-  id           String   @id @default(cuid())
-  userId       String
-  patternType  String
-  inputSignal  Json
-  outputSignal Json
-  confidence   Float
-  occurrences  Int      @default(1)
-  lastSeenAt   DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, patternType])
-}
-
-// ─── Patrimônio ───────────────────────────────────────────────────────────────
 
 enum AssetType {
   CONSORCIO
@@ -621,33 +1168,6 @@ enum PatrimonyTxType {
   DEPRECIACAO
 }
 
-model PatrimonyAsset {
-  id             String    @id @default(cuid())
-  userId         String
-  nome           String
-  descricao      String?
-  tipo           AssetType
-  valorAquisicao Decimal   @db.Decimal(15, 2)
-  valorAtual     Decimal   @db.Decimal(15, 2)
-  dataAquisicao  DateTime?
-  estaAtivo      Boolean   @default(true)
-  observacoes    String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  linkedLiabilityId String?             @map("liabilityId")
-  linkedLiability   PatrimonyLiability? @relation(fields: [linkedLiabilityId], references: [id], onDelete: SetNull)
-
-  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  movimentacoes PatrimonyTransaction[]
-  consortium    Consortium?
-
-  @@index([userId, estaAtivo])
-  @@index([userId, tipo])
-}
-
-// ─── Consórcios ───────────────────────────────────────────────────────────────
-
 enum ConsortiumType {
   VEHICLE
   REAL_ESTATE
@@ -661,87 +1181,6 @@ enum ConsortiumStatus {
   ASSET_ACQUIRED
   COMPLETED
 }
-
-model Consortium {
-  id                     String           @id @default(cuid())
-  userId                 String
-  nome                   String
-  tipo                   ConsortiumType
-  status                 ConsortiumStatus
-  valorCredito           Decimal          @db.Decimal(15, 2)
-  valorLance             Decimal          @default(0) @db.Decimal(15, 2)
-  valorPago              Decimal          @default(0) @db.Decimal(15, 2)
-  valorTaxas             Decimal          @default(0) @db.Decimal(15, 2)
-  quantidadeParcelas     Int
-  parcelasPagas          Int              @default(0)
-  dataContratacao        DateTime?
-  dataContemplacao       DateTime?
-  dataQuitacao           DateTime?
-  assetId                String?          @unique
-  lancamentoRecorrenteId String?
-  estaAtivo              Boolean          @default(true)
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
-
-  usuario              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  asset                PatrimonyAsset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  lancamentoRecorrente LancamentoRecorrente? @relation(fields: [lancamentoRecorrenteId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([userId, estaAtivo])
-  @@index([userId, status])
-}
-
-model PatrimonyLiability {
-  id                   String        @id @default(cuid())
-  userId               String
-  nome                 String
-  descricao            String?
-  tipo                 LiabilityType
-  saldoOriginal        Decimal       @db.Decimal(15, 2)
-  saldoAtual           Decimal       @db.Decimal(15, 2)
-  taxaJuros            Decimal?      @db.Decimal(8, 4)
-  dataContratacao      DateTime?
-  dataQuitacaoPrevista DateTime?
-  estaAtivo            Boolean       @default(true)
-  observacoes          String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assets                 PatrimonyAsset[]
-  movimentacoes          PatrimonyTransaction[]
-  transactions           Transaction[]
-  lancamentosRecorrentes LancamentoRecorrente[]
-
-  @@index([userId, estaAtivo])
-  @@index([userId, tipo])
-}
-
-model PatrimonyTransaction {
-  id                String          @id @default(cuid())
-  userId            String
-  assetId           String?
-  liabilityId       String?
-  tipo              PatrimonyTxType
-  valorTotal        Decimal         @db.Decimal(15, 2)
-  data              DateTime
-  descricao         String?
-  mainTransactionId String?
-  createdAt         DateTime        @default(now())
-
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  asset           PatrimonyAsset?     @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  liability       PatrimonyLiability? @relation(fields: [liabilityId], references: [id], onDelete: SetNull)
-  mainTransaction Transaction?        @relation(fields: [mainTransactionId], references: [id], onDelete: SetNull)
-
-  @@index([userId, data])
-  @@index([assetId])
-  @@index([liabilityId])
-  @@index([mainTransactionId])
-}
-
-// ─── Planejamento financeiro (Sprint 6) ───────────────────────────────────────
 
 enum FinancialGoalType {
   EMERGENCY_FUND
@@ -765,95 +1204,12 @@ enum GoalStatus {
   CANCELLED
 }
 
-model FinancialGoal {
-  id            String            @id @default(cuid())
-  userId        String
-  nome          String
-  descricao     String?
-  tipo          FinancialGoalType
-  valorObjetivo Decimal           @db.Decimal(15, 2)
-  valorAtual    Decimal           @default(0) @db.Decimal(15, 2)
-  aporteMensal  Decimal?          @db.Decimal(15, 2)
-  dataObjetivo  DateTime?
-  prioridade    GoalPriority
-  status        GoalStatus        @default(ACTIVE)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, status])
-}
-
-// ─── Telegram (Sprint 4.7) ────────────────────────────────────────────────────
-
-model TelegramConnection {
-  id             String   @id @default(cuid())
-  userId         String
-  telegramChatId BigInt
-  telegramUserId BigInt?
-  username       String?
-  firstName      String?
-  isActive       Boolean  @default(true)
-  connectedAt    DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([telegramChatId])
-  @@index([userId])
-}
-
-model TelegramConnectCode {
-  id        String    @id @default(cuid())
-  userId    String
-  code      String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-// ─── Contas a Receber (Sprint 7.5) ────────────────────────────────────────────
-
 enum ReceivableStatus {
   OPEN
   PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
 }
-
-model Receivable {
-  id            String           @id @default(cuid())
-  userId        String
-  descricao     String
-  devedorNome   String
-  valorOriginal Decimal          @db.Decimal(15, 2)
-  valorRecebido Decimal          @default(0) @db.Decimal(15, 2)
-  valorPendente Decimal          @db.Decimal(15, 2)
-  status        ReceivableStatus @default(OPEN)
-  origem        String?
-  observacoes   String?
-  expectedDate  DateTime?
-  receivedAt    DateTime?
-  transactionId String?          @unique
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([status])
-  @@index([userId, expectedDate])
-}
-
-// ─── Alertas Financeiros (Sprint 9) ───────────────────────────────────────────
 
 enum FinancialAlertType {
   UPCOMING_PAYMENT
@@ -877,32 +1233,6 @@ enum FinancialAlertStatus {
   RESOLVED
 }
 
-model FinancialAlert {
-  id          String                 @id @default(cuid())
-  userId      String
-  type        FinancialAlertType
-  severity    FinancialAlertSeverity
-  title       String
-  description String                 @db.Text
-  status      FinancialAlertStatus   @default(OPEN)
-  fingerprint String
-  metadata    Json?
-  actionUrl   String?
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  resolvedAt  DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, fingerprint])
-  @@index([userId, status])
-  @@index([userId, type])
-  @@index([userId, severity])
-  @@index([createdAt])
-}
-
-// ─── Consultor Financeiro — memória de recomendações (Sprint 9.5A) ───────────
-
 enum AdvisorRecommendationStatus {
   PENDING
   DISMISSED
@@ -915,28 +1245,6 @@ enum DismissReason {
   ACCEPTED_SPENDING
   REMIND_LATER
 }
-
-model AdvisorRecommendationState {
-  id                 String                      @id @default(cuid())
-  userId             String
-  recommendationHash String
-  actionType         String
-  status             AdvisorRecommendationStatus @default(PENDING)
-  dismissReason      DismissReason?
-  dismissedUntil     DateTime?
-  clickedAt          DateTime?
-  clickCount         Int                         @default(0)
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, recommendationHash])
-  @@index([userId, status])
-  @@index([userId, dismissedUntil])
-}
-
-// ─── Central de Notificações (Sprint 10) ────────────────────────────────────
 
 enum NotificationType {
   ALERT_CREATED
@@ -971,49 +1279,6 @@ enum NotificationChannel {
   DIGEST
 }
 
-model Notification {
-  id          String               @id @default(cuid())
-  userId      String
-  type        NotificationType
-  severity    NotificationSeverity
-  status      NotificationStatus   @default(PENDING)
-  title       String
-  message     String               @db.Text
-  channel     NotificationChannel
-  fingerprint String
-  payload     Json?
-  createdAt   DateTime             @default(now())
-  sentAt      DateTime?
-  readAt      DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, fingerprint])
-  @@index([userId, status])
-  @@index([userId, channel])
-  @@index([userId, type])
-  @@index([userId, severity])
-  @@index([createdAt])
-}
-
-model NotificationPreference {
-  id               String           @id @default(cuid())
-  userId           String
-  notificationType NotificationType
-  dashboardEnabled Boolean          @default(true)
-  telegramEnabled  Boolean          @default(false)
-  digestEnabled    Boolean          @default(true)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, notificationType])
-  @@index([userId])
-}
-
-// ─── Vorcaro — personalidade e anti-repetição (Sprint 10.5) ───────────────────
-
 enum VorcaroTone {
   PROFESSIONAL
   DIRECT
@@ -1022,22 +1287,6 @@ enum VorcaroTone {
   IMPACT
   REALITY_AUDITOR
 }
-
-model VorcaroMessageHistory {
-  id         String   @id @default(cuid())
-  userId     String
-  templateId String
-  category   String
-  usedAt     DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, usedAt])
-  @@index([userId, templateId])
-  @@index([userId, category])
-}
-
-// ─── Vorcaro Chat — Sprint 11 ─────────────────────────────────────────────────
 
 enum VorcaroConversationChannel {
   WEB
@@ -1049,37 +1298,6 @@ enum VorcaroMessageRole {
   VORCARO
   SYSTEM
 }
-
-model VorcaroConversation {
-  id          String                     @id @default(cuid())
-  userId      String
-  channel     VorcaroConversationChannel
-  title       String?
-  activeTopic String?
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
-
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages VorcaroMessage[]
-
-  @@index([userId, channel])
-  @@index([userId, updatedAt])
-}
-
-model VorcaroMessage {
-  id             String             @id @default(cuid())
-  conversationId String
-  role           VorcaroMessageRole
-  content        String             @db.Text
-  metadata       Json?
-  createdAt      DateTime           @default(now())
-
-  conversation VorcaroConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-}
-
-// ─── Memória Financeira Longitudinal — Sprint 12 ───────────────────────────────
 
 enum FinancialTimelineEventType {
   NET_WORTH_INCREASE
@@ -1112,60 +1330,6 @@ enum FinancialTrendDirection {
   DECLINING
 }
 
-model FinancialTimelineEvent {
-  id          String                       @id @default(cuid())
-  userId      String
-  eventType   FinancialTimelineEventType
-  title       String
-  description String                       @db.Text
-  eventDate   DateTime
-  impactLevel FinancialTimelineImpactLevel
-  metadata    Json?
-  fingerprint String
-  createdAt   DateTime                     @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, fingerprint])
-  @@index([userId, eventDate])
-  @@index([userId, eventType])
-}
-
-model FinancialMetricSnapshot {
-  id              String   @id @default(cuid())
-  userId          String
-  snapshotDate    DateTime @db.Date
-  healthScore     Int
-  netWorth        Decimal  @db.Decimal(15, 2)
-  totalDebt       Decimal  @db.Decimal(15, 2)
-  monthlyIncome   Decimal  @db.Decimal(15, 2)
-  monthlyExpenses Decimal  @db.Decimal(15, 2)
-  monthlyCashflow Decimal  @db.Decimal(15, 2)
-  createdAt       DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, snapshotDate])
-  @@index([userId, snapshotDate])
-}
-
-model FinancialAchievement {
-  id             String   @id @default(cuid())
-  userId         String
-  achievementKey String
-  title          String
-  description    String   @db.Text
-  unlockedAt     DateTime @default(now())
-  metadata       Json?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementKey])
-  @@index([userId, unlockedAt])
-}
-
-// ─── Execução Assistida Vorcaro — Sprint 13 ───────────────────────────────────
-
 enum VorcaroActionStatus {
   PENDING
   APPROVED
@@ -1175,32 +1339,6 @@ enum VorcaroActionStatus {
   EXPIRED
 }
 
-model VorcaroActionProposal {
-  id          String              @id @default(cuid())
-  userId      String
-  actionType  String
-  title       String
-  description String
-  payload     Json
-  status      VorcaroActionStatus @default(PENDING)
-
-  approvedAt DateTime?
-  executedAt DateTime?
-  failedAt   DateTime?
-  expiresAt  DateTime
-
-  failureReason String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
-}
-
-// ─── Follow-up Inteligente — Sprint 14 ────────────────────────────────────────
-
 enum VorcaroFollowUpStatus {
   PENDING
   ACTIVE
@@ -1208,32 +1346,6 @@ enum VorcaroFollowUpStatus {
   DISMISSED
   EXPIRED
 }
-
-model VorcaroFollowUp {
-  id                String                @id @default(cuid())
-  userId            String
-  fingerprint       String
-  relatedEntityId   String?
-  relatedEntityType String?
-  title             String
-  description       String
-  status            VorcaroFollowUpStatus @default(PENDING)
-  nextCheckAt       DateTime
-  lastReminderAt    DateTime?
-  checkCount        Int                   @default(0)
-  version           Int                   @default(0)
-  metadata          Json?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, fingerprint])
-  @@index([userId, status])
-  @@index([nextCheckAt])
-}
-
-// ─── Captura Inteligente de Documentos — Sprint 15 ────────────────────────────
 
 enum FinancialDocumentStatus {
   UPLOADED
@@ -1261,81 +1373,6 @@ enum FinancialDocumentSuggestionStatus {
   REJECTED
 }
 
-model FinancialDocument {
-  id          String                  @id @default(cuid())
-  userId      String
-  fileName    String
-  mimeType    String
-  fileSize    Int
-  storageKey  String?
-  fingerprint String
-  status      FinancialDocumentStatus @default(UPLOADED)
-
-  extractedText String?            @db.Text
-  extractedJson Json?
-  method        TransactionMethod?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user        User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  suggestions FinancialDocumentSuggestion[]
-  auditEvents FinancialDocumentAuditEvent[]
-
-  @@unique([userId, fingerprint])
-  @@index([userId, status])
-}
-
-model FinancialDocumentSuggestion {
-  id         String                            @id @default(cuid())
-  userId     String
-  documentId String
-  status     FinancialDocumentSuggestionStatus @default(PENDING)
-
-  amount           Decimal?           @db.Decimal(15, 2)
-  date             DateTime?
-  description      String?
-  supplier         String?
-  method           TransactionMethod?
-  categoryId       String?
-  subcategoryId    String?
-  confidence       Int
-  isLearnedPattern Boolean            @default(false)
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  document FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([documentId])
-}
-
-model FinancialDocumentLearningPattern {
-  id     String @id @default(cuid())
-  userId String
-
-  method         TransactionMethod
-  pixKey         String?
-  documentNumber String?
-  normalizedName String?
-
-  categoryId    String?
-  subcategoryId String?
-
-  occurrences Int       @default(1)
-  lastUsedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, method])
-}
-
 enum FinancialDocumentAuditAction {
   EDITED
   APPROVED
@@ -1345,22 +1382,6 @@ enum FinancialDocumentAuditAction {
   REPROCESS_FAILED
   REOPENED_AFTER_REJECTION
   PASSWORD_SUBMITTED
-}
-
-model FinancialDocumentAuditEvent {
-  id            String                       @id @default(cuid())
-  userId        String
-  documentId    String
-  suggestionId  String?
-  action        FinancialDocumentAuditAction
-  changedFields Json?
-  createdAt     DateTime                     @default(now())
-
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document FinancialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@index([userId, documentId])
-  @@index([suggestionId])
 }
 
 enum BankStatementLayoutFormat {
@@ -1395,114 +1416,3 @@ enum BankStatementLayoutSimilarityTier {
   MEDIUM
   LOW
 }
-
-model BankStatementLayoutModel {
-  id     String @id @default(cuid())
-  userId String
-
-  bankId      String
-  bankName    String
-  profile     String                    @default("UNKNOWN")
-  fileFormat  BankStatementLayoutFormat @default(UNKNOWN)
-  layoutLabel String
-  accountType String?
-
-  fingerprint    Json
-  structureRules Json
-
-  version             Int       @default(1)
-  accuracyRate        Float     @default(0)
-  usageCount          Int       @default(0)
-  successCount        Int       @default(0)
-  correctionCount     Int       @default(0)
-  lastUsedAt          DateTime?
-  lastSimilarityScore Float?
-
-  status                 BankStatementLayoutStatus         @default(ACTIVE)
-  approvalStatus         BankStatementLayoutApprovalStatus @default(TESTING)
-  riskLevel              BankStatementLayoutRiskLevel      @default(MEDIUM)
-  humanReviewConfirmedAt DateTime?
-  realImportCount        Int                               @default(0)
-  parentModelId          String?
-  isBuiltIn              Boolean                           @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user          User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentModel   BankStatementLayoutModel?       @relation("LayoutModelVersions", fields: [parentModelId], references: [id], onDelete: SetNull)
-  childVersions BankStatementLayoutModel[]      @relation("LayoutModelVersions")
-  corrections   BankStatementLayoutCorrection[]
-
-  @@index([userId, bankId, fileFormat, status])
-  @@index([userId, status])
-}
-
-model BankStatementLayoutCorrection {
-  id            String @id @default(cuid())
-  userId        String
-  layoutModelId String
-
-  originalLine         String   @db.Text
-  correctedDate        String?
-  correctedDescription String?
-  correctedAmount      Decimal? @db.Decimal(15, 2)
-  sourceDocumentId     String?
-  sourceFileName       String?
-
-  appliedToModel Boolean  @default(false)
-  createdAt      DateTime @default(now())
-
-  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  layoutModel BankStatementLayoutModel @relation(fields: [layoutModelId], references: [id], onDelete: Cascade)
-
-  @@index([userId, layoutModelId])
-}
-
-// ─── Webhooks e Integrações ───────────────────────────────────────────────────
-
-model IdempotencyKey {
-  id             String   @id @default(cuid())
-  key            String   @unique
-  methodPath     String
-  responseStatus Int
-  responseBody   Json
-  createdAt      DateTime @default(now())
-
-  @@index([key])
-  @@index([createdAt])
-}
-
-model WebhookLog {
-  id           String   @id @default(cuid())
-  tenantId     String   @map("userId")
-  provider     String
-  eventId      String?
-  status       String // SUCCESS, IGNORED, ERROR
-  errorMessage String?  @db.Text
-  createdAt    DateTime @default(now())
-
-  @@index([tenantId, createdAt])
-}
-
-model StatementLineSuggestion {
-  id              String               @id @default(cuid())
-  userId          String
-  description     String
-  amount          Decimal              @db.Decimal(15, 2)
-  date            DateTime
-  cnpjCpf         String?
-  suggestedName   String?
-  originId        String?
-  destinationId   String?
-  score           Int
-  status          IdentificationStatus @default(UNKNOWN)
-  reconciliationMatchId String?
-  processed       Boolean              @default(false)
-  createdAt       DateTime             @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-

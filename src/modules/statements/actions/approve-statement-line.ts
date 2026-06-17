@@ -2,9 +2,13 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
-export async function approveStatementLine(id: string): Promise<{ success: boolean; error?: string }> {
+export async function approveStatementLine(
+  id: string,
+  categoryId?: string | null,
+  accountId?: string | null
+): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -39,6 +43,8 @@ export async function approveStatementLine(id: string): Promise<{ success: boole
           data: {
             status: "PAID",
             dataCaixa: suggestion.date,
+            ...(categoryId ? { categoryId } : {}),
+            ...(accountId ? { accountId } : {}),
           },
         });
       } else {
@@ -55,6 +61,8 @@ export async function approveStatementLine(id: string): Promise<{ success: boole
             type: suggestion.originId ? "INCOME" : "EXPENSE",
             status: "PAID",
             dataCaixa: suggestion.date,
+            categoryId: categoryId || undefined,
+            accountId: accountId || undefined,
           },
         });
       }
@@ -66,6 +74,7 @@ export async function approveStatementLine(id: string): Promise<{ success: boole
       return { success: false, error: "Esta sugestão já foi processada ou removida." };
     }
 
+    revalidateTag(`dashboard-metrics-${userId}`);
     revalidatePath("/dashboard/statements");
     return { success: true };
   } catch (error) {

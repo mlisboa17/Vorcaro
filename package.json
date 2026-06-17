@@ -20,6 +20,7 @@
     "dev:all": "node scripts/dev-all.mjs",
     "dev:safe": "prisma migrate dev && node scripts/dev-all.mjs",
     "dev:clean": "node scripts/dev-clean.mjs",
+    "dev:orchestrator": "npx tsx src/scripts/dev-orchestrator.ts",
     "telegram:webhook": "node scripts/register-telegram-webhook.mjs",
     "worker:inbox": "npx tsx src/lib/queue/workers/financial-inbox.worker.ts",
     "alerts:engine": "npx tsx scripts/run-financial-alerts-engine.ts",
@@ -32,13 +33,15 @@
     "homolog:real-banks": "npx tsx scripts/real-bank-homologation.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:foundation": "npx tsx scripts/validate-foundation.ts"
+    "test:foundation": "npx tsx scripts/validate-foundation.ts",
+    "validate:pipeline": "prisma validate && tsc --noEmit && vitest run"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
     "@google/generative-ai": "^0.24.0",
     "@prisma/client": "^6.3.1",
     "@supabase/supabase-js": "^2.108.1",
+    "@tanstack/react-table": "^8.21.3",
     "bullmq": "^5.34.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -65,6 +68,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.6",
+    "ngrok": "^5.0.0-beta.2",
     "postcss": "^8.5.1",
     "prisma": "^6.3.1",
     "tailwindcss": "^3.4.17",
