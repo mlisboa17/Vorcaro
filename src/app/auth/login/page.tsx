@@ -87,6 +87,38 @@ function LoginForm() {
           )}
         </button>
       </form>
+
+      <div className="relative flex items-center my-4">
+        <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+        <span className="flex-shrink mx-4 text-xs text-gray-500 dark:text-gray-400">ou</span>
+        <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+      </div>
+
+      <button
+        onClick={() => signIn("google", { callbackUrl })}
+        type="button"
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 transition-colors shadow-sm"
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" width="24" height="24">
+          <path
+            fill="#EA4335"
+            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.23 2.673 1.255 6.6L5.266 9.765z"
+          />
+          <path
+            fill="#34A853"
+            d="M16.04 15.342c-1.044.69-2.4 1.109-4.04 1.109a7.07 7.07 0 0 1-6.733-4.854L1.256 14.73A12.013 12.013 0 0 0 12 24c3.245 0 6.18-1.09 8.41-2.964l-4.37-3.694z"
+          />
+          <path
+            fill="#4285F4"
+            d="M23.77 12.273c0-.818-.082-1.609-.227-2.373H12v4.51h6.6a5.64 5.64 0 0 1-2.455 3.709l4.37 3.694c2.553-2.355 4.03-5.818 4.03-9.54z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.266 9.765L1.255 6.6A11.96 11.96 0 0 0 0 12c0 1.927.455 3.745 1.255 5.382l4.01-3.136A7.077 7.077 0 0 1 4.91 12c0-.8.145-1.573.355-2.235z"
+          />
+        </svg>
+        Entrar com Google
+      </button>
     </>
   );
 }
@@ -101,10 +133,8 @@ export default function LoginPage() {
         <Suspense fallback={<div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>}>
           <LoginForm />
         </Suspense>
-        <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-          <a href="/auth/register" className="hover:underline">
-            Ainda não tem conta? Registre‑se
-          </a>
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+          O registro de novas contas é feito diretamente no login via Google.
         </div>
       </div>
     </section>

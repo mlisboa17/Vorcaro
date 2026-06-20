@@ -114,7 +114,7 @@ function printFinalSummary(ngrokUrl, telegramResult) {
     }
   }
   console.log("\nAcesse:");
-  console.log("  http://localhost:3000");
+  console.log(`  http://localhost:${PORTS.next}`);
   if (ngrokUrl) {
     console.log(`  ${ngrokUrl}`);
   }
@@ -187,13 +187,13 @@ async function ensureNextDev() {
     cwd: PROJECT_ROOT,
     shell: true,
     stdio: "inherit",
-    env: process.env,
+    env: { ...process.env, PORT: String(PORTS.next) },
   });
   trackChild(child, "next");
   if (child.pid) writePid("next", child.pid);
 
   const ready = await waitForNextHttpReady(120_000);
-  status.next = ready ? "OK" : "ERRO — Next não respondeu em http://localhost:3000";
+  status.next = ready ? "OK" : `ERRO — Next não respondeu em http://localhost:${PORTS.next}`;
   if (!ready) {
     console.error(
       [

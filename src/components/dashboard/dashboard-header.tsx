@@ -3,6 +3,7 @@
 import React, { useCallback, useTransition } from "react"
 import { Calendar, Building2, Loader2 } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { VorcaroLogo } from "@/components/ui/vorcaro-logo"
 
 interface CompanyOption {
   id: string
@@ -42,6 +43,9 @@ export function DashboardHeader({ userName, companies }: DashboardHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
+        <div className="mb-2">
+          <VorcaroLogo className="h-7 md:h-8" />
+        </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
           Olá, {userName}
           {isPending && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}

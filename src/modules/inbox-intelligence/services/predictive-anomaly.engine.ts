@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type ResponseSchema } from "@google/generative-ai";
 import { prisma } from "../../../lib/prisma";
 import crypto from "crypto";
 
@@ -11,7 +11,7 @@ interface PredictiveResult {
   severidade: "LOW" | "MEDIUM" | "HIGH";
 }
 
-const RESPONSE_SCHEMA = {
+const RESPONSE_SCHEMA: ResponseSchema = {
   type: SchemaType.OBJECT,
   properties: {
     anomaliaDetectada: { type: SchemaType.BOOLEAN },

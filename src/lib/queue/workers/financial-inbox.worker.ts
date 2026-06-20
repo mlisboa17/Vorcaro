@@ -24,6 +24,7 @@ import {
 import { InboxClassificationService } from "@/modules/inbox-intelligence/application/services/inbox-classification.service";
 import { mergeClassificationIntoExtraction } from "@/lib/inbox/apply-inbox-classification";
 import { createStatementImportWorker } from "@/lib/queue/workers/statement-import.worker";
+import { createPredictiveAlertsWorker } from "@/lib/queue/workers/predictive-alerts.worker";
 import { resolveAutomationTier } from "@/modules/inbox-intelligence/domain/types/inbox-automation-policy";
 import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
 import { downloadTelegramFile, sendTelegramMessageWithMode } from "@/lib/telegram/telegram-bot.client";
@@ -168,9 +169,13 @@ export function createFinancialInboxWorker(): Worker<FinancialInboxJobData> {
 function startWorker(): void {
   const worker = createFinancialInboxWorker();
   const statementWorker = createStatementImportWorker();
+  const predictiveWorker = createPredictiveAlertsWorker();
 
   statementWorker.on("completed", (job) => console.info(`[statement-import] Job ${job.id} completed`));
   statementWorker.on("failed", (job, error) => console.error(`[statement-import] Job ${job?.id} failed:`, error.message));
+
+  predictiveWorker.on("completed", (job) => console.info(`[predictive-alerts] Job ${job.id} completed`));
+  predictiveWorker.on("failed", (job, error) => console.error(`[predictive-alerts] Job ${job?.id} failed:`, error.message));
 
   worker.on("completed", (job) => {
     console.info(`[financial-inbox] Job ${job.id} completed`);

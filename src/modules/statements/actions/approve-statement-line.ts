@@ -16,6 +16,8 @@ export async function approveStatementLine(
     }
     const userId = session.user.id;
 
+    console.log("[approveStatementLine] Aprovando ID:", id, "userId:", userId);
+
     // Executa a deleção e criação dentro de uma transação isolada para garantir idempotência atômica
     const result = await prisma.$transaction(async (tx) => {
       // 1. Busca e tenta deletar a linha do staging com processed: false
@@ -71,6 +73,7 @@ export async function approveStatementLine(
     });
 
     if (!result.success && result.alreadyProcessed) {
+      console.warn("[approveStatementLine] ID já processado:", id);
       return { success: false, error: "Esta sugestão já foi processada ou removida." };
     }
 

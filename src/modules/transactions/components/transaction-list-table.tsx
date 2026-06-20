@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, FileSearch, Search, Paperclip, ArrowUpDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition, useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -188,47 +189,55 @@ export function TransactionListTable({
 
   const columnHelper = createColumnHelper<TransactionListItemData>();
 
-  const columns = [
+  const columns = useMemo(() => [
     columnHelper.display({
       id: "select",
       header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+        <Checkbox
+          id="select-all"
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Selecionar todas as linhas da página"
         />
       ),
       cell: ({ row }) => (
-        <input
-          type="checkbox"
+        <Checkbox
+          id={`select-row-${row.id}`}
           checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+          disabled={!row.getCanSelect()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Selecionar linha"
         />
       ),
     }),
     columnHelper.accessor("date", {
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Data
           <ArrowUpDown className="h-3 w-3" />
         </button>
       ),
-      cell: (info) => new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(new Date(info.getValue())),
+      cell: (info) => (
+        <span className="text-xs font-mono leading-none">
+          {new Intl.DateTimeFormat("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(info.getValue()))}
+        </span>
+      ),
     }),
     columnHelper.accessor("description", {
       header: ({ column }) => (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           <button
-            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Descrição
@@ -239,18 +248,18 @@ export function TransactionListTable({
             value={(column.getFilterValue() ?? "") as string}
             onChange={(e) => column.setFilterValue(e.target.value)}
             placeholder="Filtrar..."
-            className="block w-full max-w-[150px] rounded border-0 py-1 px-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-slate-900 sm:text-xs sm:leading-5 font-normal normal-case"
+            className="block w-full max-w-[120px] rounded border-0 py-0.5 px-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-slate-900 text-xs leading-4 font-normal normal-case"
           />
         </div>
       ),
       cell: (info) => {
         const tx = info.row.original;
         return (
-          <span className="flex items-center gap-2 font-medium text-slate-800">
-            {tx.description}
+          <span className="flex items-center gap-1.5 font-medium text-slate-800 text-xs max-w-[180px] truncate leading-none" title={tx.description}>
+            <span className="truncate">{tx.description}</span>
             {tx.reviewRequired && (
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                Revisão Necessária
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.2 text-[9px] font-semibold text-amber-800 shrink-0">
+                Revisão
               </span>
             )}
             {tx.mediaUrl && (
@@ -264,10 +273,10 @@ export function TransactionListTable({
                     alert("Não foi possível carregar o anexo.");
                   }
                 }}
-                className="inline-flex items-center justify-center rounded bg-slate-100 p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                className="inline-flex items-center justify-center rounded bg-slate-100 p-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
                 title="Ver Comprovante Original"
               >
-                <Paperclip className="h-4 w-4" />
+                <Paperclip className="h-3.5 w-3.5" />
               </button>
             )}
           </span>
@@ -277,7 +286,7 @@ export function TransactionListTable({
     columnHelper.accessor("paymentDate", {
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Data Pgto
@@ -286,31 +295,42 @@ export function TransactionListTable({
       ),
       cell: (info) => {
         const val = info.getValue();
-        if (!val) return <span className="text-slate-400">—</span>;
-        return new Intl.DateTimeFormat("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }).format(new Date(val));
+        if (!val) return <span className="text-slate-400 text-xs">—</span>;
+        return (
+          <span className="text-xs font-mono leading-none">
+            {new Intl.DateTimeFormat("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }).format(new Date(val))}
+          </span>
+        );
       },
     }),
     columnHelper.accessor("accountName", {
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 uppercase hover:text-slate-700"
+          className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Conta
           <ArrowUpDown className="h-3 w-3" />
         </button>
       ),
-      cell: (info) => <span className="text-slate-500">{info.getValue() ?? "—"}</span>,
+      cell: (info) => {
+        const val = info.getValue();
+        return (
+          <span className="text-slate-500 text-xs max-w-[100px] truncate block leading-none" title={val ?? ""}>
+            {val ?? "—"}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("categoryName", {
       header: ({ column }) => (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           <button
-            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Categoria
@@ -319,7 +339,7 @@ export function TransactionListTable({
           <select
             value={(column.getFilterValue() ?? "") as string}
             onChange={(e) => column.setFilterValue(e.target.value)}
-            className="block w-full max-w-[150px] rounded border-0 py-1 pl-2 pr-6 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-slate-900 sm:text-xs sm:leading-5 font-normal normal-case"
+            className="block w-full max-w-[120px] rounded border-0 py-0.5 pl-1.5 pr-5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-slate-900 text-xs leading-4 font-normal normal-case"
           >
             <option value="">Todas</option>
             {categories.map((cat) => (
@@ -333,11 +353,11 @@ export function TransactionListTable({
       cell: (info) => {
         const cat = info.getValue();
         return cat ? (
-          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+          <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-medium text-slate-700 max-w-[100px] truncate leading-none" title={cat}>
             {cat}
           </span>
         ) : (
-          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-400">
+          <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-1.5 py-0.2 text-[10px] font-medium text-slate-400 leading-none">
             Sem Categoria
           </span>
         );
@@ -347,7 +367,7 @@ export function TransactionListTable({
       header: ({ column }) => (
         <div className="flex justify-end">
           <button
-            className="flex items-center gap-1 uppercase hover:text-slate-700"
+            className="flex items-center gap-1 uppercase hover:text-slate-700 text-xs"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Valor
@@ -360,13 +380,13 @@ export function TransactionListTable({
         const isExpense = tx.type === "EXPENSE" || tx.amount < 0;
         const absAmount = Math.abs(tx.amount);
         return (
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="flex items-center justify-end gap-1">
             {isExpense ? (
-              <ArrowDownCircle className="h-4 w-4 text-red-500" />
+              <ArrowDownCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
             ) : (
-              <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+              <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
             )}
-            <span className={`font-semibold ${isExpense ? "text-red-600" : "text-emerald-600"}`}>
+            <span className={`font-semibold text-xs leading-none ${isExpense ? "text-red-600" : "text-emerald-600"}`}>
               {new Intl.NumberFormat("pt-BR", {
                 style: "currency",
                 currency: "BRL",
@@ -376,7 +396,7 @@ export function TransactionListTable({
         );
       },
     }),
-  ];
+  ], [categories]);
 
   const table = useReactTable({
     data: transactions,
@@ -386,6 +406,7 @@ export function TransactionListTable({
       columnFilters,
       rowSelection,
     },
+    getRowId: (row) => row.id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -444,15 +465,15 @@ export function TransactionListTable({
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <Table>
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <Table className="table-fixed">
             <TableHeader className="bg-slate-50">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="h-8 leading-none">
                   {headerGroup.headers.map((header) => {
                     const isHidden = ['date', 'paymentDate', 'accountName', 'categoryName'].includes(header.column.id);
                     return (
-                      <TableHead key={header.id} className={isHidden ? "hidden md:table-cell px-6 py-4" : "px-6 py-4"}>
+                      <TableHead key={header.id} className={isHidden ? "hidden md:table-cell text-xs py-1 px-2 truncate max-w-[200px] font-bold" : "text-xs py-1 px-2 truncate max-w-[200px] font-bold"}>
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -467,11 +488,11 @@ export function TransactionListTable({
             </TableHeader>
             <TableBody className="divide-y divide-slate-100">
               {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="transition-colors hover:bg-slate-50/50">
+                <TableRow key={row.id} className="transition-colors hover:bg-slate-50/50 h-8 leading-none">
                   {row.getVisibleCells().map((cell) => {
                     const isHidden = ['date', 'paymentDate', 'accountName', 'categoryName'].includes(cell.column.id);
                     return (
-                      <TableCell key={cell.id} className={`${isHidden ? "hidden md:table-cell" : ""} whitespace-nowrap px-6 py-4 ${cell.column.id === 'date' ? 'font-medium text-slate-900' : ''}`}>
+                      <TableCell key={cell.id} className={`${isHidden ? "hidden md:table-cell" : ""} whitespace-nowrap text-xs py-1 px-2 truncate max-w-[200px] leading-none align-middle ${cell.column.id === 'date' ? 'font-medium text-slate-900' : ''}`}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     );
@@ -479,15 +500,15 @@ export function TransactionListTable({
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter className="bg-slate-50 font-medium">
+            <TableFooter className="bg-slate-50 font-medium text-xs">
               <TableRow>
-                <TableCell colSpan={6} className="px-6 py-4 text-right text-slate-700 font-bold hidden md:table-cell">
+                <TableCell colSpan={6} className="px-2 py-1 text-right text-slate-700 font-bold hidden md:table-cell">
                   Total da Página:
                 </TableCell>
-                <TableCell colSpan={2} className="px-6 py-4 text-right text-slate-700 font-bold md:hidden">
+                <TableCell colSpan={2} className="px-2 py-1 text-right text-slate-700 font-bold md:hidden">
                   Total:
                 </TableCell>
-                <TableCell className="px-6 py-4 text-right">
+                <TableCell className="px-2 py-1 text-right">
                   <span className={`font-bold ${totalValue < 0 ? "text-red-600" : "text-emerald-600"}`}>
                     {new Intl.NumberFormat("pt-BR", {
                       style: "currency",

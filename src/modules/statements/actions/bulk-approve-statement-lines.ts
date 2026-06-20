@@ -19,25 +19,35 @@ export async function bulkApproveStatementLines(
     if (!session?.user?.id) {
       return { count: 0, error: "Não autorizado" };
     }
+    const tenantId = session.user.tenantId;
+    if (!tenantId) {
+      return { count: 0, error: "Acesso negado: Tenant ID ausente na sessão" };
+    }
     const userId = session.user.id;
 
     if (!input.suggestionIds || input.suggestionIds.length === 0) {
       return { count: 0, error: "Nenhum item selecionado" };
     }
 
-    // Load suggestions to verify ownership and get data
+    console.log("[bulkApproveStatementLines] Efetivando IDs:", input.suggestionIds);
+
+    // Carrega sugestões verificando propriedade E status não processado
     const suggestions = await prisma.statementLineSuggestion.findMany({
       where: {
         id: { in: input.suggestionIds },
-        userId: userId,
+        userId,
+        processed: false,
       },
     });
 
     if (suggestions.length === 0) {
-      return { count: 0, error: "Nenhum item válido encontrado" };
+      console.warn("[bulkApproveStatementLines] Nenhum item válido/pendente encontrado para IDs:", input.suggestionIds);
+      return { count: 0, error: "Nenhum item válido encontrado. Talvez já tenham sido processados." };
     }
 
-    // Default payment method if not provided (assume "OUTROS" or similar, or find default)
+    console.log("[bulkApproveStatementLines] Itens válidos a processar:", suggestions.length);
+
+    // Busca método de pagamento padrão se não fornecido
     let finalPaymentMethodId = input.paymentMethodId;
     if (!finalPaymentMethodId) {
       const defaultPm = await prisma.paymentMethod.findFirst({
@@ -47,11 +57,11 @@ export async function bulkApproveStatementLines(
       finalPaymentMethodId = defaultPm?.id;
     }
 
-    // Map to Transaction inserts
+    // Monta os dados para inserção
     const transactionsToInsert = suggestions.map((s) => {
       const finalCategoryId = input.categoryId || s.suggestedCategoryId || undefined;
       const finalDate = input.dateOverride ? new Date(input.dateOverride) : s.date;
-      
+
       return {
         userId: s.userId,
         accountId: s.financialAccountId || undefined,
@@ -69,29 +79,34 @@ export async function bulkApproveStatementLines(
       };
     });
 
-    // Execute atomic transaction
+    const validIds = suggestions.map((s) => s.id);
+
+    // Executa transação atômica: cria transações + deleta sugestões
     await prisma.$transaction(async (tx) => {
-      // 1. Insert real transactions
+      // 1. Insere as transações reais
       await tx.transaction.createMany({
         data: transactionsToInsert,
       });
 
-      // 2. Delete the staged suggestions
+      // 2. Deleta as sugestões do staging com guard de userId (isolamento de tenant)
       await tx.statementLineSuggestion.deleteMany({
         where: {
-          id: { in: suggestions.map(s => s.id) },
+          id: { in: validIds },
+          userId,
         },
       });
     });
 
-    // Invalidação Tática (Fiori Horizon Spec)
+    console.log("[bulkApproveStatementLines] Concluído. Total efetivado:", suggestions.length);
+
+    // Invalidação tática
     revalidateTag(`dashboard-metrics-${userId}`);
     revalidatePath("/dashboard/statements");
     revalidatePath("/dashboard/cash");
 
     return { count: suggestions.length };
   } catch (error) {
-    console.error("[bulkApproveStatementLines] Error:", error);
+    console.error("[bulkApproveStatementLines] Erro:", error);
     return { count: 0, error: "Erro interno ao processar a aprovação em lote" };
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition, useRef, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { 
   FileUp, Loader2, ArrowUpRight, ArrowDownLeft, Check, X, AlertCircle, HelpCircle, ChevronDown, ChevronRight, Sparkles, Plus, Link2
 } from "lucide-react";
@@ -107,7 +108,7 @@ function CategoryCombobox({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-800 shadow-sm transition-all hover:bg-slate-50 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-slate-800 shadow-sm transition-all hover:bg-slate-50 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
       >
         <span className="truncate">{selectedCategory ? selectedCategory.name : "Selecione..."}</span>
         <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-slate-400" />
@@ -170,6 +171,7 @@ export function UnifiedReconciliation({
   accounts,
   history,
 }: UnifiedReconciliationProps) {
+  const router = useRouter();
   const [lines, setLines] = useState<StagingSuggestion[]>(initialLines);
   const [localCategories, setLocalCategories] = useState<CategoryOption[]>(categories);
   const [rowCategories, setRowCategories] = useState<Record<string, string>>({});
@@ -201,7 +203,7 @@ export function UnifiedReconciliation({
 
   // Sentinel detection
   const pendingAccountSentinel = lines.find((line) => line.score === -99);
-  const transactionLines = lines.filter((line) => line.score !== -99);
+  const transactionLines = useMemo(() => lines.filter((line) => line.score !== -99), [lines]);
   const isFrozen = !!pendingAccountSentinel;
 
   // Upload processing
@@ -276,10 +278,8 @@ export function UnifiedReconciliation({
       if (result.success) {
         setSuccessMsg("Transação conciliada e registrada com sucesso!");
         setLines((prev) => prev.filter((line) => line.id !== id));
-        setRowSelection((prev) => {
-          const newSel = { ...prev };
-          return {};
-        });
+        setRowSelection({});
+        router.refresh();
       } else {
         setErrorMsg(result.error ?? "Erro ao conciliar transação.");
       }
@@ -300,6 +300,7 @@ export function UnifiedReconciliation({
         setSuccessMsg("Linha descartada com sucesso.");
         setLines((prev) => prev.filter((line) => line.id !== id));
         setRowSelection({});
+        router.refresh();
       } else {
         setErrorMsg(result.error ?? "Erro ao rejeitar linha.");
       }
@@ -333,12 +334,16 @@ export function UnifiedReconciliation({
         setLines((prev) =>
           [...prev, ...rollbackLines].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         );
+        // Force selection state to reset in case rollback leaves dirty state
+        setRowSelection({});
       } else {
         setSuccessMsg("Transações conciliadas em lote com sucesso!");
         // Clear bulk selectors
         setBulkCategoryId("");
         setBulkDate("");
         setBulkDataCaixa("");
+        setRowSelection({});
+        router.refresh();
       }
     });
   };
@@ -423,7 +428,7 @@ export function UnifiedReconciliation({
           type="checkbox"
           checked={table.getIsAllPageRowsSelected()}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
         />
       ),
       cell: ({ row }) => (
@@ -431,23 +436,23 @@ export function UnifiedReconciliation({
           type="checkbox"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
-          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
         />
       ),
     }),
     columnHelper.display({
       id: "fluxo",
-      header: "Fluxo",
+      header: "",
       cell: (info) => {
         const isIncome = info.row.original.originId !== null;
         return (
           <span className={cn(
-            "inline-flex p-1.5 rounded-lg border",
+            "inline-flex p-0.5 rounded border",
             isIncome
               ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/10 dark:text-emerald-400 dark:border-emerald-900/30"
               : "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/10 dark:text-red-400 dark:border-red-900/30"
           )}>
-            {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+            {isIncome ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
           </span>
         );
       }
@@ -455,7 +460,7 @@ export function UnifiedReconciliation({
     columnHelper.accessor("date", {
       header: "Data",
       cell: (info) => (
-        <span className="text-slate-600 dark:text-slate-400 font-medium font-mono text-xs">
+        <span className="text-slate-600 dark:text-slate-400 font-medium font-mono text-[11px] leading-none">
           {new Date(info.getValue()).toLocaleDateString("pt-BR")}
         </span>
       ),
@@ -466,18 +471,18 @@ export function UnifiedReconciliation({
       cell: (info) => {
         const line = info.row.original;
         return (
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-slate-950 dark:text-slate-100">
+          <div className="max-w-[180px] truncate leading-tight">
+            <div className="flex items-center gap-1 leading-none">
+              <span className="font-semibold text-slate-950 dark:text-slate-100 text-xs truncate" title={line.suggestedName || ""}>
                 {line.suggestedName || "—"}
               </span>
               {line.reconciliationMatchId && (
-                <span className="inline-flex items-center gap-1 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.5 text-[10px] font-bold tracking-wide">
-                  CONCILIAÇÃO DISPONÍVEL
+                <span className="inline-flex items-center rounded bg-indigo-50 border border-indigo-200 text-indigo-700 px-1 py-0.2 text-[9px] font-bold tracking-wide shrink-0 leading-none">
+                  LINK
                 </span>
               )}
             </div>
-            <div className="text-xs text-slate-500 font-mono mt-0.5 max-w-sm truncate">
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5 truncate leading-none" title={line.description}>
               {line.description}
             </div>
           </div>
@@ -513,11 +518,14 @@ export function UnifiedReconciliation({
     }),
     columnHelper.accessor("cnpjCpf", {
       header: "CNPJ/CPF",
-      cell: (info) => (
-        <span className="text-slate-500 font-mono text-xs dark:text-slate-400">
-          {info.getValue() || "—"}
-        </span>
-      ),
+      cell: (info) => {
+        const value = info.getValue();
+        return (
+          <span className="text-slate-500 font-mono text-[10px] dark:text-slate-400 max-w-[180px] truncate block leading-none" title={value || ""}>
+            {value || "—"}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("amount", {
       header: "Valor",
@@ -525,7 +533,7 @@ export function UnifiedReconciliation({
         const isIncome = info.row.original.originId !== null;
         return (
           <span className={cn(
-            "font-semibold text-base",
+            "font-semibold text-xs leading-none",
             isIncome ? "text-emerald-700 dark:text-emerald-400" : "text-slate-950 dark:text-slate-100"
           )}>
             {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -542,7 +550,7 @@ export function UnifiedReconciliation({
         const status = info.row.original.status;
         return (
           <span className={cn(
-            "inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold tracking-wider",
+            "inline-flex items-center gap-0.5 rounded border px-1 py-0.2 text-[10px] font-semibold tracking-wider leading-none",
             getBadgeStyles(score)
           )}>
             {getStatusLabel(score, status)} ({score}%)
@@ -556,48 +564,48 @@ export function UnifiedReconciliation({
       cell: (info) => {
         const line = info.row.original;
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-1">
             {line.reconciliationMatchId ? (
               <button
                 type="button"
                 onClick={() => handleApprove(line.id)}
                 disabled={busyId === line.id || isPending || isFrozen}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm transition-all focus:ring-2 focus:ring-indigo-500"
+                title="Conciliar Lançamento"
+                className="inline-flex h-7 px-2 text-xs items-center justify-center rounded border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 shadow-sm transition-all focus:ring-2 focus:ring-indigo-500"
               >
                 {busyId === line.id ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Link2 className="h-3.5 w-3.5" />
                 )}
-                Conciliar Lançamento
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handleApprove(line.id)}
                 disabled={busyId === line.id || isPending || isFrozen}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all focus:ring-2 focus:ring-slate-950"
+                title="Aprovar Lançamento"
+                className="inline-flex h-7 px-2 text-xs items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 shadow-sm transition-all focus:ring-2 focus:ring-emerald-500"
               >
                 {busyId === line.id ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Check className="h-3.5 w-3.5" />
                 )}
-                Aprovar
               </button>
             )}
             <button
               type="button"
               onClick={() => handleReject(line.id)}
               disabled={busyId === line.id || isPending || isFrozen}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 disabled:opacity-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm transition-all focus:ring-2 focus:ring-red-500"
+              title="Rejeitar Lançamento"
+              className="inline-flex h-7 px-2 text-xs items-center justify-center rounded border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 shadow-sm transition-all focus:ring-2 focus:ring-red-500"
             >
               {busyId === line.id ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <X className="h-3.5 w-3.5" />
               )}
-              Rejeitar
             </button>
           </div>
         );
@@ -760,12 +768,12 @@ export function UnifiedReconciliation({
           </div>
         ) : (
           <div className="overflow-x-auto max-h-[500px]">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+            <table className="w-full border-collapse text-left text-xs table-fixed">
+              <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm text-xs">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+                  <tr key={headerGroup.id} className="border-b border-slate-200 uppercase tracking-wider text-slate-650 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400 h-8 leading-none">
                     {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-4 py-2.5">
+                      <th key={header.id} className="text-xs py-1 px-2 truncate max-w-[200px] font-bold">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -777,19 +785,19 @@ export function UnifiedReconciliation({
                   </tr>
                 ))}
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 {table.getRowModel().rows.map((row) => {
                   return (
                     <tr
                       key={row.id}
                       className={cn(
-                        "transition-all hover:bg-slate-50/80 dark:hover:bg-slate-900/10",
+                        "transition-all hover:bg-slate-50/80 dark:hover:bg-slate-900/10 h-8 leading-none",
                         row.getIsSelected() ? "bg-indigo-50/30 dark:bg-indigo-950/10" : "",
                         isFrozen && "opacity-60"
                       )}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-2 whitespace-nowrap">
+                        <td key={cell.id} className="text-xs py-1 px-2 truncate max-w-[200px] whitespace-nowrap leading-none align-middle">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}

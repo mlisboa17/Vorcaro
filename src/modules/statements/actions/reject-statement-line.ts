@@ -12,15 +12,27 @@ export async function rejectStatementLine(id: string): Promise<{ success: boolea
     }
     const userId = session.user.id;
 
-    // Deleta a sugestão do staging garantindo o tenantId
-    const result = await prisma.statementLineSuggestion.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+    console.log("[rejectStatementLine] Rejeitando ID:", id, "userId:", userId);
+
+    // Deleta dentro de transação atômica garantindo o userId (isolamento de tenant)
+    const result = await prisma.$transaction(async (tx) => {
+      const suggestion = await tx.statementLineSuggestion.findFirst({
+        where: { id, userId },
+      });
+
+      if (!suggestion) {
+        return { count: 0 };
+      }
+
+      const deleted = await tx.statementLineSuggestion.deleteMany({
+        where: { id, userId },
+      });
+
+      return { count: deleted.count };
     });
 
     if (result.count === 0) {
+      console.warn("[rejectStatementLine] Sugestão não encontrada ou já processada:", id);
       return { success: false, error: "Sugestão não encontrada ou já processada/descartada." };
     }
 

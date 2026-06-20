@@ -59,6 +59,8 @@ model User {
   vorcaroConversations              VorcaroConversation[]
   vorcaroFollowUps                  VorcaroFollowUp[]
   vorcaroMessageHistory             VorcaroMessageHistory[]
+  tenantId         String?
+  tenant           Tenant? @relation(fields: [tenantId], references: [id])
 }
 
 model Account {
@@ -1415,4 +1417,11 @@ enum BankStatementLayoutSimilarityTier {
   HIGH
   MEDIUM
   LOW
+}
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
 }

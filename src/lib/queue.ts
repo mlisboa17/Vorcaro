@@ -4,6 +4,7 @@ import IORedis from "ioredis";
 export const QUEUE_NAMES = {
   FINANCIAL_INBOX: "financial-inbox",
   STATEMENT_IMPORT: "statement-import",
+  PREDICTIVE_ALERTS: "predictive-alerts",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -23,6 +24,12 @@ export interface StatementImportJobData {
   userId: string;
   chatId: number;
   accountId: string;
+}
+
+export type PredictiveAlertsJobName = "process-predictive-alerts";
+
+export interface PredictiveAlertsJobData {
+  userId: string;
 }
 
 type GlobalQueueState = {
@@ -111,6 +118,22 @@ export async function enqueueStatementImport(
 
   return queue.add("process-statement-import" satisfies StatementImportJobName, data, {
     jobId: `stmt-import-${data.fileId}-${Date.now()}`,
+    ...options,
+  });
+}
+
+export function getPredictiveAlertsQueue(): Queue<PredictiveAlertsJobData> {
+  return getOrCreateQueue(QUEUE_NAMES.PREDICTIVE_ALERTS) as Queue<PredictiveAlertsJobData>;
+}
+
+export async function enqueuePredictiveAnalysis(
+  data: PredictiveAlertsJobData,
+  options?: JobsOptions,
+) {
+  const queue = getPredictiveAlertsQueue();
+
+  return queue.add("process-predictive-alerts" satisfies PredictiveAlertsJobName, data, {
+    jobId: `predictive-${data.userId}-${new Date().toISOString().split('T')[0]}`,
     ...options,
   });
 }
