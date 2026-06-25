@@ -17,10 +17,14 @@ async function main() {
 
   try {
     console.log("🔗 Estabelecendo túnel Ngrok na porta 3000...");
-    const publicUrl = await ngrok.connect({
+    const ngrokOptions: any = {
       addr: 3000,
-      authtoken: process.env.NGROK_AUTHTOKEN, // Optional, can be undefined
-    });
+    };
+    if (process.env.NGROK_AUTHTOKEN) {
+      ngrokOptions.authtoken = process.env.NGROK_AUTHTOKEN;
+    }
+
+    const publicUrl = await ngrok.connect(ngrokOptions);
 
     console.log(`\n✅ Ngrok Tunnel Ativo!\nURL Pública: ${publicUrl}\n`);
     
@@ -52,6 +56,8 @@ async function main() {
   } catch (error) {
     console.error("❌ Erro inesperado na orquestração:");
     console.error(error instanceof Error ? error.message : "Falha ao iniciar túnel.");
+    console.log("\n💡 Dica: Se você não possui token do Ngrok configurado ou não precisa do bot do Telegram local, você pode rodar o projeto localmente com:");
+    console.log("   👉 npm run dev\n");
     process.exit(1);
   }
 }

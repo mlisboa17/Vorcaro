@@ -19,94 +19,149 @@ export async function bulkApproveStatementLines(
     if (!session?.user?.id) {
       return { count: 0, error: "Não autorizado" };
     }
+    const userId = session.user.id;
     const tenantId = session.user.tenantId;
     if (!tenantId) {
       return { count: 0, error: "Acesso negado: Tenant ID ausente na sessão" };
     }
-    const userId = session.user.id;
 
     if (!input.suggestionIds || input.suggestionIds.length === 0) {
       return { count: 0, error: "Nenhum item selecionado" };
     }
 
-    console.log("[bulkApproveStatementLines] Efetivando IDs:", input.suggestionIds);
+    console.log(`[bulkApproveStatementLines] Iniciando processamento em lote: ID ${input.suggestionIds.join(", ")}`);
 
-    // Carrega sugestões verificando propriedade E status não processado
-    const suggestions = await prisma.statementLineSuggestion.findMany({
-      where: {
-        id: { in: input.suggestionIds },
-        userId,
-        processed: false,
-      },
-    });
+    // Executa transação atômica: lê, valida status PENDING, cria transações e deleta sugestões
+    const totalApproved = await prisma.$transaction(async (tx) => {
+      // Valida se o categoryId pertence ao tenant, caso tenha sido informado
+      if (input.categoryId) {
+        const category = await tx.category.findFirst({
+          where: {
+            id: input.categoryId,
+            userId,
+            user: { tenantId }
+          }
+        });
+        if (!category) {
+          throw new Error("Acesso negado: Categoria não pertence ao tenant ou não existe.");
+        }
+      }
 
-    if (suggestions.length === 0) {
-      console.warn("[bulkApproveStatementLines] Nenhum item válido/pendente encontrado para IDs:", input.suggestionIds);
-      return { count: 0, error: "Nenhum item válido encontrado. Talvez já tenham sido processados." };
-    }
+      // Valida se o paymentMethodId pertence ao tenant, caso tenha sido informado
+      let finalPaymentMethodId = input.paymentMethodId;
+      if (finalPaymentMethodId) {
+        const paymentMethod = await tx.paymentMethod.findFirst({
+          where: {
+            id: finalPaymentMethodId,
+            userId,
+            user: { tenantId }
+          }
+        });
+        if (!paymentMethod) {
+          throw new Error("Acesso negado: Método de pagamento não pertence ao tenant ou não existe.");
+        }
+      } else {
+        console.log(`[bulkApproveStatementLines] Buscando método de pagamento padrão dentro da transação para o usuário: ID ${userId}`);
+        const defaultPm = await tx.paymentMethod.findFirst({
+          where: {
+            userId,
+            isActive: true,
+            user: { tenantId }
+          },
+          orderBy: { isDefault: "desc" }
+        });
+        finalPaymentMethodId = defaultPm?.id;
+      }
 
-    console.log("[bulkApproveStatementLines] Itens válidos a processar:", suggestions.length);
-
-    // Busca método de pagamento padrão se não fornecido
-    let finalPaymentMethodId = input.paymentMethodId;
-    if (!finalPaymentMethodId) {
-      const defaultPm = await prisma.paymentMethod.findFirst({
-        where: { userId, isActive: true },
-        orderBy: { isDefault: "desc" }
+      // 1. Carrega todas as sugestões do lote associadas a este usuário, que pertencem ao tenant e estão pendentes
+      console.log(`[bulkApproveStatementLines] Carregando sugestões pendentes do lote: ID ${input.suggestionIds.join(", ")}`);
+      const suggestions = await tx.statementLineSuggestion.findMany({
+        where: {
+          id: { in: input.suggestionIds },
+          userId,
+          processed: false,
+          user: { tenantId },
+        },
+        include: {
+          user: {
+            select: { tenantId: true }
+          }
+        }
       });
-      finalPaymentMethodId = defaultPm?.id;
-    }
 
-    // Monta os dados para inserção
-    const transactionsToInsert = suggestions.map((s) => {
-      const finalCategoryId = input.categoryId || s.suggestedCategoryId || undefined;
-      const finalDate = input.dateOverride ? new Date(input.dateOverride) : s.date;
+      // Se todas as sugestões já foram processadas/reconciliadas, retornamos 0 para garantir idempotência estrita
+      if (suggestions.length === 0) {
+        console.log(`[bulkApproveStatementLines] Nenhuma sugestão pendente encontrada no lote. Retornando 0 (idempotência).`);
+        return 0;
+      }
 
-      return {
-        userId: s.userId,
-        accountId: s.financialAccountId || undefined,
-        categoryId: finalCategoryId,
-        paymentMethodId: finalPaymentMethodId,
-        type: s.type || "EXPENSE",
-        amount: s.amount,
-        description: s.description,
-        date: finalDate,
-        originId: s.originId || undefined,
-        destinationId: s.destinationId || undefined,
-        status: "COMPLETED",
-        identificationScore: s.score,
-        identificationStatus: s.status,
-      };
-    });
+      // Validar se o tenantId obtido da sessão realmente confere com o tenantId dos registros afetados na query
+      for (const s of suggestions) {
+        if (!s.user || s.user.tenantId !== tenantId) {
+          throw new Error("Acesso negado: Uma ou mais sugestões não pertencem ao tenant da sessão.");
+        }
+      }
 
-    const validIds = suggestions.map((s) => s.id);
+      // Monta os dados para inserção das transações reais
+      const transactionsToInsert = suggestions.map((s) => {
+        const finalCategoryId = input.categoryId || s.suggestedCategoryId || undefined;
+        const finalDate = input.dateOverride ? new Date(input.dateOverride) : s.date;
 
-    // Executa transação atômica: cria transações + deleta sugestões
-    await prisma.$transaction(async (tx) => {
-      // 1. Insere as transações reais
+        return {
+          userId,
+          accountId: s.financialAccountId || undefined,
+          categoryId: finalCategoryId,
+          paymentMethodId: finalPaymentMethodId,
+          type: s.type || "EXPENSE",
+          amount: s.amount,
+          description: s.description,
+          date: finalDate,
+          originId: s.originId || undefined,
+          destinationId: s.destinationId || undefined,
+          status: "COMPLETED",
+          identificationScore: s.score,
+          identificationStatus: s.status,
+        };
+      });
+
+      // 2. Insere as transações reais em uma única operação de escrita (em lote)
+      console.log(`[bulkApproveStatementLines] Inserindo transações reais no banco de dados para o lote`);
       await tx.transaction.createMany({
         data: transactionsToInsert,
       });
 
-      // 2. Deleta as sugestões do staging com guard de userId (isolamento de tenant)
-      await tx.statementLineSuggestion.deleteMany({
+      // 3. Deleta as sugestões do staging com isolamento de tenant, userId e status de pendência em uma única operação de escrita
+      console.log(`[bulkApproveStatementLines] Excluindo sugestões do staging no lote`);
+      const deleteResult = await tx.statementLineSuggestion.deleteMany({
         where: {
-          id: { in: validIds },
+          id: { in: suggestions.map((s) => s.id) },
           userId,
+          processed: false,
+          user: { tenantId }
         },
       });
+
+      if (deleteResult.count !== suggestions.length) {
+        throw new Error("Falha ao remover as sugestões originais do staging.");
+      }
+
+      for (const s of suggestions) {
+        console.log(`[bulkApproveStatementLines] Sugestão aprovada com sucesso: ID ${s.id}`);
+      }
+
+      return suggestions.length;
     });
 
-    console.log("[bulkApproveStatementLines] Concluído. Total efetivado:", suggestions.length);
+    console.log(`[bulkApproveStatementLines] Lançamentos em lote efetivados com sucesso: ID ${input.suggestionIds.join(", ")}`);
 
     // Invalidação tática
     revalidateTag(`dashboard-metrics-${userId}`);
     revalidatePath("/dashboard/statements");
     revalidatePath("/dashboard/cash");
 
-    return { count: suggestions.length };
+    return { count: totalApproved };
   } catch (error) {
-    console.error("[bulkApproveStatementLines] Erro:", error);
-    return { count: 0, error: "Erro interno ao processar a aprovação em lote" };
+    console.error(`[bulkApproveStatementLines] Falha no processamento em lote: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    return { count: 0, error: error instanceof Error ? error.message : "Erro interno ao processar a aprovação em lote" };
   }
 }

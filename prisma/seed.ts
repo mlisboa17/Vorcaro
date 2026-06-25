@@ -4,9 +4,11 @@ import {
   CardType,
   CategoryType,
   FrequenciaRecorrencia,
+  IdentificationStatus,
   PaymentMethodType,
   PrismaClient,
   TipoLancamentoRecorrente,
+  TransactionType,
 } from "@prisma/client";
 import { seedCategoryTaxonomyForUser } from "../src/lib/categories/seed-category-taxonomy";
 import {
@@ -18,6 +20,22 @@ const prisma = new PrismaClient();
 
 const DEV_EMAIL = "dev@logos.local";
 const DEV_NAME = "Dev User";
+
+// ─── Multi-Tenant Test Seeds ────────────────────────────────────────────────
+// Dois tenants distintos com usuários e dados de reconciliação independentes.
+// Usado para validar isolamento de dados e concorrência no módulo de reconciliação.
+const TENANTS = [
+  {
+    id: "tenant-1",
+    name: "Empresa Alpha Ltda",
+    user: { email: "user.alpha@tenant1.local", name: "Alice Alpha" },
+  },
+  {
+    id: "tenant-2",
+    name: "Empresa Beta S/A",
+    user: { email: "user.beta@tenant2.local", name: "Bruno Beta" },
+  },
+] as const;
 
 const FINANCIAL_ACCOUNTS = [
   {
@@ -282,6 +300,85 @@ async function upsertCard(
       isActive: true,
     },
   });
+}
+
+async function seedMultiTenantReconciliation() {
+  console.info("\n[multi-tenant] Seeding tenants, users e StatementLineSuggestions...");
+
+  for (const tenantConfig of TENANTS) {
+    // Upsert do tenant com ID fixo
+    const tenant = await prisma.tenant.upsert({
+      where: { id: tenantConfig.id },
+      create: { id: tenantConfig.id, name: tenantConfig.name },
+      update: { name: tenantConfig.name },
+    });
+
+    // Upsert do usuário vinculado ao tenant
+    const tenantUser = await prisma.user.upsert({
+      where: { email: tenantConfig.user.email },
+      create: {
+        email: tenantConfig.user.email,
+        name: tenantConfig.user.name,
+        tenantId: tenant.id,
+      },
+      update: {
+        name: tenantConfig.user.name,
+        tenantId: tenant.id,
+      },
+    });
+
+    // Cria StatementLineSuggestions com processed:false (PENDING) para testes de isolamento
+    const suggestionSeeds = [
+      {
+        id: `seed-stmt-${tenantConfig.id}-001`,
+        description: `Pagamento Fornecedor A - ${tenantConfig.name}`,
+        amount: 1500.0,
+        date: new Date("2026-06-10T12:00:00.000Z"),
+        type: TransactionType.EXPENSE,
+        score: 95,
+        status: IdentificationStatus.INFERRED,
+        processed: false,
+      },
+      {
+        id: `seed-stmt-${tenantConfig.id}-002`,
+        description: `Recebimento Cliente B - ${tenantConfig.name}`,
+        amount: 8000.0,
+        date: new Date("2026-06-12T12:00:00.000Z"),
+        type: TransactionType.INCOME,
+        score: 88,
+        status: IdentificationStatus.INFERRED,
+        processed: false,
+      },
+      {
+        id: `seed-stmt-${tenantConfig.id}-003`,
+        description: `Despesa Operacional - ${tenantConfig.name}`,
+        amount: 350.5,
+        date: new Date("2026-06-15T12:00:00.000Z"),
+        type: TransactionType.EXPENSE,
+        score: 72,
+        status: IdentificationStatus.UNKNOWN,
+        processed: false,
+      },
+    ];
+
+    for (const seed of suggestionSeeds) {
+      await prisma.statementLineSuggestion.upsert({
+        where: { id: seed.id },
+        create: { ...seed, userId: tenantUser.id },
+        update: {
+          description: seed.description,
+          processed: false,
+          status: seed.status,
+        },
+      });
+    }
+
+    console.info(
+      `  [${tenantConfig.id}] tenant=${tenant.name} | user=${tenantUser.email} | suggestions=3`,
+    );
+  }
+
+  console.info("[multi-tenant] Seed concluído. 2 tenants prontos para testes de isolamento.\n");
 }
 
 async function main() {
@@ -584,6 +681,9 @@ async function main() {
   ]);
 
   console.info(`  Consórcios:          ${consortiums.length}`);
+
+  // Executa o seed multi-tenant de reconciliação
+  await seedMultiTenantReconciliation();
 }
 
 main()

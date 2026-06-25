@@ -13,6 +13,8 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET,
+  useSecureCookies: process.env.NODE_ENV === "production",
   pages: {
     signIn: '/auth/login',
   },
@@ -20,8 +22,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
     }),
     Credentials({
       name: "credentials",
@@ -130,6 +132,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (process.env.NODE_ENV === "development") {
+        const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+        if (authUrl) {
+          try {
+            const authUrlObj = new URL(authUrl);
+            const baseUrlObj = new URL(baseUrl);
+            if (authUrlObj.host !== baseUrlObj.host) {
+              console.warn(
+                `[NextAuth Dev Warning] Divergência de domínio detectada: AUTH_URL/NEXTAUTH_URL é '${authUrl}', mas o domínio requisitado é '${baseUrl}'.`
+              );
+            }
+          } catch (e) {
+            console.error("[NextAuth Dev Error] Falha ao analisar URLs:", e);
+          }
+        }
+      }
+      return url.startsWith("/") ? `${baseUrl}${url}` : url;
     },
   },
 });

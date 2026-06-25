@@ -198,6 +198,15 @@ export function UnifiedReconciliation({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
+  // Sincroniza o estado local com as atualizações do servidor (Next.js Server Components / router.refresh)
+  useEffect(() => {
+    setLines(initialLines);
+  }, [initialLines]);
+
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
+  
   // Dropzone State
   const [dragActive, setDragActive] = useState(false);
 
@@ -276,10 +285,10 @@ export function UnifiedReconciliation({
       );
 
       if (result.success) {
-        setSuccessMsg("Transação conciliada e registrada com sucesso!");
-        setLines((prev) => prev.filter((line) => line.id !== id));
         setRowSelection({});
         router.refresh();
+        setSuccessMsg("Transação conciliada e registrada com sucesso!");
+        setLines((prev) => prev.filter((line) => line.id !== id));
       } else {
         setErrorMsg(result.error ?? "Erro ao conciliar transação.");
       }
@@ -287,7 +296,6 @@ export function UnifiedReconciliation({
     });
   };
 
-  // Reject Line Action
   const handleReject = (id: string) => {
     if (isFrozen) return;
     setBusyId(id);
@@ -297,10 +305,10 @@ export function UnifiedReconciliation({
     startTransition(async () => {
       const result = await rejectStatementLine(id);
       if (result.success) {
-        setSuccessMsg("Linha descartada com sucesso.");
-        setLines((prev) => prev.filter((line) => line.id !== id));
         setRowSelection({});
         router.refresh();
+        setSuccessMsg("Linha descartada com sucesso.");
+        setLines((prev) => prev.filter((line) => line.id !== id));
       } else {
         setErrorMsg(result.error ?? "Erro ao rejeitar linha.");
       }
@@ -337,13 +345,13 @@ export function UnifiedReconciliation({
         // Force selection state to reset in case rollback leaves dirty state
         setRowSelection({});
       } else {
+        setRowSelection({});
+        router.refresh();
         setSuccessMsg("Transações conciliadas em lote com sucesso!");
         // Clear bulk selectors
         setBulkCategoryId("");
         setBulkDate("");
         setBulkDataCaixa("");
-        setRowSelection({});
-        router.refresh();
       }
     });
   };
@@ -423,6 +431,7 @@ export function UnifiedReconciliation({
   const columns = useMemo(() => [
     columnHelper.display({
       id: "select",
+      size: 35,
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -442,6 +451,7 @@ export function UnifiedReconciliation({
     }),
     columnHelper.display({
       id: "fluxo",
+      size: 35,
       header: "",
       cell: (info) => {
         const isIncome = info.row.original.originId !== null;
@@ -459,6 +469,7 @@ export function UnifiedReconciliation({
     }),
     columnHelper.accessor("date", {
       header: "Data",
+      size: 85,
       cell: (info) => (
         <span className="text-slate-600 dark:text-slate-400 font-medium font-mono text-[11px] leading-none">
           {new Date(info.getValue()).toLocaleDateString("pt-BR")}
@@ -468,10 +479,11 @@ export function UnifiedReconciliation({
     columnHelper.display({
       id: "description",
       header: "Descrição Bruta / Sugerido",
+      size: 200,
       cell: (info) => {
         const line = info.row.original;
         return (
-          <div className="max-w-[180px] truncate leading-tight">
+          <div className="max-w-[190px] truncate leading-tight">
             <div className="flex items-center gap-1 leading-none">
               <span className="font-semibold text-slate-950 dark:text-slate-100 text-xs truncate" title={line.suggestedName || ""}>
                 {line.suggestedName || "—"}
@@ -492,6 +504,7 @@ export function UnifiedReconciliation({
     columnHelper.display({
       id: "categoria",
       header: "Categoria",
+      size: 190,
       cell: (info) => {
         const line = info.row.original;
         return (
@@ -518,10 +531,11 @@ export function UnifiedReconciliation({
     }),
     columnHelper.accessor("cnpjCpf", {
       header: "CNPJ/CPF",
+      size: 110,
       cell: (info) => {
         const value = info.getValue();
         return (
-          <span className="text-slate-500 font-mono text-[10px] dark:text-slate-400 max-w-[180px] truncate block leading-none" title={value || ""}>
+          <span className="text-slate-500 font-mono text-[10px] dark:text-slate-400 max-w-[100px] truncate block leading-none" title={value || ""}>
             {value || "—"}
           </span>
         );
@@ -529,6 +543,7 @@ export function UnifiedReconciliation({
     }),
     columnHelper.accessor("amount", {
       header: "Valor",
+      size: 100,
       cell: (info) => {
         const isIncome = info.row.original.originId !== null;
         return (
@@ -545,6 +560,7 @@ export function UnifiedReconciliation({
     }),
     columnHelper.accessor("score", {
       header: "Confiança",
+      size: 120,
       cell: (info) => {
         const score = info.getValue();
         const status = info.row.original.status;
@@ -561,6 +577,7 @@ export function UnifiedReconciliation({
     columnHelper.display({
       id: "actions",
       header: () => <div className="text-right">Ação</div>,
+      size: 100,
       cell: (info) => {
         const line = info.row.original;
         return (
@@ -773,7 +790,11 @@ export function UnifiedReconciliation({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id} className="border-b border-slate-200 uppercase tracking-wider text-slate-650 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400 h-8 leading-none">
                     {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="text-xs py-1 px-2 truncate max-w-[200px] font-bold">
+                      <th
+                        key={header.id}
+                        style={{ width: header.column.getSize() }}
+                        className="text-xs py-1 px-2 truncate font-bold"
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -797,7 +818,11 @@ export function UnifiedReconciliation({
                       )}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="text-xs py-1 px-2 truncate max-w-[200px] whitespace-nowrap leading-none align-middle">
+                        <td
+                          key={cell.id}
+                          style={{ width: cell.column.getSize() }}
+                          className="text-xs py-1 px-2 truncate whitespace-nowrap leading-none align-middle"
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
