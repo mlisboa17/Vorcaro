@@ -9,7 +9,7 @@ describe("vorcaro-action-navigation", () => {
 
   it("mapeia CREATE_RULE_SUGGESTION sem mutação", () => {
     const nav = buildNavigationTarget("CREATE_RULE_SUGGESTION", {});
-    expect(nav.targetUrl).toBe("/dashboard/rules");
+    expect(nav.targetUrl).toBe("/dashboard/automation/rules");
   });
 
   it("mapeia OPEN_MONEY_LEAK para transações", () => {
