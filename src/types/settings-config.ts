@@ -7,7 +7,8 @@ export type SettingsTab =
   | "orcamentos"
   | "ativos"
   | "passivos"
-  | "consorcios";
+  | "consorcios"
+  | "integracoes";
 
 export const SETTINGS_TABS: { value: SettingsTab; label: string; enabled: boolean }[] = [
   { value: "categorias", label: "Categorias", enabled: true },
@@ -19,6 +20,7 @@ export const SETTINGS_TABS: { value: SettingsTab; label: string; enabled: boolea
   { value: "ativos", label: "Ativos / Patrimônio", enabled: true },
   { value: "passivos", label: "Passivos / Dívidas", enabled: true },
   { value: "consorcios", label: "Consórcios", enabled: true },
+  { value: "integracoes", label: "Integrações", enabled: false },
 ];
 
 export function isSettingsTab(value: string | null): value is SettingsTab {
