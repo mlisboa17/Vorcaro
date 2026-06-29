@@ -45,6 +45,7 @@ const TAB_ICONS = {
   ativos: Building2,
   passivos: TrendingDown,
   consorcios: Handshake,
+  integracoes: Scale,
 } as const;
 
 interface SettingsData {

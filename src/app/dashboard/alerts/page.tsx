@@ -1,9 +1,11 @@
-import { AlertsDashboard } from "@/components/alerts/alerts-dashboard";
+import { redirect } from "next/navigation";
 
-export default function AlertsPage() {
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <AlertsDashboard />
-    </div>
-  );
+// TODO (Phase 4): True alerts consolidation
+// Currently: routing alias to notifications
+// Future: merge AlertsModule domain logic into Notifications
+// - Unify data models (/api/alerts → /api/notifications)
+// - Implement alerts view in NotificationsDashboard
+// - Remove this redirect and alerts module
+export default async function AlertsPage() {
+  redirect("/dashboard/notifications");
 }

@@ -40,7 +40,7 @@ export function ExecutiveAlertsCard() {
           Alertas Financeiros
         </h2>
         <Link
-          href="/dashboard/alerts"
+          href="/dashboard/notifications"
           className="text-xs font-medium text-emerald-600 hover:underline"
         >
           Ver todos

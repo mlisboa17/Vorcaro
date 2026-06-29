@@ -10,7 +10,7 @@ export const ADVISOR_ACTION_ROUTES: Record<AdvisorActionType, string> = {
   REVIEW_SUBSCRIPTIONS: "/dashboard/recurring",
   REVIEW_SMALL_EXPENSES: "/dashboard/transactions",
   REDUCE_SUPERFLUOUS_EXPENSES: "/dashboard/transactions",
-  VIEW_ALERTS: "/dashboard/alerts",
+  VIEW_ALERTS: "/dashboard/notifications",
   VIEW_COMMITMENTS: "/dashboard/commitments",
 };
 

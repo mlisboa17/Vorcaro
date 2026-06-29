@@ -2,7 +2,7 @@ import type { VorcaroActionType } from "../types/vorcaro-action";
 
 export const VORCARO_NAVIGATION_ROUTES: Record<VorcaroActionType, string> = {
   OPEN_RECEIVABLE: "/dashboard/receivables",
-  OPEN_ALERT: "/dashboard/alerts",
+  OPEN_ALERT: "/dashboard/notifications",
   OPEN_GOAL: "/dashboard/planning",
   OPEN_COMMITMENT: "/dashboard/commitments",
   OPEN_SUBSCRIPTION: "/dashboard/recurring",
