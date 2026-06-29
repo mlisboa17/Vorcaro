@@ -84,4 +84,4 @@ export const VORCARO_HUB_CARDS: VorcaroHubCard[] = [
   },
 ];
 
-export const DASHBOARD_RECURRING_ROUTE = "/dashboard/recurring";
+export const DASHBOARD_RECURRING_ROUTE = "/dashboard/settings?tab=recorrentes";

@@ -421,7 +421,7 @@ export class IntelligentAdvisorService {
         category: "MONEY_LEAK",
         fact: `Gastos invisíveis recorrentes: R$ ${leak.monthlyTotal.toFixed(2)}/mês.`,
         impact: "Vazamento silencioso no fluxo mensal.",
-        action: "Revise recorrências em /dashboard/commitments.",
+        action: "Revise recorrências em /dashboard/settings?tab=recorrentes.",
       };
     }
 
