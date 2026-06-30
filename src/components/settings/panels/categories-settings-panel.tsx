@@ -21,7 +21,7 @@ import {
 } from "@/lib/instruments/instrument-api";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
-import { Plus, ScanSearch } from "lucide-react";
+import { Loader2, Plus, ScanSearch, Sparkles } from "lucide-react";
 
 interface CategoriesSettingsPanelProps {
   items: ConfigCategoria[];
@@ -49,6 +49,22 @@ export function CategoriesSettingsPanel({
   const [editing, setEditing] = useState<ConfigCategoria | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ConfigCategoria | null>(null);
+  const [seeding, setSeeding] = useState(false);
+
+  async function runSeed() {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/categories/seed", { method: "POST", credentials: "include" });
+      const data = (await res.json()) as { message?: string; categoriesCreated?: number; subcategoriesCreated?: number };
+      const msg = data.message ?? `${data.categoriesCreated ?? 0} categorias e ${data.subcategoriesCreated ?? 0} subcategorias adicionadas.`;
+      pushToast("success", msg);
+      await onRefresh();
+    } catch {
+      pushToast("error", "Erro ao importar categorias padrão.");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
@@ -196,6 +212,15 @@ export function CategoriesSettingsPanel({
             >
               <Plus className="h-4 w-4" />
               Nova Subcategoria
+            </button>
+            <button
+              type="button"
+              onClick={() => void runSeed()}
+              disabled={seeding}
+              className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-800 hover:bg-violet-100 disabled:opacity-50"
+            >
+              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Importar categorias padrão
             </button>
             <Link
               href="/dashboard/categories/audit"

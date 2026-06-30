@@ -89,7 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (dbUser && !dbUser.tenantId) {
           const tenantName = `Holding corporativa de ${dbUser.name || user.name || dbUser.email.split("@")[0]}`;
-          
+
           await prisma.$transaction(async (tx) => {
             const tenant = await tx.tenant.create({
               data: { name: tenantName },
@@ -98,8 +98,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: { id: user.id },
               data: { tenantId: tenant.id },
             });
-            // Update the user reference object in-memory so subsequent callbacks (jwt) receive the tenantId
             user.tenantId = tenant.id;
+          });
+
+          // Novo usuário Google — provisionar categorias padrão
+          void seedCategoryTaxonomyForUser(prisma, user.id!).catch((err) => {
+            console.error("[auth] seedCategoryTaxonomyForUser (google)", err);
           });
         } else if (dbUser?.tenantId) {
           user.tenantId = dbUser.tenantId;
