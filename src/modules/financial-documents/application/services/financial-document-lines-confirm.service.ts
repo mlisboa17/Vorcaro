@@ -1,5 +1,5 @@
 import type { PrismaClient, TransactionType } from "@prisma/client";
-import { addMonthsPreserveDay } from "@/modules/financial/core/calculate-credit-card-cash-date";
+import { addMonthsPreserveDay, clampDayToMonth } from "@/modules/financial/core/calculate-credit-card-cash-date";
 import { buildInstallmentDedupKey } from "@/lib/financial/installment-structural-parser";
 import { buildStableInstallmentGroupId } from "@/lib/financial/installment-structural-parser";
 import { PrismaTransactionRepository } from "@/modules/transactions/infrastructure/repositories/prisma-transaction.repository";
@@ -235,13 +235,32 @@ export class FinancialDocumentLinesConfirmService {
       primeiraParcelaAproximada: purchase.purchaseDate ?? new Date().toISOString().slice(0, 10),
     });
 
-    const baseDate = purchase.purchaseDate
-      ? new Date(`${purchase.purchaseDate}T12:00:00.000Z`)
-      : new Date();
+    // Âncora: a parcela futura deve cair sempre no dia de vencimento da fatura,
+    // independente do dia da compra original. Preferimos o dueDate informado pela
+    // própria fatura; na ausência dele, usamos o dueDay cadastrado do cartão.
+    let anchorDate: Date;
+    if (purchase.dueDate) {
+      anchorDate = new Date(`${purchase.dueDate}T12:00:00.000Z`);
+    } else if (input.cardId) {
+      const card = await this.prisma.card.findUnique({
+        where: { id: input.cardId },
+        select: { dueDay: true },
+      });
+      const fallback = purchase.purchaseDate
+        ? new Date(`${purchase.purchaseDate}T12:00:00.000Z`)
+        : new Date();
+      anchorDate = card?.dueDay
+        ? clampDayToMonth(fallback.getUTCFullYear(), fallback.getUTCMonth(), card.dueDay)
+        : fallback;
+    } else {
+      anchorDate = purchase.purchaseDate
+        ? new Date(`${purchase.purchaseDate}T12:00:00.000Z`)
+        : new Date();
+    }
 
     for (let parcel = purchase.currentInstallment + 1; parcel <= purchase.totalInstallments; parcel += 1) {
       const installmentDate = addMonthsPreserveDay(
-        baseDate,
+        anchorDate,
         parcel - purchase.currentInstallment,
       );
       const dateKey = installmentDate.toISOString().slice(0, 10);
@@ -277,6 +296,7 @@ export class FinancialDocumentLinesConfirmService {
         type: "EXPENSE",
         date: installmentDate,
         dataCompra: installmentDate,
+        dataVencimentoFatura: installmentDate,
         installments: purchase.totalInstallments,
         installmentGroup: groupId,
         currentInstallment: parcel,

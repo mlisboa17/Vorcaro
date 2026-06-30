@@ -1,10 +1,12 @@
 "use client";
 
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InstallmentGroupDto } from "@/modules/installments/domain/types/installment-group.dto";
+import type { FinanceCatalog } from "@/types/inbox";
 import { cn } from "@/lib/utils/cn";
 import { InstallmentGroupDetailModal } from "./installment-group-detail-modal";
+import { NewInstallmentSeriesModal } from "./new-installment-series-modal";
 
 function formatBrl(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -33,19 +35,27 @@ function MetricCard({ title, value }: { title: string; value: string }) {
   );
 }
 
+const EMPTY_CATALOG: FinanceCatalog = { accounts: [], categories: [], paymentMethods: [], cards: [] };
+
 export function InstallmentsDashboard() {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<InstallmentGroupDto[]>([]);
+  const [catalog, setCatalog] = useState<FinanceCatalog>(EMPTY_CATALOG);
   const [error, setError] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/installments", { credentials: "include" });
-      if (!res.ok) throw new Error("Falha ao carregar parcelamentos");
-      setGroups((await res.json()) as InstallmentGroupDto[]);
+      const [groupsRes, catalogRes] = await Promise.all([
+        fetch("/api/installments", { credentials: "include" }),
+        fetch("/api/finance/catalog", { credentials: "include" }),
+      ]);
+      if (!groupsRes.ok) throw new Error("Falha ao carregar parcelamentos");
+      setGroups((await groupsRes.json()) as InstallmentGroupDto[]);
+      if (catalogRes.ok) setCatalog((await catalogRes.json()) as FinanceCatalog);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar");
     } finally {
@@ -85,11 +95,20 @@ export function InstallmentsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Central de Parcelamentos</h1>
-        <p className="text-sm text-slate-500">
-          Visão derivada do extrato — sem alterar lançamentos existentes
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Central de Parcelamentos</h1>
+          <p className="text-sm text-slate-500">
+            Compras parceladas no cartão — lançamentos automáticos por data de fatura
+          </p>
+        </div>
+        <button
+          onClick={() => setShowNewModal(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+        >
+          <Plus className="h-4 w-4" />
+          Nova compra parcelada
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -118,8 +137,7 @@ export function InstallmentsDashboard() {
               {groups.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                    Nenhum parcelamento encontrado. Compras parceladas no cartão aparecem aqui
-                    automaticamente.
+                    Nenhum parcelamento encontrado. Use o botão acima para registrar uma compra parcelada.
                   </td>
                 </tr>
               ) : (
@@ -146,9 +164,7 @@ export function InstallmentsDashboard() {
                     </td>
                     <td className="px-4 py-3 text-right text-slate-800">{formatBrl(g.valorTotal)}</td>
                     <td className="px-4 py-3 text-right text-emerald-700">{formatBrl(g.valorPago)}</td>
-                    <td className="px-4 py-3 text-right text-amber-800">
-                      {formatBrl(g.valorRestante)}
-                    </td>
+                    <td className="px-4 py-3 text-right text-amber-800">{formatBrl(g.valorRestante)}</td>
                     <td className="px-4 py-3 text-slate-600">
                       {g.cartao ? (
                         <span className="inline-flex items-center gap-1">
@@ -175,6 +191,14 @@ export function InstallmentsDashboard() {
         groupId={selectedGroupId}
         onClose={() => setSelectedGroupId(null)}
       />
+
+      {showNewModal && (
+        <NewInstallmentSeriesModal
+          catalog={catalog}
+          onClose={() => setShowNewModal(false)}
+          onCreated={() => void load()}
+        />
+      )}
     </div>
   );
 }
