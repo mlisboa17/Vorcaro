@@ -12,6 +12,9 @@ import {
   History,
   Sparkles,
   Settings,
+  RefreshCw,
+  TrendingUp,
+  CreditCard,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -40,6 +43,9 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     items: [
       { href: "/dashboard/inbox", label: "Caixa Financeiro", icon: Inbox },
       { href: "/dashboard/cashflow", label: "Fluxo de Caixa", icon: CalendarClock },
+      { href: "/dashboard/recurring", label: "Recorrências", icon: RefreshCw },
+      { href: "/dashboard/installments", label: "Parcelas", icon: CreditCard },
+      { href: "/dashboard/investments", label: "Investimentos", icon: TrendingUp },
       { href: "/dashboard/statements", label: "Importar Extrato/Fatura", icon: FileUp },
     ],
   },
@@ -84,4 +90,4 @@ export const VORCARO_HUB_CARDS: VorcaroHubCard[] = [
   },
 ];
 
-export const DASHBOARD_RECURRING_ROUTE = "/dashboard/settings?tab=recorrentes";
+export const DASHBOARD_RECURRING_ROUTE = "/dashboard/recurring";
