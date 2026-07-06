@@ -12,7 +12,8 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "vorcaro-temporary-auth-secret-change-in-vercel",
+  trustHost: true,
   useSecureCookies: process.env.NODE_ENV === "production",
   pages: {
     signIn: '/auth/login',
