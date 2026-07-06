@@ -1,7 +1,6 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import { z } from "zod";
 import { seedCategoryTaxonomyForUser } from "@/lib/categories/seed-category-taxonomy";
 import { prisma } from "@/lib/prisma";
@@ -21,10 +20,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
-    GoogleProvider({
-      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
     Credentials({
       name: "credentials",
       credentials: {
@@ -39,30 +34,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password } = parsed.data;
         const normalizedEmail = email.toLowerCase().trim();
-        const devPassword = process.env.AUTH_DEV_PASSWORD;
+        const allowedEmail = (process.env.AUTH_DEV_EMAIL ?? "mlisboa17@gmail.com").toLowerCase().trim();
+        const devPassword = process.env.AUTH_DEV_PASSWORD?.trim() || "1234";
+
+        if (normalizedEmail !== allowedEmail || !password) {
+          return null;
+        }
 
         const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-        if (existing?.passwordHash) {
-          if (!password || !verifyPassword(password, existing.passwordHash)) {
-            return null;
-          }
+        if (existing?.passwordHash && verifyPassword(password, existing.passwordHash)) {
           return existing;
         }
 
-        if (existing && devPassword) {
-          if (password !== devPassword) return null;
-          return existing;
+        if (password !== devPassword) {
+          return null;
         }
 
         if (existing) {
           return existing;
         }
-
-        if (devPassword && password !== devPassword) {
-          return null;
-        }
-
         const created = await prisma.user.create({
           data: {
             email: normalizedEmail,
@@ -79,38 +70,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === "google") {
-        // Idempotency lock: check if this user already has a tenant linked
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { tenantId: true, name: true, email: true },
-        });
-
-        if (dbUser && !dbUser.tenantId) {
-          const tenantName = `Holding corporativa de ${dbUser.name || user.name || dbUser.email.split("@")[0]}`;
-
-          await prisma.$transaction(async (tx) => {
-            const tenant = await tx.tenant.create({
-              data: { name: tenantName },
-            });
-            await tx.user.update({
-              where: { id: user.id },
-              data: { tenantId: tenant.id },
-            });
-            user.tenantId = tenant.id;
-          });
-
-          // Novo usuário Google — provisionar categorias padrão
-          void seedCategoryTaxonomyForUser(prisma, user.id!).catch((err) => {
-            console.error("[auth] seedCategoryTaxonomyForUser (google)", err);
-          });
-        } else if (dbUser?.tenantId) {
-          user.tenantId = dbUser.tenantId;
-        }
-      }
-      return true;
-    },
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
@@ -146,7 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const baseUrlObj = new URL(baseUrl);
             if (authUrlObj.host !== baseUrlObj.host) {
               console.warn(
-                `[NextAuth Dev Warning] Divergência de domínio detectada: AUTH_URL/NEXTAUTH_URL é '${authUrl}', mas o domínio requisitado é '${baseUrl}'.`
+                `[NextAuth Dev Warning] Divergencia de dominio detectada: AUTH_URL/NEXTAUTH_URL e '${authUrl}', mas o dominio requisitado e '${baseUrl}'.`
               );
             }
           } catch (e) {
