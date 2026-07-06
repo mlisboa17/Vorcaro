@@ -44,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
         if (existing?.passwordHash && verifyPassword(password, existing.passwordHash)) {
-          return existing;
+          return { id: existing.id, email: existing.email, name: existing.name, tenantId: existing.tenantId };
         }
 
         if (password !== devPassword) {
@@ -52,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (existing) {
-          return existing;
+          return { id: existing.id, email: existing.email, name: existing.name, tenantId: existing.tenantId };
         }
         const created = await prisma.user.create({
           data: {
@@ -65,7 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           console.error("[auth] seedCategoryTaxonomyForUser", error);
         });
 
-        return created;
+        return { id: created.id, email: created.email, name: created.name, tenantId: created.tenantId };
       },
     }),
   ],
