@@ -4,7 +4,6 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { seedCategoryTaxonomyForUser } from "@/lib/categories/seed-category-taxonomy";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/auth/password";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -42,11 +41,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-
-        if (existing?.passwordHash && verifyPassword(password, existing.passwordHash)) {
-          return { id: existing.id, email: existing.email, name: existing.name, tenantId: existing.tenantId };
-        }
+        const existing = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: { id: true, email: true, name: true, tenantId: true },
+        });
 
         if (password !== devPassword) {
           return null;
