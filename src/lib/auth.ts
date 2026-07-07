@@ -75,12 +75,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.tenantId) {
           token.tenantId = user.tenantId;
         } else {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { tenantId: true },
-          });
-          if (dbUser?.tenantId) {
-            token.tenantId = dbUser.tenantId;
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { tenantId: true },
+            });
+            if (dbUser?.tenantId) {
+              token.tenantId = dbUser.tenantId;
+            }
+          } catch (error) {
+            console.warn("[auth] tenantId lookup skipped", error instanceof Error ? error.message : error);
           }
         }
       }
