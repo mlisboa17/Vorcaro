@@ -11,6 +11,23 @@ const credentialsSchema = z.object({
   password: z.string().min(1).optional(),
 });
 
+async function ensureUserHasTenant(
+  userId: string,
+  tenantId: string | null,
+  displayName: string,
+): Promise<void> {
+  if (tenantId) {
+    return;
+  }
+
+  const tenantName = `Holding corporativa de ${displayName}`;
+
+  await prisma.$transaction(async (tx) => {
+    const tenant = await tx.tenant.create({ data: { name: tenantName } });
+    await tx.user.update({ where: { id: userId }, data: { tenantId: tenant.id } });
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "vorcaro-temporary-auth-secret-change-in-vercel",
   trustHost: true,
@@ -43,13 +60,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const existing = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          select: { id: true, email: true, name: true, passwordHash: true },
+          select: { id: true, email: true, name: true, passwordHash: true, tenantId: true },
         });
 
         if (existing?.passwordHash) {
           if (!verifyPassword(password, existing.passwordHash)) {
             return null;
           }
+          await ensureUserHasTenant(existing.id, existing.tenantId, existing.name ?? normalizedEmail);
           return { id: existing.id, email: existing.email, name: existing.name };
         }
 
@@ -60,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (existing) {
+          await ensureUserHasTenant(existing.id, existing.tenantId, existing.name ?? normalizedEmail);
           return { id: existing.id, email: existing.email, name: existing.name };
         }
 
@@ -69,6 +88,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: normalizedEmail.split("@")[0],
           },
         });
+
+        await ensureUserHasTenant(created.id, null, created.name ?? normalizedEmail);
 
         void seedCategoryTaxonomyForUser(prisma, created.id).catch((error) => {
           console.error("[auth] seedCategoryTaxonomyForUser", error);
