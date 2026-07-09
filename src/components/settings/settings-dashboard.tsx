@@ -17,6 +17,7 @@ import { RecurringDashboard } from "@/components/recurring/recurring-dashboard";
 import { PatrimonyDashboard } from "@/components/patrimony/patrimony-dashboard";
 import { PatrimonyLiabilitiesDashboard } from "@/components/patrimony/patrimony-liabilities-dashboard";
 import { ConsortiumDashboard } from "@/components/consortium/consortium-dashboard";
+import { TelegramIntegrationsPanel } from "./telegram-integrations-panel";
 import { buildListUrl, fetchInstrumentList } from "@/lib/instruments/instrument-api";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -25,9 +26,9 @@ import {
   Coins,
   Landmark,
   Loader2,
+  MessageCircle,
   PiggyBank,
   RefreshCw,
-  Scale,
   Tag,
   TrendingDown,
   Handshake,
@@ -45,7 +46,7 @@ const TAB_ICONS = {
   ativos: Building2,
   passivos: TrendingDown,
   consorcios: Handshake,
-  integracoes: Scale,
+  integracoes: MessageCircle,
 } as const;
 
 interface SettingsData {
@@ -212,6 +213,7 @@ export function SettingsDashboard() {
         {activeTab === "ativos" ? <PatrimonyDashboard /> : null}
         {activeTab === "passivos" ? <PatrimonyLiabilitiesDashboard /> : null}
         {activeTab === "consorcios" ? <ConsortiumDashboard /> : null}
+        {activeTab === "integracoes" ? <TelegramIntegrationsPanel /> : null}
       </div>
     </SettingsToastProvider>
   );

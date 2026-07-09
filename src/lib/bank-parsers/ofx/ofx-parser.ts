@@ -80,7 +80,7 @@ export class OfxParser {
   }
 
   /**
-   * Parse OFX Date format: YYYYMMDDHHMMSS.XXX[-3:BRT] or YYYYMMDD
+   * Parse OFX Date format: YYYYMMDDHHMMSS.XXX with a trailing timezone tag like "-3:BRT", or YYYYMMDD
    */
   private parseOfxDate(ofxDate: string): string | null {
     try {
@@ -98,7 +98,7 @@ export class OfxParser {
       const minute = match[5] || "00";
       const second = match[6] || "00";
 
-      // Look for timezone offset, e.g. [-3:BRT] or [-03:EST]
+      // Look for a bracketed timezone offset, e.g. "-3:BRT" or "-03:EST"
       const tzMatch = ofxDate.match(/\[([+-]?\d+)(?::[^\]]+)?\]/);
       let tzOffsetHour = 0;
       if (tzMatch) {

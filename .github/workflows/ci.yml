@@ -34,3 +34,10 @@ jobs:
 
       - name: Run Tests
         run: npm run test -- --run # runs vitest in CI mode (non-interactive)
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'ci-placeholder-secret-not-for-production' }}

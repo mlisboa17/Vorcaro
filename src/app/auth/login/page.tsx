@@ -2,6 +2,7 @@
 import { signIn } from "next-auth/react";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 // Google Font
@@ -86,6 +87,11 @@ function LoginForm() {
             "Entrar"
           )}
         </button>
+        <div className="text-center text-sm">
+          <Link href="/auth/forgot-password" className="text-indigo-600 hover:underline">
+            Esqueci minha senha
+          </Link>
+        </div>
       </form>
     </>
   );

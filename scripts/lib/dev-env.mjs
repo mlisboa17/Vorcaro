@@ -386,7 +386,13 @@ export async function resolveNgrokPublicUrl({ spawnIfMissing = false } = {}) {
   const ngrokBin = findNgrokBinary();
   if (!ngrokBin) return { url: null, spawned: false, missingBinary: true };
 
-  const child = spawn(ngrokBin, ["http", String(PORTS.next)], {
+  const ngrokArgs = ["http", String(PORTS.next)];
+  const staticDomain = process.env.NGROK_STATIC_DOMAIN?.trim();
+  if (staticDomain) {
+    ngrokArgs.push(`--url=${staticDomain}`);
+  }
+
+  const child = spawn(ngrokBin, ngrokArgs, {
     cwd: PROJECT_ROOT,
     shell: false,
     stdio: "ignore",

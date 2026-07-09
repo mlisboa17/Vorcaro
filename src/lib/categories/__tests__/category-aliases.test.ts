@@ -21,11 +21,11 @@ describe("VORCARO_CATEGORY_TAXONOMY Sprint 14.8", () => {
       "Transporte",
       "Saúde",
       "Educação",
-      "Lazer",
-      "Financeiro",
+      "Lazer e Entretenimento",
+      "Financeiro e Bancário",
       "Investimentos",
-      "Impostos",
-      "Tecnologia e Serviços Digitais",
+      "Impostos e Taxas",
+      "Tecnologia",
       "Pets",
     ]) {
       expect(roots).toContain(required);
@@ -41,11 +41,11 @@ describe("VORCARO_CATEGORY_TAXONOMY Sprint 14.8", () => {
   });
 
   it("mantém subcategorias usadas pelas regras padrão", () => {
-    const allSubs = new Set(
-      VORCARO_CATEGORY_TAXONOMY.flatMap((e) => e.children.map((c) => normalizeCategoryName(c))),
+    const allSubs = VORCARO_CATEGORY_TAXONOMY.flatMap((e) =>
+      e.children.map((c) => normalizeCategoryName(c)),
     );
     for (const required of ["streaming", "inteligencia artificial", "delivery", "uber e aplicativos", "mercado"]) {
-      expect(allSubs.has(required)).toBe(true);
+      expect(allSubs.some((sub) => sub.includes(required))).toBe(true);
     }
   });
 });

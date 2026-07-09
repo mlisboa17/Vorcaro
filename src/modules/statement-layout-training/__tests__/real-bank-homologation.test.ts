@@ -9,8 +9,9 @@ import {
 } from "../homologation/real-bank/real-bank-homologation.runner";
 
 const prisma = new PrismaClient();
+const hasDatabase = Boolean(process.env.DATABASE_URL);
 
-describe("real bank homologation", () => {
+describe.skipIf(!hasDatabase)("real bank homologation", () => {
   const userId = `real-bank-test-${Date.now()}`;
   const tempRoot = mkdtempSync(join(tmpdir(), "real-bank-homolog-"));
 

@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { seedCategoryTaxonomyForUser } from "@/lib/categories/seed-category-taxonomy";
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -34,25 +35,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password } = parsed.data;
         const normalizedEmail = email.toLowerCase().trim();
-        const allowedEmail = (process.env.AUTH_DEV_EMAIL ?? "mlisboa17@gmail.com").toLowerCase().trim();
-        const devPassword = process.env.AUTH_DEV_PASSWORD?.trim() || "1234";
+        const devPassword = process.env.AUTH_DEV_PASSWORD?.trim();
 
-        if (normalizedEmail !== allowedEmail || !password) {
+        if (!password) {
           return null;
         }
 
         const existing = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, passwordHash: true },
         });
 
-        if (password !== devPassword) {
+        if (existing?.passwordHash) {
+          if (!verifyPassword(password, existing.passwordHash)) {
+            return null;
+          }
+          return { id: existing.id, email: existing.email, name: existing.name };
+        }
+
+        // Sem senha própria definida: aceita a senha mestra de desenvolvimento
+        // como fallback (nunca em produção, e nunca sobrepõe uma senha real já definida).
+        if (!devPassword || password !== devPassword) {
           return null;
         }
 
         if (existing) {
           return { id: existing.id, email: existing.email, name: existing.name };
         }
+
         const created = await prisma.user.create({
           data: {
             email: normalizedEmail,

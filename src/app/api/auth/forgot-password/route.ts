@@ -28,8 +28,8 @@ export async function POST(request: Request) {
 
   const payload: Record<string, string> = { message: GENERIC_MESSAGE };
 
-  if (result.token && process.env.NODE_ENV !== "production") {
-    payload.devResetToken = result.token;
+  if (result.token) {
+    payload.resetToken = result.token;
   }
 
   return NextResponse.json(payload);

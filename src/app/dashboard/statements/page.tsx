@@ -7,6 +7,8 @@ import Link from "next/link";
 import { UnifiedReconciliation } from "@/components/statements/unified-reconciliation";
 import { AiLearningsPanel } from "@/modules/ai/components/ai-learnings-panel";
 import { LayoutTrainingPanel } from "@/modules/statements/components/layout-training-panel";
+import { InvoiceImportWizard } from "@/components/statements/invoice-import-wizard";
+import type { FinanceCatalog } from "@/types/inbox";
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>;
@@ -21,14 +23,14 @@ export default async function StatementsPage({ searchParams }: PageProps) {
   const userId = session.user.id;
   const tenantDb = getTenantPrisma(userId);
   const params = await searchParams;
-  const activeTab = params.tab || "import-review";
+  const activeTab = params.tab || "import";
 
   // Fetch data in parallel under multitenant isolation
-  const [pendingSuggestions, categories, accounts, previousImports, aliases] = await Promise.all([
+  const [pendingSuggestions, categories, accounts, previousImports, cards, aliases] = await Promise.all([
     tenantDb.statementLineSuggestion.findMany({
       where: { processed: false },
       orderBy: { date: "asc" },
-    }),
+    }).catch(() => []),
     tenantDb.category.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
@@ -45,6 +47,11 @@ export default async function StatementsPage({ searchParams }: PageProps) {
       },
       orderBy: { createdAt: "desc" },
       take: 20,
+    }),
+    tenantDb.card.findMany({
+      where: { userId, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, institutionName: true, brand: true, type: true, lastFourDigits: true, financialAccountId: true },
     }),
     tenantDb.counterpartyAlias.findMany({
       where: {
@@ -76,6 +83,20 @@ export default async function StatementsPage({ searchParams }: PageProps) {
     reconciliationMatchId: s.reconciliationMatchId,
   }));
 
+  const catalog: FinanceCatalog = {
+    accounts: accounts.map((a) => ({ id: a.id, name: a.name, type: "CHECKING", institutionName: null })),
+    categories: categories.map((c) => ({ id: c.id, name: c.name, type: "DESPESA" })),
+    paymentMethods: [],
+    cards: cards.map((c) => ({
+      id: c.id,
+      name: c.name,
+      brand: c.brand ?? "",
+      type: c.type,
+      institutionName: c.institutionName ?? null,
+      lastFourDigits: c.lastFourDigits ?? null,
+    })),
+  };
+
   const formattedHistory = previousImports.map((imp) => ({
     id: imp.id,
     fileName: imp.fileName,
@@ -98,39 +119,26 @@ export default async function StatementsPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {/* SAP FIORI HORIZON STYLED TABS */}
       <div className="border-b border-slate-200 dark:border-slate-800">
         <nav className="flex space-x-6" aria-label="Tabs">
-          <Link
-            href="?tab=import-review"
-            className={`border-b-2 py-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === "import-review"
-                ? "border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
-                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400"
-            }`}
-          >
-            Central de Conciliação
-          </Link>
-          <Link
-            href="?tab=ai-insights"
-            className={`border-b-2 py-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === "ai-insights"
-                ? "border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
-                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400"
-            }`}
-          >
-            Insights da IA
-          </Link>
-          <Link
-            href="?tab=layout-training"
-            className={`border-b-2 py-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === "layout-training"
-                ? "border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
-                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400"
-            }`}
-          >
-            Treinamento da IA
-          </Link>
+          {[
+            { id: "import", label: "Importar" },
+            { id: "import-review", label: "Conciliação" },
+            { id: "ai-insights", label: "Insights da IA" },
+            { id: "layout-training", label: "Treinamento da IA" },
+          ].map((tab) => (
+            <Link
+              key={tab.id}
+              href={`?tab=${tab.id}`}
+              className={`border-b-2 py-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all ${
+                activeTab === tab.id
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
         </nav>
       </div>
 
@@ -145,13 +153,15 @@ export default async function StatementsPage({ searchParams }: PageProps) {
           <LayoutTrainingPanel />
         ) : activeTab === "ai-insights" ? (
           <AiLearningsPanel aliases={aliases} />
-        ) : (
+        ) : activeTab === "import-review" ? (
           <UnifiedReconciliation
             initialLines={formattedSuggestions}
             categories={categories}
             accounts={accounts}
             history={formattedHistory}
           />
+        ) : (
+          <InvoiceImportWizard catalog={catalog} />
         )}
       </Suspense>
     </div>

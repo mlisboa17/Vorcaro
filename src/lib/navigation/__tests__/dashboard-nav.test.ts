@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { DASHBOARD_NAV_GROUPS } from "@/lib/navigation/dashboard-nav";
 
 describe("dashboard-nav layout validation", () => {
-  it("agrupa menu em exatamente 4 itens e 2 grupos", () => {
+  it("agrupa menu em exatamente 7 itens e 2 grupos", () => {
     const allItems = DASHBOARD_NAV_GROUPS.flatMap((g) => g.items);
-    expect(allItems.length).toBe(4);
+    expect(allItems.length).toBe(7);
     expect(DASHBOARD_NAV_GROUPS.map((g) => g.title)).toEqual(["Menu Principal", "Configurações"]);
   });
 
@@ -13,6 +13,9 @@ describe("dashboard-nav layout validation", () => {
     expect(hrefs).toEqual([
       "/dashboard/inbox",
       "/dashboard/cashflow",
+      "/dashboard/recurring",
+      "/dashboard/installments",
+      "/dashboard/investments",
       "/dashboard/statements",
       "/dashboard/settings",
     ]);
