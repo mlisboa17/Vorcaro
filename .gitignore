@@ -65,3 +65,5 @@ homologation/banks/**/*.xlsx
 !homologation/banks/**/README.md
 !homologation/banks/**/.gitkeep
 !homologation/banks/README.md
+.vercel
+.env*
