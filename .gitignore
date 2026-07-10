@@ -67,3 +67,6 @@ homologation/banks/**/*.xlsx
 !homologation/banks/README.md
 .vercel
 .env*
+.agents
+.claude
+skills-lock.json
