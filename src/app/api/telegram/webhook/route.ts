@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { handleTelegramWebhook } from "@/lib/telegram/handle-telegram-webhook";
 import { isTelegramBotConfigured, validateTelegramWebhookSecret } from "@/lib/telegram/webhook-auth";
 
@@ -25,10 +25,15 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
     });
 
-    // 4. Disparar o processamento em segundo plano sem aguardar o retorno (evita timeout no Telegram)
-    handleTelegramWebhook(mockRequest).catch((err) => {
-      console.error("[Telegram Webhook Async Processing Error]:", err);
-    });
+    // 4. Disparar o processamento em segundo plano sem aguardar o retorno (evita timeout no Telegram).
+    // `after()` garante que a função serverless permaneça viva até esse trabalho terminar —
+    // sem isso, a Vercel pode congelar/encerrar a execução assim que a resposta é enviada,
+    // matando o processamento antes de completar (ex: vínculo de conta falhando silenciosamente).
+    after(() =>
+      handleTelegramWebhook(mockRequest).catch((err) => {
+        console.error("[Telegram Webhook Async Processing Error]:", err);
+      }),
+    );
 
     // 5. Retornar status 200 OK imediatamente para liberar a fila do Telegram
     return NextResponse.json({ success: true }, { status: 200 });

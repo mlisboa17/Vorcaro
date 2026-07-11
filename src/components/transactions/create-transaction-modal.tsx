@@ -2,7 +2,8 @@
 
 import type { TransactionType } from "@prisma/client";
 import type { FinanceCatalog } from "@/types/inbox";
-import { Loader2, X } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { flattenCatalogCategories } from "@/lib/categories/category-utils";
 import { cn } from "@/lib/utils/cn";
@@ -62,6 +63,10 @@ export function CreateTransactionModal({
   const showCardField = isCardPaymentMethodType(
     selectedPaymentMethod?.type as Parameters<typeof isCardPaymentMethodType>[0],
   );
+
+  const missingSetup: string[] = [];
+  if (catalog.accounts.length === 0) missingSetup.push("uma conta financeira");
+  if (catalog.paymentMethods.length === 0) missingSetup.push("uma forma de pagamento");
 
   useEffect(() => {
     if (!open) {
@@ -156,6 +161,18 @@ export function CreateTransactionModal({
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {missingSetup.length > 0 ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Antes de criar um lançamento, cadastre {missingSetup.join(" e ")} em{" "}
+                <Link href="/dashboard/settings" className="font-semibold underline">
+                  Configurações
+                </Link>
+                .
+              </span>
+            </div>
+          ) : null}
           <Field label="Descrição">
             <input className={inputClassName} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </Field>
@@ -270,7 +287,7 @@ export function CreateTransactionModal({
         <footer className="border-t border-slate-200 px-6 py-4">
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || missingSetup.length > 0}
             onClick={() => void handleSubmit()}
             className={cn(
               "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50",
