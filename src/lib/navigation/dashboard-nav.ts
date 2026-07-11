@@ -15,6 +15,7 @@ import {
   RefreshCw,
   TrendingUp,
   CreditCard,
+  ArrowLeftRight,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -41,6 +42,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
   {
     title: "Menu Principal",
     items: [
+      { href: "/dashboard/transactions", label: "Lançamentos", icon: ArrowLeftRight },
       { href: "/dashboard/inbox", label: "Caixa Financeiro", icon: Inbox },
       { href: "/dashboard/cashflow", label: "Fluxo de Caixa", icon: CalendarClock },
       { href: "/dashboard/recurring", label: "Recorrências", icon: RefreshCw },
