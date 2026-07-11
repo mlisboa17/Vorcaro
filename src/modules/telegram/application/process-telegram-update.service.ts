@@ -47,7 +47,8 @@ import { VorcaroConversationService } from "@/modules/vorcaro/conversation/appli
 import { detectReceivableTelegramHint } from "@/lib/telegram/detect-receivable-hint";
 import { downloadTelegramFile, sendTelegramMessage } from "@/lib/telegram/telegram-bot.client";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
-import { enqueueFinancialInboxProcessing, enqueueStatementImport, getRedisConnection } from "@/lib/queue";
+import { enqueueStatementImport, getRedisConnection } from "@/lib/queue";
+import { processFinancialInboxItem } from "@/lib/queue/process-financial-inbox-item";
 import { randomUUID } from "crypto";
 import { RegisterCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/register-cognitive-transaction.use-case";
 import { ConfirmCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/confirm-cognitive-transaction.use-case";
@@ -186,8 +187,10 @@ export class ProcessTelegramUpdateService {
         },
       });
 
-      await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
       await this.safeReply(chatId, "⏳ Áudio recebido. Processando com Inteligência Artificial...");
+      await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
+        console.error("[telegram] processFinancialInboxItem (voice) failed:", error);
+      });
       return { ok: true, handled: "voice_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM_VOICE" };
     }
 
@@ -211,8 +214,10 @@ export class ProcessTelegramUpdateService {
         },
       });
 
-      await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
       await this.safeReply(chatId, "⏳ Imagem recebida. Extraindo dados do comprovante...");
+      await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
+        console.error("[telegram] processFinancialInboxItem (image) failed:", error);
+      });
       return { ok: true, handled: "image_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM_IMAGE" };
     }
 
@@ -366,8 +371,10 @@ export class ProcessTelegramUpdateService {
       },
     });
 
-    await enqueueFinancialInboxProcessing({ inboxItemId: inboxItem.id, userId });
     await this.safeReply(chatId, "⏳ Processando lançamento...");
+    await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
+      console.error("[telegram] processFinancialInboxItem (text) failed:", error);
+    });
 
     return { ok: true, handled: "text_enqueued", inboxItemId: inboxItem.id, channel: "TELEGRAM" };
   }

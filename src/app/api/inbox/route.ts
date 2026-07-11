@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { z } from "zod";
 
@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 
 import { prisma } from "@/lib/prisma";
 
-import { enqueueFinancialInboxProcessing } from "@/lib/queue";
+import { processFinancialInboxItem } from "@/lib/queue/process-financial-inbox-item";
 
 import { toIngestInput } from "@/adapters/web/mappers/inbox.mapper";
 
@@ -166,13 +166,11 @@ export async function POST(request: Request) {
 
 
 
-    await enqueueFinancialInboxProcessing({
-
-      inboxItemId: id,
-
-      userId: session.user.id,
-
-    });
+    after(() =>
+      processFinancialInboxItem(id, session.user.id).catch((error) => {
+        console.error("[inbox] processFinancialInboxItem failed:", error);
+      }),
+    );
 
 
 
