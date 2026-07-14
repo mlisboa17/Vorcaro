@@ -15,6 +15,7 @@ import {
 import { parseConnectCommand } from "@/lib/telegram/connect-command";
 import {
   isVorcaroAssistantCommand,
+  looksLikeExpenseEntry,
   parseVorcaroTelegramCommand,
   resolveVorcaroTelegramQuestion,
   shouldRouteToVorcaroChat,
@@ -357,6 +358,25 @@ export class ProcessTelegramUpdateService {
             ? `\n\nDevedor: <b>${receivableHint.devedorNome}</b>`
             : "";
       await this.safeReply(chatId, `${receivableHint.message}${detail}`);
+    }
+
+    // Sem indício de valor monetário e sem sinal de recebível: é conversa casual,
+    // não uma tentativa de lançamento — responde como assistente em vez de criar
+    // um item pendente na Caixa Financeira que nunca faria sentido revisar.
+    if (!looksLikeExpenseEntry(text) && !receivableHint.detected) {
+      try {
+        const chatService = new VorcaroConversationService(this.prisma);
+        const result = await chatService.sendMessage({ userId, message: text, channel: "TELEGRAM" });
+        await this.safeReplyWithProposals(chatId, result.answer.slice(0, 3900), result.actionProposals);
+        return { ok: true, handled: "vorcaro_chat_fallback" };
+      } catch (error) {
+        const msg =
+          error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED"
+            ? "Limite de perguntas ao Vorcaro atingido. Tente novamente em breve."
+            : "Não entendi. Envie uma despesa (ex.: \"Mercado 50,00\") ou pergunte algo sobre suas finanças.";
+        await this.safeReply(chatId, msg);
+        return { ok: true, handled: "vorcaro_chat_fallback_failed" };
+      }
     }
 
     const inboxItem = await this.prisma.financialInbox.create({

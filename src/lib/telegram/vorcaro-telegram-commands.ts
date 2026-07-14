@@ -74,6 +74,17 @@ export function shouldRouteToVorcaroChat(text: string): boolean {
   );
 }
 
+const MONETARY_VALUE_PATTERN = /\d+[.,]\d{2}(?!\d)/;
+
+/**
+ * Sinal de que a mensagem é uma tentativa de lançamento financeiro (ex.: "Ifood 45,90"),
+ * não uma conversa casual. Usado para decidir se uma mensagem livre deve virar um item
+ * pendente na Caixa Financeira ou ser respondida pelo assistente Vorcaro.
+ */
+export function looksLikeExpenseEntry(text: string): boolean {
+  return MONETARY_VALUE_PATTERN.test(text);
+}
+
 export function resolveVorcaroTelegramQuestion(text: string): string {
   const commandQuestion = parseVorcaroTelegramCommand(text);
   if (commandQuestion) return commandQuestion;
