@@ -16,6 +16,8 @@ import {
   TrendingUp,
   CreditCard,
   ArrowLeftRight,
+  Receipt,
+  LineChart,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -45,10 +47,12 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
       { href: "/dashboard/transactions", label: "Lançamentos", icon: ArrowLeftRight },
       { href: "/dashboard/inbox", label: "Caixa Financeiro", icon: Inbox },
       { href: "/dashboard/cashflow", label: "Fluxo de Caixa", icon: CalendarClock },
+      { href: "/dashboard/insights", label: "Análises", icon: LineChart },
       { href: "/dashboard/recurring", label: "Recorrências", icon: RefreshCw },
       { href: "/dashboard/installments", label: "Parcelas", icon: CreditCard },
       { href: "/dashboard/investments", label: "Investimentos", icon: TrendingUp },
       { href: "/dashboard/statements", label: "Importar Extrato/Fatura", icon: FileUp },
+      { href: "/dashboard/receipts", label: "Comprovantes", icon: Receipt },
     ],
   },
   {
