@@ -36,10 +36,28 @@ function firstMatch(text: string, patterns: RegExp[]): string | undefined {
 
 function detectMethod(text: string): TransactionMethod {
   const lower = text.toLowerCase();
-  if (/pix|chave pix|transferência instantânea|transferencia instantanea/i.test(lower)) return "PIX";
-  if (/ted|doc|transferência entre bancos|transferencia entre bancos/i.test(lower)) return "TRANSFERENCIA";
-  if (/boleto|linha digitável|linha digitavel|código de barras|codigo de barras/i.test(lower)) return "BOLETO";
-  if (/cartão|cartao|crédito|credito|fatura|mastercard|visa|elo/i.test(lower)) return "CARTAO_CREDITO";
+
+  // Documentos com múltiplas transações (fatura/extrato) mencionam "pix", "boleto"
+  // etc. como itens da lista — então detectamos primeiro os tipos MAIS específicos
+  // e só marcamos PIX/boleto quando há sinal forte de que o documento inteiro é disso.
+  const isCardStatement =
+    /fatura\s+do\s+cart[ãa]o|fatura\s+cart[ãa]o|total\s+da\s+fatura|limite\s+de\s+cr[ée]dito|melhor\s+dia\s+de\s+compra|pagamento\s+m[íi]nimo/i.test(
+      lower,
+    );
+  if (isCardStatement) return "CARTAO_CREDITO";
+
+  const isBankStatement = /extrato\s+(de\s+)?conta|saldo\s+anterior|saldo\s+do\s+dia|movimenta[çc][ãa]o\s+da\s+conta/i.test(lower);
+  if (isBankStatement) return "OUTROS";
+
+  // Comprovante de transação única — o tipo aparece como título/cabeçalho do documento.
+  if (/comprovante\s+(de\s+)?(transfer[êe]ncia\s+)?pix|pix\s+(enviado|recebido|realizado)|chave\s+pix/i.test(lower)) return "PIX";
+  if (/\b(ted|doc)\b|transfer[êe]ncia\s+entre\s+bancos|comprovante\s+de\s+transfer[êe]ncia/i.test(lower)) return "TRANSFERENCIA";
+  if (/boleto|linha\s+digit[áa]vel|c[óo]digo\s+de\s+barras/i.test(lower)) return "BOLETO";
+  if (/cart[ãa]o|cr[ée]dito|mastercard|\bvisa\b|\belo\b/i.test(lower)) return "CARTAO_CREDITO";
+
+  // Sinal fraco de PIX (menção solta) só conta se nada mais específico foi detectado.
+  if (/\bpix\b/i.test(lower)) return "PIX";
+
   return "OUTROS";
 }
 
@@ -199,11 +217,14 @@ function extractCommonFields(text: string): ParsedFinancialFields {
 
   const supplier =
     firstMatch(text, [
-      // "para" é uma palavra comum em qualquer frase — só conta como rótulo de campo
-      // quando seguida de ":" (ex.: "Para: João Silva"), nunca em texto corrido.
+      // Rótulos específicos ("favorecido"/"beneficiário") aceitam espaço como separador.
       /(?:favorecido|destinatário|destinatario|beneficiário|beneficiario)\s*[:\s]*([^\n\r]{3,80})/i,
+      // "estabelecimento"/"loja"/"merchant" são também palavras comuns em prosa; só
+      // valem como rótulo quando seguidas de ":" ou quando o valor está na MESMA
+      // linha logo após (comprovante real), não emendadas em texto corrido com "de".
+      /(?:\bestabelecimento\b|\bloja\b|\bmerchant\b)\s*:?\s+((?!de\s)[^\n\r]{3,80})/i,
+      // "para" só como rótulo explícito com ":".
       /\bpara\s*:\s*([^\n\r]{3,80})/i,
-      /(?:estabelecimento|loja|merchant)\s*[:\s]*([^\n\r]{3,80})/i,
     ]) ?? undefined;
 
   const bank = firstMatch(text, [
