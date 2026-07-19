@@ -59,17 +59,10 @@ function inferBankProfile(filePath: string): { bankId: string; profile: string }
 
 async function getPdfPageCount(filePath: string): Promise<number | null> {
   try {
-    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const { getDocumentProxy } = await import("unpdf");
     const buffer = readFileSync(filePath);
-    const loadingTask = pdfjs.getDocument({
-      data: new Uint8Array(buffer),
-      useWorkerFetch: false,
-      isEvalSupported: false,
-    });
-    const doc = await loadingTask.promise;
-    const pages = doc.numPages;
-    await doc.destroy();
-    return pages;
+    const doc = await getDocumentProxy(new Uint8Array(buffer));
+    return doc.numPages;
   } catch {
     return null;
   }

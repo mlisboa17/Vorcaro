@@ -1,86 +1,32 @@
+import { extractText, getDocumentProxy } from "unpdf";
 import { PdfParseError, toPdfParseError, isPasswordRelatedPdfError } from "./pdf-import-errors";
 
 export interface PdfParseOptions {
   pdfPassword?: string;
 }
 
-type TextItem = { str?: string };
-
-async function loadPdfJs() {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  return pdfjs;
-}
-
-async function parseWithPdfParse(buffer: Buffer, pdfPassword?: string): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({
-    data: buffer,
-    ...(pdfPassword ? { password: pdfPassword } : {}),
-  });
-  const result = await parser.getText();
-  return result.text || "";
-}
-
-async function parseWithPdfJs(buffer: Buffer, pdfPassword?: string): Promise<string> {
-  const pdfjs = await loadPdfJs();
-  const loadingTask = pdfjs.getDocument({
-    data: new Uint8Array(buffer),
-    password: pdfPassword,
-    useWorkerFetch: false,
-    isEvalSupported: false,
-  });
-
-  const pdfDoc = await loadingTask.promise;
-  let fullText = "";
-
-  for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber += 1) {
-    const page = await pdfDoc.getPage(pageNumber);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => {
-        const textItem = item as TextItem;
-        return typeof textItem.str === "string" ? textItem.str : "";
-      })
-      .join(" ");
-    fullText += `${pageText}\n`;
-  }
-
-  await pdfDoc.destroy();
-  return fullText;
-}
-
 /**
- * pdf-parse é o parser principal: puro JS, sem dependência nativa, funciona
- * de forma confiável em ambiente serverless (Vercel). pdfjs-dist entra como
- * fallback — ele depende opcionalmente de @napi-rs/canvas (binário nativo
- * indisponível na Vercel), então falha ali com frequência.
+ * unpdf: build serverless do PDF.js, sem worker externo nem dependência de
+ * canvas/DOMMatrix nativo — ao contrário de pdf-parse/pdfjs-dist "puros",
+ * que dependem de arquivos (pdf.worker.mjs, @napi-rs/canvas) que o rastreador
+ * de deploy da Vercel não inclui corretamente no bundle serverless.
  */
 export async function parsePdf(buffer: Buffer, options?: PdfParseOptions): Promise<string> {
   const hadPassword = Boolean(options?.pdfPassword?.trim());
 
   try {
-    return await parseWithPdfParse(buffer, options?.pdfPassword);
-  } catch (primaryError) {
+    const pdf = await getDocumentProxy(new Uint8Array(buffer), {
+      password: options?.pdfPassword,
+    });
+    const { text } = await extractText(pdf, { mergePages: true });
+    return text;
+  } catch (error) {
     console.error(
-      "[pdf-parser] pdf-parse (primary) failed:",
-      primaryError instanceof Error ? `${primaryError.name}: ${primaryError.message}\n${primaryError.stack}` : String(primaryError),
+      "[pdf-parser] unpdf failed:",
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     );
-    try {
-      return await parseWithPdfJs(buffer, options?.pdfPassword);
-    } catch (fallbackError) {
-      console.error(
-        "[pdf-parser] pdfjs-dist (fallback) failed:",
-        fallbackError instanceof Error ? `${fallbackError.name}: ${fallbackError.message}` : String(fallbackError),
-      );
-      if (isPasswordRelatedPdfError(primaryError)) {
-        throw toPdfParseError(primaryError, hadPassword);
-      }
-      if (isPasswordRelatedPdfError(fallbackError)) {
-        throw toPdfParseError(fallbackError, hadPassword);
-      }
-      throw toPdfParseError(primaryError, hadPassword);
-    }
+    throw toPdfParseError(error, hadPassword);
   }
 }
 
-export { PdfParseError };
+export { PdfParseError, isPasswordRelatedPdfError };
