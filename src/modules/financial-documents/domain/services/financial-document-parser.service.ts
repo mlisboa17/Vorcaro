@@ -167,10 +167,12 @@ function mergePartyFields(method: TransactionMethod, text: string, fields: Parse
 }
 
 function extractCommonFields(text: string): ParsedFinancialFields {
+  // O grupo capturado precisa começar com um dígito — sem isso, frases como
+  // "consulte o valor total," batiam no padrão e capturavam só a pontuação.
   const amountRaw =
     firstMatch(text, [
-      /valor\s*(?:pago|transferido|total)?\s*[:\s]*R?\$?\s*([\d.,]+)/i,
-      /R\$\s*([\d.,]+)/i,
+      /valor\s*(?:pago|transferido|total)?\s*[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /R\$\s*(\d[\d.,]*)/i,
     ]) ?? undefined;
 
   const dateRaw =
