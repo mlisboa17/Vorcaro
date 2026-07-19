@@ -61,9 +61,17 @@ export async function parsePdf(buffer: Buffer, options?: PdfParseOptions): Promi
   try {
     return await parseWithPdfParse(buffer, options?.pdfPassword);
   } catch (primaryError) {
+    console.error(
+      "[pdf-parser] pdf-parse (primary) failed:",
+      primaryError instanceof Error ? `${primaryError.name}: ${primaryError.message}\n${primaryError.stack}` : String(primaryError),
+    );
     try {
       return await parseWithPdfJs(buffer, options?.pdfPassword);
     } catch (fallbackError) {
+      console.error(
+        "[pdf-parser] pdfjs-dist (fallback) failed:",
+        fallbackError instanceof Error ? `${fallbackError.name}: ${fallbackError.message}` : String(fallbackError),
+      );
       if (isPasswordRelatedPdfError(primaryError)) {
         throw toPdfParseError(primaryError, hadPassword);
       }
