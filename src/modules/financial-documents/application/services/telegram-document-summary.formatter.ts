@@ -3,6 +3,7 @@ import type { ParsedFinancialDocument } from "../../domain/types/financial-docum
 import { buildPartiesMetadata } from "../../domain/services/financial-parties-metadata.service";
 import { displayPartyValue } from "../../domain/services/financial-parties-metadata.service";
 import { PARTIES_NOT_IDENTIFIED } from "../../domain/types/financial-parties-metadata.types";
+import type { DocumentClassificationOption } from "./financial-document-classification.service";
 
 function methodLabel(method: string): string {
   if (method === "PIX") return "PIX identificado";
@@ -13,13 +14,17 @@ export function formatTelegramDocumentSummary(input: {
   parsed: ParsedFinancialDocument;
   classification: ClassificationResult;
   categoryLabel?: string | null;
+  payeeName?: string | null;
+  categoryOptions?: DocumentClassificationOption[];
 }): string {
   const { parsed, classification } = input;
   const amount = parsed.fields.amount;
   const parties = buildPartiesMetadata(parsed.fields);
   const category = input.categoryLabel ?? PARTIES_NOT_IDENTIFIED;
+  const payeeName = input.payeeName ?? parties.receiverName;
+  const options = input.categoryOptions ?? [];
 
-  return [
+  const lines = [
     `📝 ${methodLabel(parsed.method)}`,
     "",
     "Valor:",
@@ -28,15 +33,24 @@ export function formatTelegramDocumentSummary(input: {
     "Quem pagou:",
     displayPartyValue(parties.payerName),
     "",
-    "Quem recebeu:",
-    displayPartyValue(parties.receiverName),
+    "Pago a:",
+    displayPartyValue(payeeName),
     "",
     "Categoria sugerida:",
     category,
     "",
     "Confiança:",
     `${classification.confidence}%`,
-  ].join("\n");
+  ];
+
+  if (options.length > 1) {
+    lines.push("", "Toque em uma opção abaixo para escolher a categoria:");
+    options.forEach((opt, idx) => {
+      lines.push(`${idx + 1}. ${opt.label} (${opt.confidence}%)`);
+    });
+  }
+
+  return lines.join("\n");
 }
 
 export const TELEGRAM_DOCUMENT_RECEIVED = "Documento recebido.\nProcessando…";

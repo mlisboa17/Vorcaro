@@ -23,6 +23,7 @@ import {
   TELEGRAM_PASSWORD_REQUIRED,
   TELEGRAM_REVIEW_REQUIRED,
 } from "./telegram-document-summary.formatter";
+import type { DocumentClassificationOption } from "./financial-document-classification.service";
 
 export type TelegramDocumentInput = {
 
@@ -45,6 +46,7 @@ export type TelegramDocumentProcessResult = {
   confidence?: number;
   immediateAck?: string;
   allowInlineApproval?: boolean;
+  categoryOptions?: DocumentClassificationOption[];
 };
 
 
@@ -255,13 +257,17 @@ export class TelegramFinancialDocumentService {
     const parties = buildPartiesMetadata(result.parsed.fields);
     const hasCriticalInfo =
       result.parsed.fields.amount != null && hasCriticalCounterpartyInfo(parties);
+    const hasMultipleOptions = result.categoryOptions.length > 1;
     const allowInlineApproval =
-      hasCriticalInfo && result.classification.confidence >= AUTO_APPROVAL_THRESHOLD;
+      hasMultipleOptions ||
+      (hasCriticalInfo && result.classification.confidence >= AUTO_APPROVAL_THRESHOLD);
 
     const summary = formatTelegramDocumentSummary({
       parsed: result.parsed,
       classification: result.classification,
       categoryLabel,
+      payeeName: result.payeeName,
+      categoryOptions: result.categoryOptions,
     });
 
     return {
@@ -273,6 +279,7 @@ export class TelegramFinancialDocumentService {
       confidence: result.classification.confidence,
       immediateAck: TELEGRAM_DOCUMENT_RECEIVED,
       allowInlineApproval,
+      categoryOptions: result.categoryOptions,
     };
 
   }
@@ -376,13 +383,17 @@ export class TelegramFinancialDocumentService {
     const parties = buildPartiesMetadata(result.parsed.fields);
     const hasCriticalInfo =
       result.parsed.fields.amount != null && hasCriticalCounterpartyInfo(parties);
+    const hasMultipleOptions = result.categoryOptions.length > 1;
     const allowInlineApproval =
-      hasCriticalInfo && result.classification.confidence >= AUTO_APPROVAL_THRESHOLD;
+      hasMultipleOptions ||
+      (hasCriticalInfo && result.classification.confidence >= AUTO_APPROVAL_THRESHOLD);
 
     const summary = formatTelegramDocumentSummary({
       parsed: result.parsed,
       classification: result.classification,
       categoryLabel,
+      payeeName: result.payeeName,
+      categoryOptions: result.categoryOptions,
     });
 
     return {
@@ -394,6 +405,7 @@ export class TelegramFinancialDocumentService {
       confidence: result.classification.confidence,
       immediateAck: "Documento processado com sucesso!",
       allowInlineApproval,
+      categoryOptions: result.categoryOptions,
     };
   }
 }

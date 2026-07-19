@@ -21,6 +21,8 @@ import { downloadTelegramFile, sendTelegramMessageWithMode } from "@/lib/telegra
 import { buildCognitiveTransactionKeyboard } from "@/lib/telegram/telegram-inline-actions";
 import { uploadReceipt } from "@/lib/supabase-storage";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
+import { looksLikeExpenseEntry } from "@/lib/telegram/vorcaro-telegram-commands";
+import { VorcaroConversationService } from "@/modules/vorcaro/conversation/application/services/vorcaro-conversation.service";
 import { randomUUID } from "crypto";
 
 function createProcessInboxItemUseCase(): ProcessInboxItemUseCase {
@@ -98,6 +100,39 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
         where: { id: inboxItemId },
         data: { channelMeta: meta },
       });
+    }
+
+    // Áudio que não parece uma despesa (ex.: "Vorcaro, como estou indo?") vira uma
+    // pergunta ao assistente em vez de forçar uma extração de lançamento que falharia.
+    if (item.channel === "TELEGRAM_VOICE" && meta.audioBase64) {
+      const aiService = new GeminiAiService();
+      const transcription = await aiService
+        .transcribeAudio({ type: "audio", mimeType: meta.mimeType, base64: meta.audioBase64 })
+        .catch(() => null);
+
+      if (transcription && !looksLikeExpenseEntry(transcription)) {
+        const chatId = meta.chatId;
+        try {
+          const chatService = new VorcaroConversationService(prisma);
+          const chatResult = await chatService.sendMessage({ userId, message: transcription, channel: "TELEGRAM" });
+          if (chatId) {
+            await sendTelegramMessageWithMode(chatId, chatResult.answer.slice(0, 3900), "HTML");
+          }
+        } catch (error) {
+          console.error("[financial-inbox] voice conversational fallback failed:", error);
+          if (chatId) {
+            await sendTelegramMessageWithMode(
+              chatId,
+              "Não consegui entender o áudio. Tente novamente ou digite sua mensagem.",
+              "HTML",
+            );
+          }
+        }
+        // Não é um lançamento — remove o item para não poluir a Caixa Financeira
+        // (mesmo comportamento do texto casual, que nunca chega a criar um item).
+        await prisma.financialInbox.delete({ where: { id: inboxItemId } }).catch(() => undefined);
+        return;
+      }
     }
 
     const useCase = createProcessInboxItemUseCase();

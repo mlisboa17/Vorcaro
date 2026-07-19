@@ -29,6 +29,7 @@ import {
   parseCognitiveTransactionCallback,
 } from "@/lib/telegram/telegram-inline-actions";
 import {
+  buildCategoryOptionsKeyboard,
   buildDocumentSuggestionKeyboard,
   parseDocumentSuggestionCallback,
 } from "@/lib/telegram/telegram-document-actions";
@@ -453,7 +454,80 @@ export class ProcessTelegramUpdateService {
     const docAction = parseDocumentSuggestionCallback(data);
     if (docAction) {
       const { suggestion } = buildFinancialDocumentServices(this.prisma);
+      const loadCategoryOptions = async (suggestionId: string) => {
+        const row = await this.prisma.financialDocumentSuggestion.findFirst({
+          where: { id: suggestionId, userId: connection.userId },
+          select: { metadata: true },
+        });
+        const meta =
+          typeof row?.metadata === "object" && row.metadata
+            ? (row.metadata as Record<string, unknown>)
+            : {};
+        return Array.isArray(meta.categoryOptions)
+          ? (meta.categoryOptions as Array<{
+              categoryId: string | null;
+              subcategoryId: string | null;
+              label: string;
+              confidence: number;
+            }>)
+          : [];
+      };
+
       try {
+        if (docAction.action === "alter") {
+          const options = await loadCategoryOptions(docAction.suggestionId);
+
+          if (options.length < 2) {
+            await answerTelegramCallbackQuery(callback.id, "Abra o dashboard.");
+            await this.safeReply(chatId, "Edite a categoria em: /dashboard/import/review");
+            return { ok: true, handled: "document_alter_no_options" };
+          }
+
+          await answerTelegramCallbackQuery(callback.id, "Escolha uma categoria.");
+          await sendTelegramMessageWithMode(chatId, "Qual categoria está mais correta?", "HTML", {
+            inline_keyboard: buildCategoryOptionsKeyboard(docAction.suggestionId, options),
+          });
+          return { ok: true, handled: "document_alter" };
+        }
+
+        if (docAction.action === "select_category") {
+          const options = await loadCategoryOptions(docAction.suggestionId);
+          const chosen = options[docAction.optionIndex];
+
+          if (!chosen?.categoryId) {
+            await answerTelegramCallbackQuery(callback.id, "Opção indisponível.");
+            return { ok: true, handled: "document_category_unavailable" };
+          }
+
+          await suggestion.edit(connection.userId, docAction.suggestionId, {
+            categoryId: chosen.categoryId,
+            ...(chosen.subcategoryId ? { subcategoryId: chosen.subcategoryId } : {}),
+          });
+
+          try {
+            const result = await suggestion.approve(connection.userId, docAction.suggestionId);
+            await answerTelegramCallbackQuery(callback.id, `Categoria: ${chosen.label}`);
+            await this.safeReply(
+              chatId,
+              `✅ Lançamento criado em <b>${chosen.label}</b>. ID: ${result.transactionId}`,
+            );
+          } catch (approveError) {
+            if (
+              approveError instanceof FinancialDocumentSuggestionError &&
+              approveError.code === "LOW_CONFIDENCE_REVIEW_REQUIRED"
+            ) {
+              await answerTelegramCallbackQuery(callback.id, "Revise no dashboard.");
+              await this.safeReply(
+                chatId,
+                "⚠️ Categoria definida, mas a confiança geral ainda é baixa. Revise em /dashboard/import/review antes de aprovar.",
+              );
+            } else {
+              throw approveError;
+            }
+          }
+          return { ok: true, handled: "document_category_selected" };
+        }
+
         if (docAction.action === "approve") {
           try {
             const result = await suggestion.approve(connection.userId, docAction.suggestionId);

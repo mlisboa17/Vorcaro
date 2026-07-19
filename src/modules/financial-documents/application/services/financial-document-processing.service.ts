@@ -37,6 +37,8 @@ export type ProcessDocumentResult =
       parsed: ReturnType<FinancialDocumentParserService["parseText"]>;
       classification: Awaited<ReturnType<FinancialDocumentClassificationService["classify"]>>;
       confidenceExplanation: ReturnType<typeof explainDocumentConfidence>;
+      categoryOptions: Awaited<ReturnType<FinancialDocumentClassificationService["classifyTop3"]>>["options"];
+      payeeName: string | null;
     }
   | { documentId: string; status: "FAILED"; reason: string; code?: string }
   | { documentId: string; status: "PASSWORD_REQUIRED"; message: string }
@@ -205,6 +207,8 @@ export class FinancialDocumentProcessingService {
           parsed,
           classification,
           confidenceExplanation,
+          categoryOptions: [],
+          payeeName: null,
         };
       }
 
@@ -260,7 +264,8 @@ export class FinancialDocumentProcessingService {
         return { documentId, status: "DUPLICATE_SEMANTIC", reason: "DUPLICATE_SEMANTIC" };
       }
 
-      const classification = await this.classification.classify(userId, parsed);
+      const top3 = await this.classification.classifyTop3(userId, parsed);
+      const classification = top3.best;
       const confidenceExplanation = explainDocumentConfidence({
         confidence: classification.confidence,
         classification,
@@ -268,6 +273,7 @@ export class FinancialDocumentProcessingService {
         threshold: AUTO_APPROVAL_THRESHOLD,
       });
       const parties = buildPartiesMetadata(parsed.fields);
+      const resolvedPayeeName = parties.receiverName?.trim() || top3.aiPayeeName || null;
 
       await this.repo.updateDocument(documentId, {
         status: "REVIEW_REQUIRED",
@@ -286,14 +292,23 @@ export class FinancialDocumentProcessingService {
         } as Prisma.InputJsonValue,
       });
 
+      // Se a classificação por regra/histórico não resolveu categoria, usa a
+      // primeira das 3 opções sugeridas pela IA como categoria principal.
+      const primaryCategory =
+        classification.categoryId != null
+          ? { categoryId: classification.categoryId, subcategoryId: classification.subcategoryId }
+          : top3.options[0]
+            ? { categoryId: top3.options[0].categoryId, subcategoryId: top3.options[0].subcategoryId }
+            : { categoryId: null, subcategoryId: null };
+
       const suggestionPayload = {
         amount: parsed.fields.amount ?? null,
         date: parsed.fields.date ?? null,
         description: parsed.fields.description ?? parsed.fields.supplier ?? document.fileName,
-        supplier: parsed.fields.supplier ?? null,
+        supplier: resolvedPayeeName ?? parsed.fields.supplier ?? null,
         method: parsed.method,
-        categoryId: classification.categoryId,
-        subcategoryId: classification.subcategoryId,
+        categoryId: primaryCategory.categoryId,
+        subcategoryId: primaryCategory.subcategoryId,
         confidence: classification.confidence,
         isLearnedPattern: classification.isLearnedPattern,
         metadata: {
@@ -301,12 +316,13 @@ export class FinancialDocumentProcessingService {
           documentNumber: parties.transactionIdentifier ?? parsed.fields.documentNumber,
           cpfCnpj: parties.receiverDocument ?? parsed.fields.cpfCnpj,
           bank: parties.receiverBank ?? parsed.fields.bank,
-          payeeName: parties.receiverName ?? parsed.fields.payeeName,
+          payeeName: resolvedPayeeName,
           payerName: parties.payerName,
           parties,
           classificationSource: classification.source,
           confidenceReasons: confidenceExplanation.reasons,
           requiresMandatoryReview: confidenceExplanation.requiresMandatoryReview,
+          categoryOptions: top3.options,
         },
       };
 
@@ -330,8 +346,10 @@ export class FinancialDocumentProcessingService {
         status: "REVIEW_REQUIRED",
         suggestionId: suggestion.id,
         parsed,
-        classification,
+        classification: { ...classification, ...primaryCategory },
         confidenceExplanation,
+        categoryOptions: top3.options,
+        payeeName: resolvedPayeeName,
       };
     } catch (error) {
       if (error instanceof FinancialDocumentProcessingError) {

@@ -92,7 +92,7 @@ describe("Sprint 15.1.1 — parties metadata", () => {
     });
     expect(summary).toContain("Quem pagou:");
     expect(summary).toContain("Marcio de Lima");
-    expect(summary).toContain("Quem recebeu:");
+    expect(summary).toContain("Pago a:");
     expect(summary).toContain("Posto Lisboa");
     expect(summary).toContain("Combustível");
   });

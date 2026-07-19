@@ -178,7 +178,7 @@ describe("telegram document summary", () => {
       categoryLabel: "Transporte → Combustível",
     });
     expect(text).toContain("📝 PIX identificado");
-    expect(text).toContain("Quem recebeu:");
+    expect(text).toContain("Pago a:");
     expect(text).toContain("Posto Lisboa");
     expect(text).toContain("Transporte → Combustível");
     expect(text).toContain("98%");

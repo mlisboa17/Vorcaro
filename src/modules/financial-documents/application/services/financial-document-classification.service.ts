@@ -5,12 +5,46 @@ import type { ClassificationResult, ParsedFinancialDocument } from "../../domain
 import { buildPartiesMetadata } from "../../domain/services/financial-parties-metadata.service";
 import { normalizeSupplierName } from "../../domain/services/financial-document-parser.service";
 import { PrismaFinancialDocumentRepository } from "../../infrastructure/repositories/prisma-financial-document.repository";
+import { AiRouterService } from "@/modules/ai/application/services/ai-router.service";
+import {
+  buildInboxClassificationCategoryContext,
+  resolveCategoryIdByNormalizedNames,
+  type CategoryTreeRow,
+} from "@/lib/categories/inbox-classification-category-context";
+
+export type DocumentClassificationOption = {
+  categoryId: string | null;
+  subcategoryId: string | null;
+  label: string;
+  confidence: number;
+  source: ClassificationResult["source"] | "ai";
+};
+
+export type ClassifyTop3Result = {
+  best: ClassificationResult;
+  options: DocumentClassificationOption[];
+  aiPayeeName: string | null;
+};
+
+type AiDocumentClassificationJson = {
+  payeeName?: string | null;
+  candidates?: Array<{
+    categoriaPrincipal: string;
+    subcategoria?: string | null;
+    confidence?: number;
+  }>;
+};
 
 export class FinancialDocumentClassificationService {
   private readonly repo: PrismaFinancialDocumentRepository;
+  private readonly aiRouter: AiRouterService;
 
-  constructor(private readonly prisma: PrismaClient) {
+  constructor(
+    private readonly prisma: PrismaClient,
+    aiRouter: AiRouterService = new AiRouterService(),
+  ) {
     this.repo = new PrismaFinancialDocumentRepository(prisma);
+    this.aiRouter = aiRouter;
   }
 
   async classify(userId: string, parsed: ParsedFinancialDocument): Promise<ClassificationResult> {
@@ -205,5 +239,104 @@ export class FinancialDocumentClassificationService {
       categories.find((c) => normalizeCategoryName(c.name).includes(target)) ??
       null
     );
+  }
+
+  /**
+   * Classificação com até 3 opções de categoria e identificação de "a quem foi pago"
+   * via IA. Usada nos documentos enviados por Telegram/dashboard (fatura, comprovante,
+   * recibo) para dar ao usuário escolha rápida em vez de uma única sugestão fixa.
+   */
+  async classifyTop3(userId: string, parsed: ParsedFinancialDocument): Promise<ClassifyTop3Result> {
+    const best = await this.classify(userId, parsed);
+    const parties = buildPartiesMetadata(parsed.fields);
+    const existingPayeeName = parties.receiverName?.trim() || null;
+
+    const categories = await this.prisma.category.findMany({
+      where: { userId, isActive: true },
+      select: { id: true, name: true, parentCategoryId: true },
+    });
+
+    const label = (categoryId: string | null, subcategoryId: string | null): string => {
+      const catId = subcategoryId ?? categoryId;
+      const cat = categories.find((c) => c.id === catId);
+      if (!cat) return "Sem categoria";
+      const parent = cat.parentCategoryId ? categories.find((c) => c.id === cat.parentCategoryId) : null;
+      return parent ? `${parent.name} → ${cat.name}` : cat.name;
+    };
+
+    const options: DocumentClassificationOption[] = [];
+    const seenCategoryKeys = new Set<string>();
+
+    const pushOption = (opt: DocumentClassificationOption) => {
+      const key = opt.subcategoryId ?? opt.categoryId ?? opt.label;
+      if (!opt.categoryId || seenCategoryKeys.has(key)) return;
+      seenCategoryKeys.add(key);
+      options.push(opt);
+    };
+
+    // Sugestão baseada em regra/histórico com boa confiança entra como opção 1.
+    if (best.categoryId && best.confidence >= 70) {
+      pushOption({
+        categoryId: best.categoryId,
+        subcategoryId: best.subcategoryId,
+        label: label(best.categoryId, best.subcategoryId),
+        confidence: best.confidence,
+        source: best.source,
+      });
+    }
+
+    let aiPayeeName: string | null = null;
+
+    if (options.length < 3) {
+      try {
+        const text = [
+          parsed.fields.description,
+          parsed.fields.supplier,
+          parsed.fields.payeeName,
+          existingPayeeName,
+          `Valor: ${parsed.fields.amount ?? "?"}`,
+          `Método: ${parsed.method}`,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+
+        const categoryContext = buildInboxClassificationCategoryContext(categories as CategoryTreeRow[]);
+        const needsPayeeName = !existingPayeeName;
+
+        const result = await this.aiRouter.generateJson<AiDocumentClassificationJson>({
+          system:
+            "Você analisa documentos financeiros (faturas, comprovantes, recibos) e sugere classificação. Responda somente JSON válido, sem texto adicional.",
+          prompt: `Dados extraídos do documento: ${text || "(sem descrição legível)"}\n\n${categoryContext}\n\n${
+            needsPayeeName ? "Identifique também o nome do estabelecimento/pessoa para quem o pagamento foi feito (payeeName). " : ""
+          }Retorne um JSON com:\n- payeeName: nome do beneficiário do pagamento (ou null se não identificável)\n- candidates: lista com as 3 categorias mais prováveis, cada uma com categoriaPrincipal, subcategoria e confidence (0-100), da mais para a menos provável. Use nomes exatos da taxonomia.`,
+          temperature: 0.1,
+        });
+
+        aiPayeeName = result.data.payeeName?.trim() || null;
+
+        for (const candidate of result.data.candidates ?? []) {
+          if (options.length >= 3) break;
+          const resolvedId = resolveCategoryIdByNormalizedNames(
+            categories as CategoryTreeRow[],
+            candidate.categoriaPrincipal,
+            candidate.subcategoria,
+          );
+          if (!resolvedId) continue;
+          const cat = categories.find((c) => c.id === resolvedId);
+          const isSubcategory = Boolean(cat?.parentCategoryId);
+          pushOption({
+            categoryId: isSubcategory ? (cat!.parentCategoryId as string) : resolvedId,
+            subcategoryId: isSubcategory ? resolvedId : null,
+            label: label(isSubcategory ? (cat!.parentCategoryId as string) : resolvedId, isSubcategory ? resolvedId : null),
+            confidence: Math.max(0, Math.min(100, Math.round(candidate.confidence ?? 50))),
+            source: "ai",
+          });
+        }
+      } catch {
+        // IA indisponível: segue apenas com o que já foi resolvido por regra/histórico.
+      }
+    }
+
+    return { best, options: options.slice(0, 3), aiPayeeName };
   }
 }
