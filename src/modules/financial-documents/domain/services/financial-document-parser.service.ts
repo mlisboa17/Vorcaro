@@ -197,7 +197,10 @@ function extractCommonFields(text: string): ParsedFinancialFields {
 
   const supplier =
     firstMatch(text, [
-      /(?:favorecido|destinatário|destinatario|beneficiário|beneficiario|para)\s*[:\s]*([^\n\r]{3,80})/i,
+      // "para" é uma palavra comum em qualquer frase — só conta como rótulo de campo
+      // quando seguida de ":" (ex.: "Para: João Silva"), nunca em texto corrido.
+      /(?:favorecido|destinatário|destinatario|beneficiário|beneficiario)\s*[:\s]*([^\n\r]{3,80})/i,
+      /\bpara\s*:\s*([^\n\r]{3,80})/i,
       /(?:estabelecimento|loja|merchant)\s*[:\s]*([^\n\r]{3,80})/i,
     ]) ?? undefined;
 
