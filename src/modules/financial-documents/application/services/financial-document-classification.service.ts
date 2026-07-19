@@ -301,18 +301,27 @@ export class FinancialDocumentClassificationService {
           .join(" | ");
 
         const categoryContext = buildInboxClassificationCategoryContext(categories as CategoryTreeRow[]);
-        const needsPayeeName = !existingPayeeName;
+        // Faturas de cartão têm várias compras de vários estabelecimentos — não existe
+        // "um" beneficiário para identificar, então nem pedimos isso à IA nesse caso.
+        const needsPayeeName = !existingPayeeName && parsed.method !== "CARTAO_CREDITO";
 
         const result = await this.aiRouter.generateJson<AiDocumentClassificationJson>({
           system:
             "Você analisa documentos financeiros (faturas, comprovantes, recibos) e sugere classificação. Responda somente JSON válido, sem texto adicional.",
           prompt: `Dados extraídos do documento: ${text || "(sem descrição legível)"}\n\n${categoryContext}\n\n${
-            needsPayeeName ? "Identifique também o nome do estabelecimento/pessoa para quem o pagamento foi feito (payeeName). " : ""
-          }Retorne um JSON com:\n- payeeName: nome do beneficiário do pagamento (ou null se não identificável)\n- candidates: lista com as 3 categorias mais prováveis, cada uma com categoriaPrincipal, subcategoria e confidence (0-100), da mais para a menos provável. Use nomes exatos da taxonomia.`,
+            needsPayeeName
+              ? "Identifique também o nome do estabelecimento/pessoa para quem o pagamento foi feito (payeeName) — deve ser um nome curto (até 5 palavras), nunca uma frase ou trecho de texto do documento. Se não houver um nome claro de beneficiário, retorne null. "
+              : ""
+          }Retorne um JSON com:\n- payeeName: nome do beneficiário do pagamento (ou null se não identificável ou não aplicável)\n- candidates: lista com as 3 categorias mais prováveis, cada uma com categoriaPrincipal, subcategoria e confidence (0-100), da mais para a menos provável. Use nomes exatos da taxonomia.`,
           temperature: 0.1,
         });
 
-        aiPayeeName = result.data.payeeName?.trim() || null;
+        const rawPayeeName = needsPayeeName ? result.data.payeeName?.trim() || null : null;
+        // Rejeita respostas que parecem frases/trechos de texto em vez de um nome curto.
+        aiPayeeName =
+          rawPayeeName && rawPayeeName.length <= 60 && rawPayeeName.split(/\s+/).length <= 6
+            ? rawPayeeName
+            : null;
 
         for (const candidate of result.data.candidates ?? []) {
           if (options.length >= 3) break;
