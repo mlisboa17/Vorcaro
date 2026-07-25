@@ -41,8 +41,12 @@ import { FinancialDocumentUploadError } from "@/modules/financial-documents/appl
 import { FinancialDocumentSuggestionError } from "@/modules/financial-documents/application/services/financial-document-suggestion.service";
 import {
   answerTelegramCallbackQuery,
+  editTelegramMessageText,
   sendTelegramMessageWithMode,
 } from "@/lib/telegram/telegram-bot.client";
+import { formatCognitiveCardText } from "@/lib/telegram/cognitive-card";
+import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-extraction-result.repository";
+import type { FinancialExtraction } from "@/modules/financial-inbox/domain/ports/ai-service.port";
 import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
 import { buildVorcaroFollowUpService } from "@/lib/api/vorcaro-followups";
 import type { TelegramCallbackQuery } from "@/adapters/telegram/types/telegram-update";
@@ -66,6 +70,18 @@ import { uploadReceipt, deleteReceipt } from "@/lib/supabase-storage";
 export type TelegramWebhookResult =
   | { ok: true; handled: string; inboxItemId?: string; channel?: string }
   | { ok: true; skipped: string };
+
+/** Interpreta um valor monetário em pt-BR digitado no chat (ex.: "75,00", "R$ 1.250,50", "80"). */
+export function parseTelegramAmount(raw: string): number | null {
+  const cleaned = raw.replace(/[^\d,.-]/g, "").trim();
+  if (!cleaned) return null;
+  // pt-BR: vírgula é decimal, ponto é milhar.
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const value = Number.parseFloat(normalized);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
 export class ProcessTelegramUpdateService {
   constructor(
@@ -170,6 +186,13 @@ export class ProcessTelegramUpdateService {
         }
         return { ok: true, handled: "password_submitted", channel: "TELEGRAM" };
       }
+    }
+
+    // Sprint 16.1.2 — interceptação da próxima mensagem quando há edição inline
+    // pendente (valor/local). Precede o fluxo normal de criação de lançamento.
+    if (text) {
+      const editPending = await this.handlePendingCognitiveEdit(chatId, userId, text, redis);
+      if (editPending) return editPending;
     }
 
     const repository = new PrismaInboxRepository(this.prisma);
@@ -569,11 +592,23 @@ export class ProcessTelegramUpdateService {
       }
     }
 
-    // Sprint 16.1.1 — botões de edição inline (categoria/local/valor).
-    // Placeholder: lógica de edição chega em 16.1.2–16.1.4.
+    // Sprint 16.1.2 — botão de edição inline: valor (categoria/local chegam em 16.1.3–16.1.4).
     const cognitiveEdit = parseCognitiveEditCallback(data);
     if (cognitiveEdit) {
-      await answerTelegramCallbackQuery(callback.id, "Edição chega já já 🚧");
+      if (cognitiveEdit.field === "valor") {
+        const redis = getRedisConnection();
+        const messageId = callback.message?.message_id;
+        await redis.setex(
+          `telegram:edit_pending:${chatId}`,
+          120,
+          JSON.stringify({ inboxItemId: cognitiveEdit.inboxItemId, field: "valor", messageId }),
+        );
+        await answerTelegramCallbackQuery(callback.id, "Qual o novo valor?");
+        await this.safeReply(chatId, "💰 Digite o novo valor (ex.: <b>75,00</b>):");
+        return { ok: true, handled: "cognitive_edit_valor_prompt" };
+      }
+      // local/categoria ainda em desenvolvimento (16.1.3–16.1.4)
+      await answerTelegramCallbackQuery(callback.id, "Chega já já 🚧");
       return { ok: true, handled: "cognitive_edit_placeholder" };
     }
 
@@ -648,6 +683,76 @@ export class ProcessTelegramUpdateService {
       await answerTelegramCallbackQuery(callback.id, "Ação indisponível ou expirada.");
       return { ok: true, handled: "vorcaro_action_callback_failed" };
     }
+  }
+
+  /**
+   * Sprint 16.1.2 — aplica uma edição inline pendente (valor/local) usando o texto
+   * que o usuário acabou de enviar, atualiza a extração e re-renderiza o card.
+   * Retorna o resultado do webhook se havia edição pendente, ou null caso contrário.
+   */
+  private async handlePendingCognitiveEdit(
+    chatId: number,
+    userId: string,
+    text: string,
+    redis: ReturnType<typeof getRedisConnection>,
+  ): Promise<TelegramWebhookResult | null> {
+    const key = `telegram:edit_pending:${chatId}`;
+    const pendingStr = await redis.get(key);
+    if (!pendingStr) return null;
+
+    const pending = JSON.parse(pendingStr) as {
+      inboxItemId: string;
+      field: "valor" | "local";
+      messageId?: number;
+    };
+
+    if (text.trim().toLowerCase() === "cancelar") {
+      await redis.del(key);
+      await this.safeReply(chatId, "Ok, edição cancelada. 👍");
+      return { ok: true, handled: "cognitive_edit_cancelled", channel: "TELEGRAM" };
+    }
+
+    const extractionRepo = new PrismaExtractionResultRepository(this.prisma);
+    const row = await extractionRepo.findLatestByInboxItemId(pending.inboxItemId);
+    if (!row) {
+      await redis.del(key);
+      await this.safeReply(chatId, "Não encontrei o lançamento para editar. Tente de novo.");
+      return { ok: true, handled: "cognitive_edit_not_found", channel: "TELEGRAM" };
+    }
+
+    const extraction = row.extractedData as FinancialExtraction;
+
+    if (pending.field === "valor") {
+      const amount = parseTelegramAmount(text);
+      if (amount == null) {
+        await this.safeReply(chatId, "Valor inválido. Envie algo como <b>75,00</b> (ou <i>cancelar</i>).");
+        return { ok: true, handled: "cognitive_edit_valor_invalid", channel: "TELEGRAM" };
+      }
+      extraction.amount = amount;
+    } else {
+      const local = text.trim();
+      if (local.length < 2) {
+        await this.safeReply(chatId, "Local muito curto. Envie o nome do estabelecimento (ou <i>cancelar</i>).");
+        return { ok: true, handled: "cognitive_edit_local_invalid", channel: "TELEGRAM" };
+      }
+      extraction.description = local;
+    }
+
+    await extractionRepo.updateExtractedData(row.id, extraction);
+    await redis.del(key);
+
+    // Re-renderiza o card na mesma mensagem (economia de tokens/chat).
+    const cardText = formatCognitiveCardText(extraction);
+    const keyboard = { inline_keyboard: buildCognitiveTransactionKeyboard(pending.inboxItemId) };
+    if (pending.messageId) {
+      await editTelegramMessageText(chatId, pending.messageId, cardText, keyboard).catch(async () => {
+        await sendTelegramMessageWithMode(chatId, cardText, "HTML", keyboard);
+      });
+    } else {
+      await sendTelegramMessageWithMode(chatId, cardText, "HTML", keyboard);
+    }
+
+    return { ok: true, handled: "cognitive_edit_applied", channel: "TELEGRAM" };
   }
 
   private async safeReply(chatId: number, text: string): Promise<void> {

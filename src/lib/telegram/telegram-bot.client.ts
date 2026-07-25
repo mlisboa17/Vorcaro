@@ -48,6 +48,37 @@ export async function sendTelegramMessageWithMode(
   }
 }
 
+/**
+ * Edita uma mensagem já enviada (texto + teclado) em vez de mandar uma nova.
+ * Usado para re-renderizar o card de lançamento após uma edição inline, sem
+ * poluir o chat nem gastar tokens com mensagens repetidas.
+ */
+export async function editTelegramMessageText(
+  chatId: number,
+  messageId: number,
+  text: string,
+  replyMarkup?: TelegramInlineKeyboard,
+  parseMode: "HTML" | "MarkdownV2" = "HTML",
+): Promise<void> {
+  const token = getBotToken();
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: parseMode,
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    }),
+  });
+
+  // "message is not modified" não é erro real — o Telegram rejeita re-render idêntico.
+  if (!response.ok && response.status !== 400) {
+    throw new Error(`Telegram editMessageText failed: HTTP ${response.status}`);
+  }
+}
+
 export async function answerTelegramCallbackQuery(
   callbackQueryId: string,
   text?: string,

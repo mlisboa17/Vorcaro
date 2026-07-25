@@ -19,6 +19,7 @@ import { resolveAutomationTier } from "@/modules/inbox-intelligence/domain/types
 import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
 import { downloadTelegramFile, sendTelegramMessageWithMode } from "@/lib/telegram/telegram-bot.client";
 import { buildCognitiveTransactionKeyboard } from "@/lib/telegram/telegram-inline-actions";
+import { formatCognitiveCardText } from "@/lib/telegram/cognitive-card";
 import { uploadReceipt } from "@/lib/supabase-storage";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { looksLikeExpenseEntry } from "@/lib/telegram/vorcaro-telegram-commands";
@@ -166,11 +167,7 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
     if (item.channel.startsWith("TELEGRAM")) {
       const chatId = (item.channelMeta as any)?.chatId;
       if (chatId) {
-        const valueStr = Math.abs(result.extraction.amount || 0).toFixed(2).replace(".", ",");
-        const typeStr = result.extraction.type === "INCOME" ? "Receita" : "Despesa";
-        const msgText = `📝 <b>Lançamento Inteligente Detectado:</b>\n🔹 <b>Estabelecimento:</b> ${result.extraction.description}\n🔹 <b>Valor:</b> R$ ${valueStr}\n🔹 <b>Data:</b> ${result.extraction.date}\n🔹 <b>Tipo:</b> ${typeStr}\n\nConfirma os dados?`;
-
-        await sendTelegramMessageWithMode(chatId, msgText, "HTML", {
+        await sendTelegramMessageWithMode(chatId, formatCognitiveCardText(result.extraction), "HTML", {
           inline_keyboard: buildCognitiveTransactionKeyboard(inboxItemId),
         });
       }
