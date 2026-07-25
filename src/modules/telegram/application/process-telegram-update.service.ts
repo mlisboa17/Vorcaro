@@ -592,22 +592,27 @@ export class ProcessTelegramUpdateService {
       }
     }
 
-    // Sprint 16.1.2 — botão de edição inline: valor (categoria/local chegam em 16.1.3–16.1.4).
+    // Sprint 16.1.2/16.1.3 — edição inline de valor e local (categoria chega em 16.1.4).
     const cognitiveEdit = parseCognitiveEditCallback(data);
     if (cognitiveEdit) {
-      if (cognitiveEdit.field === "valor") {
+      if (cognitiveEdit.field === "valor" || cognitiveEdit.field === "local") {
         const redis = getRedisConnection();
         const messageId = callback.message?.message_id;
         await redis.setex(
           `telegram:edit_pending:${chatId}`,
           120,
-          JSON.stringify({ inboxItemId: cognitiveEdit.inboxItemId, field: "valor", messageId }),
+          JSON.stringify({ inboxItemId: cognitiveEdit.inboxItemId, field: cognitiveEdit.field, messageId }),
         );
-        await answerTelegramCallbackQuery(callback.id, "Qual o novo valor?");
-        await this.safeReply(chatId, "💰 Digite o novo valor (ex.: <b>75,00</b>):");
-        return { ok: true, handled: "cognitive_edit_valor_prompt" };
+        if (cognitiveEdit.field === "valor") {
+          await answerTelegramCallbackQuery(callback.id, "Qual o novo valor?");
+          await this.safeReply(chatId, "💰 Digite o novo valor (ex.: <b>75,00</b>):");
+          return { ok: true, handled: "cognitive_edit_valor_prompt" };
+        }
+        await answerTelegramCallbackQuery(callback.id, "Qual o local?");
+        await this.safeReply(chatId, "📍 Digite o local/estabelecimento:");
+        return { ok: true, handled: "cognitive_edit_local_prompt" };
       }
-      // local/categoria ainda em desenvolvimento (16.1.3–16.1.4)
+      // categoria ainda em desenvolvimento (16.1.4)
       await answerTelegramCallbackQuery(callback.id, "Chega já já 🚧");
       return { ok: true, handled: "cognitive_edit_placeholder" };
     }
