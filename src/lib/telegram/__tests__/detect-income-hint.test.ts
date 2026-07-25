@@ -29,4 +29,32 @@ describe("detectIncomeVerb (16.2)", () => {
     expect(detectIncomeVerb(null)).toBe(false);
     expect(detectIncomeVerb(undefined)).toBe(false);
   });
+
+  // Sprint 16.3 — em voz, o detector roda sobre a TRANSCRIÇÃO (não o placeholder
+  // "[Audio Message]" que fica em rawContent). Simula a fonte usada no processamento.
+  describe("fonte de texto para voz (16.3)", () => {
+    const AUDIO_PLACEHOLDER = "[Audio Message]";
+
+    it("placeholder de áudio nunca casa receita", () => {
+      expect(detectIncomeVerb(AUDIO_PLACEHOLDER)).toBe(false);
+    });
+
+    it("transcrição de receita casa (voz recebi)", () => {
+      const transcription = "recebi setecentos reais do cliente pelo serviço";
+      const source = transcription ?? AUDIO_PLACEHOLDER;
+      expect(detectIncomeVerb(source)).toBe(true);
+    });
+
+    it("transcrição de despesa não casa receita (voz gastei)", () => {
+      const transcription = "gastei cinquenta reais no almoço";
+      const source = transcription ?? AUDIO_PLACEHOLDER;
+      expect(detectIncomeVerb(source)).toBe(false);
+    });
+
+    it("sem transcrição, cai no placeholder e não casa", () => {
+      const transcription: string | null = null;
+      const source = transcription ?? AUDIO_PLACEHOLDER;
+      expect(detectIncomeVerb(source)).toBe(false);
+    });
+  });
 });

@@ -104,19 +104,22 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
       });
     }
 
+    // Transcrição da voz reaproveitada adiante (ex.: detecção de receita).
+    let voiceTranscription: string | null = null;
+
     // Áudio que não parece uma despesa (ex.: "Vorcaro, como estou indo?") vira uma
     // pergunta ao assistente em vez de forçar uma extração de lançamento que falharia.
     if (item.channel === "TELEGRAM_VOICE" && meta.audioBase64) {
       const aiService = new GeminiAiService();
-      const transcription = await aiService
+      voiceTranscription = await aiService
         .transcribeAudio({ type: "audio", mimeType: meta.mimeType, base64: meta.audioBase64 })
         .catch(() => null);
 
-      if (transcription && !looksLikeExpenseEntry(transcription)) {
+      if (voiceTranscription && !looksLikeExpenseEntry(voiceTranscription)) {
         const chatId = meta.chatId;
         try {
           const chatService = new VorcaroConversationService(prisma);
-          const chatResult = await chatService.sendMessage({ userId, message: transcription, channel: "TELEGRAM" });
+          const chatResult = await chatService.sendMessage({ userId, message: voiceTranscription, channel: "TELEGRAM" });
           if (chatId) {
             await sendTelegramMessageWithMode(chatId, chatResult.answer.slice(0, 3900), "HTML");
           }
@@ -140,9 +143,11 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
     const useCase = createProcessInboxItemUseCase();
     const result = await useCase.execute({ inboxItemId, userId });
 
-    // Sprint 16.2 — verbos de entrada ("recebi", "ganhei", "depósito") forçam
-    // classificação como RECEITA, corrigindo a IA quando ela erra para despesa.
-    if (result.extraction.type !== "INCOME" && detectIncomeVerb(item.rawContent)) {
+    // Sprint 16.2/16.3 — verbos de entrada ("recebi", "ganhei", "depósito") forçam
+    // classificação como RECEITA. Em voz, usa a transcrição real (rawContent é o
+    // placeholder "[Audio Message]"), com fallback para rawContent no texto.
+    const incomeSourceText = voiceTranscription ?? item.rawContent;
+    if (result.extraction.type !== "INCOME" && detectIncomeVerb(incomeSourceText)) {
       result.extraction.type = "INCOME";
       // valor de receita é sempre positivo
       if (typeof result.extraction.amount === "number") {
