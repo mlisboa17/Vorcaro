@@ -36,10 +36,17 @@ export function parseFollowUpDismissCallback(data: string): string | null {
 export function buildCognitiveTransactionKeyboard(
   inboxItemId: string,
 ): TelegramInlineKeyboardButton[][] {
-  return [[
-    { text: "✅ Confirmar Lançamento", callback_data: `cog_ack:${inboxItemId}` },
-    { text: "❌ Descartar", callback_data: `cog_rej:${inboxItemId}` },
-  ]];
+  return [
+    [
+      { text: "✅ Confirmar", callback_data: `cog_ack:${inboxItemId}` },
+      { text: "❌ Descartar", callback_data: `cog_rej:${inboxItemId}` },
+    ],
+    [
+      { text: "✏️ Categoria", callback_data: `cog_edit:cat:${inboxItemId}` },
+      { text: "📍 Local", callback_data: `cog_edit:local:${inboxItemId}` },
+      { text: "💰 Valor", callback_data: `cog_edit:valor:${inboxItemId}` },
+    ],
+  ];
 }
 
 export function parseCognitiveTransactionCallback(
@@ -49,5 +56,17 @@ export function parseCognitiveTransactionCallback(
   if (ack?.[1]) return { action: "ack", inboxItemId: ack[1] };
   const rej = /^cog_rej:(.+)$/.exec(data);
   if (rej?.[1]) return { action: "rej", inboxItemId: rej[1] };
+  return null;
+}
+
+export type CognitiveEditField = "cat" | "local" | "valor";
+
+export function parseCognitiveEditCallback(
+  data: string,
+): { field: CognitiveEditField; inboxItemId: string } | null {
+  const match = /^cog_edit:(cat|local|valor):(.+)$/.exec(data);
+  if (match?.[1] && match[2]) {
+    return { field: match[1] as CognitiveEditField, inboxItemId: match[2] };
+  }
   return null;
 }

@@ -27,6 +27,7 @@ import {
   parseFollowUpDismissCallback,
   buildCognitiveTransactionKeyboard,
   parseCognitiveTransactionCallback,
+  parseCognitiveEditCallback,
 } from "@/lib/telegram/telegram-inline-actions";
 import {
   buildCategoryOptionsKeyboard,
@@ -566,6 +567,14 @@ export class ProcessTelegramUpdateService {
         await answerTelegramCallbackQuery(callback.id, "Ação indisponível.");
         return { ok: true, handled: "document_suggestion_callback_failed" };
       }
+    }
+
+    // Sprint 16.1.1 — botões de edição inline (categoria/local/valor).
+    // Placeholder: lógica de edição chega em 16.1.2–16.1.4.
+    const cognitiveEdit = parseCognitiveEditCallback(data);
+    if (cognitiveEdit) {
+      await answerTelegramCallbackQuery(callback.id, "Edição chega já já 🚧");
+      return { ok: true, handled: "cognitive_edit_placeholder" };
     }
 
     const cognitiveAction = parseCognitiveTransactionCallback(data);
