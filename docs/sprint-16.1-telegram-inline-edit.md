@@ -58,21 +58,26 @@ Regras de token:
 - Confirmações = **1 linha** com emoji ("✅ Salvo! 👍", "📍 Local atualizado.").
 - Nenhum texto explicativo longo — o botão é a interface.
 
-## Loop incremental (sub-passos de 16.1)
+## Loop incremental (sub-passos de 16.1) — CONCLUÍDO ✅
 
-- **16.1.1** — Teclado: adicionar linha `Categoria/Local/Valor` +
-  `parseCognitiveEditCallback`. Sem lógica ainda (botões respondem "em breve").
-  _Entrega testável: botões aparecem._
-- **16.1.2** — Editar **valor**: Redis pending + intercept de texto + validação
-  (`parseBrazilianAmount`) + `updateExtractedData` + re-render card.
-- **16.1.3** — Editar **local**: mesmo fluxo, campo `description`.
-- **16.1.4** — Editar **categoria**: reusar opções da IA (as 3 do
-  `ExtractionResult`), aplicar `categoryId`, re-render.
-- **16.1.5** — Confirmar cria Transaction da extração editada (alinhar `cog_ack`).
-- **16.1.6** — Testes (unit dos parsers de callback + fluxo) e humanização das
-  respostas curtas.
+- **16.1.1** ✅ — Teclado com linha `Categoria/Local/Valor` + `parseCognitiveEditCallback`.
+- **16.1.2** ✅ — Editar **valor**: Redis pending + intercept de texto + `parseTelegramAmount`
+  + `updateExtractedData` + re-render via `editMessageText`.
+- **16.1.3** ✅ — Editar **local**: mesmo fluxo, campo `description`.
+- **16.1.4** ✅ — Editar **categoria**: seletor com as categorias do usuário
+  (`buildCategoryPickerKeyboard`), aplica `categoryId`, card ganhou linha de categoria.
+  _Nota: usamos as categorias do usuário (escolha direta) em vez das 3 sugestões da IA —
+  mais determinístico e sem latência. Refinar para top-3 da IA fica como melhoria futura._
+- **16.1.5** ✅ — Confirmar agora CRIA a Transaction via `handleInboxSmartBatchExecute`
+  (antes `cog_ack` só marcava SAVED — bug corrigido). Removidos use cases órfãos.
+- **16.1.6** ✅ — Testes unitários (parsers, formatador, `parseTelegramAmount`,
+  seletor de categoria) + humanização das confirmações curtas.
 
-Cada sub-passo: build + typecheck + teste + deploy incremental.
+Cada sub-passo: build + typecheck + teste + deploy incremental. **Sprint 16.1 fechado.**
+
+## Próximo: Sprint 16.2 (detecção de receita por verbos)
+
+Ver `roadmap-sprint-16-plus.md`.
 
 ## Arquitetura (arquivos tocados)
 

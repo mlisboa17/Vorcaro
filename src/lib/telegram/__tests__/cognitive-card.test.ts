@@ -27,6 +27,16 @@ describe("formatCognitiveCardText (16.1.2)", () => {
     expect(text).toContain("R$ 0,00");
     expect(text).toContain("—");
   });
+
+  it("mostra a linha de categoria quando informada (16.1.4)", () => {
+    const withCat = formatCognitiveCardText({ description: "X", amount: 10, type: "EXPENSE" }, "Alimentação → Restaurantes");
+    expect(withCat).toContain("<b>Categoria:</b> Alimentação → Restaurantes");
+  });
+
+  it("omite a linha de categoria quando ausente", () => {
+    const noCat = formatCognitiveCardText({ description: "X", amount: 10, type: "EXPENSE" });
+    expect(noCat).not.toContain("Categoria:");
+  });
 });
 
 describe("parseTelegramAmount (16.1.2)", () => {

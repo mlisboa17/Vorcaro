@@ -835,6 +835,13 @@ export class ProcessTelegramUpdateService {
       await sendTelegramMessageWithMode(chatId, cardText, "HTML", keyboard);
     }
 
+    // Confirmação curta e humanizada.
+    const confirmMsg =
+      pending.field === "valor"
+        ? `Beleza, valor atualizado! 💰 Confere aí 👆`
+        : `Show, local ajustado! 📍 Confere aí 👆`;
+    await this.safeReply(chatId, confirmMsg);
+
     return { ok: true, handled: "cognitive_edit_applied", channel: "TELEGRAM" };
   }
 
