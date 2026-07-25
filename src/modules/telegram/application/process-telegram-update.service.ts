@@ -59,8 +59,7 @@ import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { enqueueStatementImport, getRedisConnection } from "@/lib/queue";
 import { processFinancialInboxItem } from "@/lib/queue/process-financial-inbox-item";
 import { randomUUID } from "crypto";
-import { RegisterCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/register-cognitive-transaction.use-case";
-import { ConfirmCognitiveTransactionUseCase } from "@/modules/transactions/use-cases/confirm-cognitive-transaction.use-case";
+import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
 import { IngestInboxItemUseCase } from "@/modules/financial-inbox/application/use-cases/ingest-inbox-item.use-case";
 import { GeminiAiService } from "@/modules/financial-inbox/infrastructure/services/gemini-ai.service";
 import { PrismaInboxRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-inbox.repository";
@@ -684,18 +683,33 @@ export class ProcessTelegramUpdateService {
     if (cognitiveAction) {
       try {
         if (cognitiveAction.action === "ack") {
-           const confirmUseCase = new ConfirmCognitiveTransactionUseCase();
-           const result = await confirmUseCase.execute(connection.userId, cognitiveAction.inboxItemId);
-           
-           if (!result.success) {
-             if ("alreadyProcessed" in result && result.alreadyProcessed) {
-               await answerTelegramCallbackQuery(callback.id, "Ação já processada.");
-             } else {
-               await answerTelegramCallbackQuery(callback.id, "Erro ao confirmar.");
-             }
+           // Sprint 16.1.5 — confirmar aplica a extração (possivelmente editada) e
+           // CRIA a Transaction de fato (handleInboxSmartBatchExecute), não só marca SAVED.
+           const inbox = await this.prisma.financialInbox.findFirst({
+             where: { id: cognitiveAction.inboxItemId, userId: connection.userId },
+             select: { status: true },
+           });
+           if (!inbox) {
+             await answerTelegramCallbackQuery(callback.id, "Lançamento não encontrado.");
+           } else if (inbox.status === "SAVED" || inbox.status === "ERROR") {
+             await answerTelegramCallbackQuery(callback.id, "Ação já processada.");
            } else {
-             await answerTelegramCallbackQuery(callback.id, "Confirmado!");
-             await this.safeReply(chatId, result.message);
+             const batch = await handleInboxSmartBatchExecute(
+               this.prisma,
+               connection.userId,
+               [cognitiveAction.inboxItemId],
+               { recordFeedback: true },
+             );
+             if (batch.confirmed > 0) {
+               await answerTelegramCallbackQuery(callback.id, "Lançamento criado!");
+               await this.safeReply(chatId, "✅ Prontinho, lançamento registrado! 🎉");
+             } else {
+               await answerTelegramCallbackQuery(callback.id, "Não consegui confirmar.");
+               await this.safeReply(
+                 chatId,
+                 "⚠️ Não consegui criar o lançamento. Revise em /dashboard/inbox.",
+               );
+             }
            }
         } else {
            const inboxItem = await this.prisma.financialInbox.findUnique({
