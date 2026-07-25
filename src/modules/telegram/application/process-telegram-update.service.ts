@@ -48,6 +48,18 @@ import {
 } from "@/lib/telegram/telegram-bot.client";
 import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
+import {
+  ONBOARDING_ACCOUNT_PROMPT,
+  ONBOARDING_WELCOME,
+  buildPaymentStepKeyboard,
+  buildWelcomeKeyboard,
+  inferAccountType,
+  needsAccount,
+  parseOnboardingCallback,
+  validateAccountName,
+} from "@/lib/telegram/onboarding";
+import { CreateFinancialAccountUseCase } from "@/modules/financial-instruments/application/use-cases/financial-instrument.use-cases";
+import { PrismaFinancialAccountRepository } from "@/modules/financial-instruments/infrastructure/repositories/prisma-financial-instrument.repositories";
 import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-extraction-result.repository";
 import type { FinancialExtraction } from "@/modules/financial-inbox/domain/ports/ai-service.port";
 import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
@@ -155,6 +167,12 @@ export class ProcessTelegramUpdateService {
       await redis.expire(idempotencyKey, 86400); // 24h
     }
 
+    // Sprint 17.1 — onboarding: interceptar resposta pendente (nome da conta).
+    if (text) {
+      const onboardResult = await this.handleOnboardingText(chatId, userId, text, redis);
+      if (onboardResult) return onboardResult;
+    }
+
     if (text) {
       const pendingPasswordKey = `telegram:password_pending:${chatId}`;
       const pendingStr = await redis.get(pendingPasswordKey);
@@ -195,6 +213,18 @@ export class ProcessTelegramUpdateService {
     if (text) {
       const editPending = await this.handlePendingCognitiveEdit(chatId, userId, text, redis);
       if (editPending) return editPending;
+    }
+
+    // Sprint 17.1 — onboarding: usuário sem conta é guiado antes de lançar.
+    // Só interrompe se não houver onboarding em progresso (já tratado acima).
+    const accountsCount = await this.prisma.financialAccount.count({
+      where: { userId, isActive: true },
+    });
+    if (needsAccount(accountsCount)) {
+      await sendTelegramMessageWithMode(chatId, ONBOARDING_WELCOME, "HTML", {
+        inline_keyboard: buildWelcomeKeyboard(),
+      });
+      return { ok: true, handled: "onboarding_welcome", channel: "TELEGRAM" };
     }
 
     const repository = new PrismaInboxRepository(this.prisma);
@@ -639,6 +669,21 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "cognitive_edit_cat_prompt" };
     }
 
+    // Sprint 17.1 — onboarding: iniciar cadastro de conta.
+    const onboard = parseOnboardingCallback(data);
+    if (onboard === "account") {
+      const redis = getRedisConnection();
+      await redis.setex(`telegram:onboard:${chatId}`, 300, JSON.stringify({ step: "account_name" }));
+      await answerTelegramCallbackQuery(callback.id, "Vamos lá!");
+      await this.safeReply(chatId, ONBOARDING_ACCOUNT_PROMPT);
+      return { ok: true, handled: "onboarding_account_prompt" };
+    }
+    if (onboard === "payment") {
+      // 17.2 implementa o cadastro de forma de pagamento.
+      await answerTelegramCallbackQuery(callback.id, "Chega já já 🚧");
+      return { ok: true, handled: "onboarding_payment_placeholder" };
+    }
+
     // Sprint 16.1.4 — usuário escolheu uma categoria no seletor.
     const catPick = parseCategoryPickCallback(data);
     if (catPick) {
@@ -773,6 +818,50 @@ export class ProcessTelegramUpdateService {
    * que o usuário acabou de enviar, atualiza a extração e re-renderiza o card.
    * Retorna o resultado do webhook se havia edição pendente, ou null caso contrário.
    */
+  /**
+   * Sprint 17.1 — intercepta a próxima mensagem quando o onboarding aguarda o
+   * nome da conta. Cria a conta e avança para o passo de forma de pagamento.
+   */
+  private async handleOnboardingText(
+    chatId: number,
+    userId: string,
+    text: string,
+    redis: ReturnType<typeof getRedisConnection>,
+  ): Promise<TelegramWebhookResult | null> {
+    const key = `telegram:onboard:${chatId}`;
+    const pendingStr = await redis.get(key);
+    if (!pendingStr) return null;
+
+    const pending = JSON.parse(pendingStr) as { step: string };
+    if (pending.step !== "account_name") return null;
+
+    const validation = validateAccountName(text);
+    if (!validation.ok) {
+      if (validation.reason === "cancel") {
+        await redis.del(key);
+        await this.safeReply(chatId, "Ok, cancelei o cadastro. Quando quiser, é só mandar /start. 🙂");
+        return { ok: true, handled: "onboarding_account_cancelled", channel: "TELEGRAM" };
+      }
+      await this.safeReply(
+        chatId,
+        "Hmm, não peguei o nome 🤔 Envie algo como <b>Nubank</b> ou <b>Carteira</b> (ou <i>cancelar</i>).",
+      );
+      return { ok: true, handled: "onboarding_account_invalid", channel: "TELEGRAM" };
+    }
+
+    const useCase = new CreateFinancialAccountUseCase(new PrismaFinancialAccountRepository(this.prisma));
+    await useCase.execute({ userId, name: validation.name, type: inferAccountType(validation.name) });
+    await redis.del(key);
+
+    await sendTelegramMessageWithMode(
+      chatId,
+      `✅ Conta <b>${validation.name}</b> criada! 🎉 Agora só falta a forma de pagamento.`,
+      "HTML",
+      { inline_keyboard: buildPaymentStepKeyboard() },
+    );
+    return { ok: true, handled: "onboarding_account_created", channel: "TELEGRAM" };
+  }
+
   private async handlePendingCognitiveEdit(
     chatId: number,
     userId: string,
