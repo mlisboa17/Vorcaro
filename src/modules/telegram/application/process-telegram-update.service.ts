@@ -47,6 +47,7 @@ import {
   sendTelegramMessageWithMode,
 } from "@/lib/telegram/telegram-bot.client";
 import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
+import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-extraction-result.repository";
 import type { FinancialExtraction } from "@/modules/financial-inbox/domain/ports/ai-service.port";
 import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
@@ -398,8 +399,8 @@ export class ProcessTelegramUpdateService {
       } catch (error) {
         const msg =
           error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED"
-            ? "Limite de perguntas ao Vorcaro atingido. Tente novamente em breve."
-            : "Não entendi. Envie uma despesa (ex.: \"Mercado 50,00\") ou pergunte algo sobre suas finanças.";
+            ? "Opa, muitas perguntas de uma vez! 😅 Tenta de novo daqui a pouco."
+            : pickHumanReply("notUnderstood");
         await this.safeReply(chatId, msg);
         return { ok: true, handled: "vorcaro_chat_fallback_failed" };
       }
@@ -675,7 +676,7 @@ export class ProcessTelegramUpdateService {
       }
       await redis.del(key);
       await answerTelegramCallbackQuery(callback.id, `Categoria: ${category.name}`);
-      await this.safeReply(chatId, `✏️ Categoria ajustada para <b>${category.name}</b>. 👍`);
+      await this.safeReply(chatId, `${pickHumanReply("categoryEdited")} → <b>${category.name}</b>`);
       return { ok: true, handled: "cognitive_cat_applied" };
     }
 
@@ -702,7 +703,7 @@ export class ProcessTelegramUpdateService {
              );
              if (batch.confirmed > 0) {
                await answerTelegramCallbackQuery(callback.id, "Lançamento criado!");
-               await this.safeReply(chatId, "✅ Prontinho, lançamento registrado! 🎉");
+               await this.safeReply(chatId, pickHumanReply("saved"));
              } else {
                await answerTelegramCallbackQuery(callback.id, "Não consegui confirmar.");
                await this.safeReply(
@@ -733,7 +734,7 @@ export class ProcessTelegramUpdateService {
            }
 
            await answerTelegramCallbackQuery(callback.id, "Descartado.");
-           await this.safeReply(chatId, "❌ Lançamento descartado.");
+           await this.safeReply(chatId, pickHumanReply("discarded"));
         }
         return { ok: true, handled: "cognitive_callback" };
       } catch (err) {
@@ -790,7 +791,7 @@ export class ProcessTelegramUpdateService {
 
     if (text.trim().toLowerCase() === "cancelar") {
       await redis.del(key);
-      await this.safeReply(chatId, "Ok, edição cancelada. 👍");
+      await this.safeReply(chatId, pickHumanReply("editCancelled"));
       return { ok: true, handled: "cognitive_edit_cancelled", channel: "TELEGRAM" };
     }
 
@@ -836,11 +837,7 @@ export class ProcessTelegramUpdateService {
     }
 
     // Confirmação curta e humanizada.
-    const confirmMsg =
-      pending.field === "valor"
-        ? `Beleza, valor atualizado! 💰 Confere aí 👆`
-        : `Show, local ajustado! 📍 Confere aí 👆`;
-    await this.safeReply(chatId, confirmMsg);
+    await this.safeReply(chatId, pickHumanReply(pending.field === "valor" ? "valueEdited" : "localEdited"));
 
     return { ok: true, handled: "cognitive_edit_applied", channel: "TELEGRAM" };
   }

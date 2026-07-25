@@ -6,9 +6,13 @@
 
 ---
 
-## Sprint 16 — Telegram: edição inline + receitas + humanização
+## Sprint 16 — Telegram: edição inline + receitas + humanização ✅ CONCLUÍDO
 
 Objetivo: bot reconhece entradas/saídas corretamente, suporta áudio, é mais humano e permite editar registros (categoria, local, valor) direto no chat.
+
+**Status: fechado.** 16.1 (edição inline + confirmar cria transação), 16.2
+(receita por verbos no texto), 16.3 (receita/edição em voz), 16.4 (respostas
+humanizadas variadas). Ver `sprint-16.1-*`, `sprint-16.3-*`.
 
 ### 16.1 — Edição inline de categoria, local e valor 🟡🔴
 - ✅ Já existe: botões inline (`telegram-inline-actions.ts`, `telegram-document-actions.ts`), callback handler (`process-telegram-update.service.ts::executeCallback`), botão "🔄 Alterar" que mostra 3 categorias sugeridas pela IA.
