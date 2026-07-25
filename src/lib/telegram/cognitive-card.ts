@@ -4,24 +4,44 @@ import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infr
 import { buildCognitiveTransactionKeyboard, type TelegramInlineKeyboardButton } from "./telegram-inline-actions";
 
 /** Formata o texto do card de lançamento detectado (mesmo layout do 1º envio). */
-export function formatCognitiveCardText(extraction: {
-  description?: string | null;
-  amount?: number | null;
-  date?: string | null;
-  type?: string | null;
-}): string {
+export function formatCognitiveCardText(
+  extraction: {
+    description?: string | null;
+    amount?: number | null;
+    date?: string | null;
+    type?: string | null;
+  },
+  categoryName?: string | null,
+): string {
   const valueStr = Math.abs(extraction.amount || 0).toFixed(2).replace(".", ",");
   const typeStr = extraction.type === "INCOME" ? "Receita" : "Despesa";
   const local = extraction.description || "—";
   const date = extraction.date || "—";
+  const categoryLine = categoryName ? `🔹 <b>Categoria:</b> ${categoryName}\n` : "";
   return (
     `📝 <b>Lançamento Inteligente Detectado:</b>\n` +
     `🔹 <b>Estabelecimento:</b> ${local}\n` +
     `🔹 <b>Valor:</b> R$ ${valueStr}\n` +
+    categoryLine +
     `🔹 <b>Data:</b> ${date}\n` +
     `🔹 <b>Tipo:</b> ${typeStr}\n\n` +
     `Confirma os dados?`
   );
+}
+
+/** Resolve o nome de exibição de uma categoria (com pai, se houver). */
+export async function resolveCategoryName(
+  prisma: PrismaClient,
+  userId: string,
+  categoryId: string | null | undefined,
+): Promise<string | null> {
+  if (!categoryId) return null;
+  const cat = await prisma.category.findFirst({
+    where: { id: categoryId, userId },
+    select: { name: true, parentCategory: { select: { name: true } } },
+  });
+  if (!cat) return null;
+  return cat.parentCategory ? `${cat.parentCategory.name} → ${cat.name}` : cat.name;
 }
 
 /**

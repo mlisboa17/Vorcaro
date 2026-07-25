@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildActionProposalKeyboard,
+  buildCategoryPickerKeyboard,
   buildCognitiveTransactionKeyboard,
   parseActionProposalCallback,
+  parseCategoryPickCallback,
   parseCognitiveEditCallback,
   parseCognitiveTransactionCallback,
   parseFollowUpDismissCallback,
@@ -56,5 +58,26 @@ describe("telegram-inline-actions", () => {
     expect(parseCognitiveEditCallback("cog_edit:valor:abc-123")).toEqual({ field: "valor", inboxItemId: "abc-123" });
     expect(parseCognitiveEditCallback("cog_edit:foo:i1")).toBeNull();
     expect(parseCognitiveEditCallback("cog_ack:i1")).toBeNull();
+  });
+
+  it("monta seletor de categorias 2-por-linha e parseia pick (16.1.4)", () => {
+    const kb = buildCategoryPickerKeyboard([
+      { id: "c1", name: "Alimentação" },
+      { id: "c2", name: "Transporte" },
+      { id: "c3", name: "Moradia" },
+    ]);
+    expect(kb).toHaveLength(2); // 3 itens → 2 linhas (2+1)
+    expect(kb[0][0]).toEqual({ text: "Alimentação", callback_data: "cog_cat:c1" });
+    expect(kb[0][1]).toEqual({ text: "Transporte", callback_data: "cog_cat:c2" });
+    expect(kb[1][0]).toEqual({ text: "Moradia", callback_data: "cog_cat:c3" });
+
+    expect(parseCategoryPickCallback("cog_cat:c1")).toEqual({ categoryId: "c1" });
+    expect(parseCategoryPickCallback("cog_edit:cat:i1")).toBeNull();
+  });
+
+  it("trunca nomes de categoria muito longos no botão", () => {
+    const kb = buildCategoryPickerKeyboard([{ id: "c1", name: "Categoria com nome exageradamente longo" }]);
+    expect(kb[0][0].text.endsWith("…")).toBe(true);
+    expect(kb[0][0].text.length).toBeLessThanOrEqual(22);
   });
 });

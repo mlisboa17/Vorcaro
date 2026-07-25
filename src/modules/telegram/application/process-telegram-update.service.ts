@@ -28,6 +28,8 @@ import {
   buildCognitiveTransactionKeyboard,
   parseCognitiveTransactionCallback,
   parseCognitiveEditCallback,
+  buildCategoryPickerKeyboard,
+  parseCategoryPickCallback,
 } from "@/lib/telegram/telegram-inline-actions";
 import {
   buildCategoryOptionsKeyboard,
@@ -44,7 +46,7 @@ import {
   editTelegramMessageText,
   sendTelegramMessageWithMode,
 } from "@/lib/telegram/telegram-bot.client";
-import { formatCognitiveCardText } from "@/lib/telegram/cognitive-card";
+import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-extraction-result.repository";
 import type { FinancialExtraction } from "@/modules/financial-inbox/domain/ports/ai-service.port";
 import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
@@ -612,9 +614,70 @@ export class ProcessTelegramUpdateService {
         await this.safeReply(chatId, "📍 Digite o local/estabelecimento:");
         return { ok: true, handled: "cognitive_edit_local_prompt" };
       }
-      // categoria ainda em desenvolvimento (16.1.4)
-      await answerTelegramCallbackQuery(callback.id, "Chega já já 🚧");
-      return { ok: true, handled: "cognitive_edit_placeholder" };
+
+      // Sprint 16.1.4 — categoria: mostra as categorias do usuário como botões.
+      const categories = await this.prisma.category.findMany({
+        where: { userId: connection.userId, isActive: true, parentCategoryId: null },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+      if (categories.length === 0) {
+        await answerTelegramCallbackQuery(callback.id, "Sem categorias.");
+        await this.safeReply(chatId, "Você ainda não tem categorias cadastradas.");
+        return { ok: true, handled: "cognitive_edit_cat_no_categories" };
+      }
+      const redis = getRedisConnection();
+      await redis.setex(
+        `telegram:catpick:${chatId}`,
+        120,
+        JSON.stringify({ inboxItemId: cognitiveEdit.inboxItemId, messageId: callback.message?.message_id }),
+      );
+      await answerTelegramCallbackQuery(callback.id, "Escolha a categoria");
+      await sendTelegramMessageWithMode(chatId, "✏️ Escolha a categoria:", "HTML", {
+        inline_keyboard: buildCategoryPickerKeyboard(categories),
+      });
+      return { ok: true, handled: "cognitive_edit_cat_prompt" };
+    }
+
+    // Sprint 16.1.4 — usuário escolheu uma categoria no seletor.
+    const catPick = parseCategoryPickCallback(data);
+    if (catPick) {
+      const redis = getRedisConnection();
+      const key = `telegram:catpick:${chatId}`;
+      const pendingStr = await redis.get(key);
+      if (!pendingStr) {
+        await answerTelegramCallbackQuery(callback.id, "Seleção expirada.");
+        return { ok: true, handled: "cognitive_cat_expired" };
+      }
+      const { inboxItemId, messageId } = JSON.parse(pendingStr) as { inboxItemId: string; messageId?: number };
+      const category = await this.prisma.category.findFirst({
+        where: { id: catPick.categoryId, userId: connection.userId },
+        select: { id: true, name: true },
+      });
+      if (!category) {
+        await answerTelegramCallbackQuery(callback.id, "Categoria inválida.");
+        return { ok: true, handled: "cognitive_cat_invalid" };
+      }
+
+      const extractionRepo = new PrismaExtractionResultRepository(this.prisma);
+      const row = await extractionRepo.findLatestByInboxItemId(inboxItemId);
+      if (row) {
+        const extraction = row.extractedData as FinancialExtraction;
+        extraction.categoryId = category.id;
+        await extractionRepo.updateExtractedData(row.id, extraction);
+        if (messageId) {
+          await editTelegramMessageText(
+            chatId,
+            messageId,
+            formatCognitiveCardText(extraction, category.name),
+            { inline_keyboard: buildCognitiveTransactionKeyboard(inboxItemId) },
+          ).catch(() => undefined);
+        }
+      }
+      await redis.del(key);
+      await answerTelegramCallbackQuery(callback.id, `Categoria: ${category.name}`);
+      await this.safeReply(chatId, `✏️ Categoria ajustada para <b>${category.name}</b>. 👍`);
+      return { ok: true, handled: "cognitive_cat_applied" };
     }
 
     const cognitiveAction = parseCognitiveTransactionCallback(data);
@@ -747,7 +810,8 @@ export class ProcessTelegramUpdateService {
     await redis.del(key);
 
     // Re-renderiza o card na mesma mensagem (economia de tokens/chat).
-    const cardText = formatCognitiveCardText(extraction);
+    const categoryName = await resolveCategoryName(this.prisma, userId, extraction.categoryId);
+    const cardText = formatCognitiveCardText(extraction, categoryName);
     const keyboard = { inline_keyboard: buildCognitiveTransactionKeyboard(pending.inboxItemId) };
     if (pending.messageId) {
       await editTelegramMessageText(chatId, pending.messageId, cardText, keyboard).catch(async () => {

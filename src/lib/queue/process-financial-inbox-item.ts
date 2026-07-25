@@ -19,7 +19,7 @@ import { resolveAutomationTier } from "@/modules/inbox-intelligence/domain/types
 import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
 import { downloadTelegramFile, sendTelegramMessageWithMode } from "@/lib/telegram/telegram-bot.client";
 import { buildCognitiveTransactionKeyboard } from "@/lib/telegram/telegram-inline-actions";
-import { formatCognitiveCardText } from "@/lib/telegram/cognitive-card";
+import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { uploadReceipt } from "@/lib/supabase-storage";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { looksLikeExpenseEntry } from "@/lib/telegram/vorcaro-telegram-commands";
@@ -167,9 +167,13 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
     if (item.channel.startsWith("TELEGRAM")) {
       const chatId = (item.channelMeta as any)?.chatId;
       if (chatId) {
-        await sendTelegramMessageWithMode(chatId, formatCognitiveCardText(result.extraction), "HTML", {
-          inline_keyboard: buildCognitiveTransactionKeyboard(inboxItemId),
-        });
+        const categoryName = await resolveCategoryName(prisma, userId, result.extraction.categoryId);
+        await sendTelegramMessageWithMode(
+          chatId,
+          formatCognitiveCardText(result.extraction, categoryName),
+          "HTML",
+          { inline_keyboard: buildCognitiveTransactionKeyboard(inboxItemId) },
+        );
       }
     }
   } catch (error) {

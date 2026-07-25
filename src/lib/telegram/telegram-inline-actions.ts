@@ -70,3 +70,24 @@ export function parseCognitiveEditCallback(
   }
   return null;
 }
+
+/** Grade de categorias (2 por linha) para o usuário escolher ao editar. */
+export function buildCategoryPickerKeyboard(
+  categories: Array<{ id: string; name: string }>,
+): TelegramInlineKeyboardButton[][] {
+  const rows: TelegramInlineKeyboardButton[][] = [];
+  for (let i = 0; i < categories.length; i += 2) {
+    const row = categories.slice(i, i + 2).map((c) => ({
+      text: c.name.length > 22 ? `${c.name.slice(0, 21)}…` : c.name,
+      callback_data: `cog_cat:${c.id}`,
+    }));
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** callback_data = cog_cat:<categoryId> (o inboxItem vem do estado no Redis). */
+export function parseCategoryPickCallback(data: string): { categoryId: string } | null {
+  const match = /^cog_cat:(.+)$/.exec(data);
+  return match?.[1] ? { categoryId: match[1] } : null;
+}
