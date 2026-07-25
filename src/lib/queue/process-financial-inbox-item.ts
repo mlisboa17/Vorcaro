@@ -23,6 +23,7 @@ import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cog
 import { uploadReceipt } from "@/lib/supabase-storage";
 import { bufferToBase64 } from "@/lib/inbox/parse-inbox-post";
 import { looksLikeExpenseEntry } from "@/lib/telegram/vorcaro-telegram-commands";
+import { detectIncomeVerb } from "@/lib/telegram/detect-income-hint";
 import { VorcaroConversationService } from "@/modules/vorcaro/conversation/application/services/vorcaro-conversation.service";
 import { randomUUID } from "crypto";
 
@@ -138,6 +139,16 @@ export async function processFinancialInboxItem(inboxItemId: string, userId: str
 
     const useCase = createProcessInboxItemUseCase();
     const result = await useCase.execute({ inboxItemId, userId });
+
+    // Sprint 16.2 — verbos de entrada ("recebi", "ganhei", "depósito") forçam
+    // classificação como RECEITA, corrigindo a IA quando ela erra para despesa.
+    if (result.extraction.type !== "INCOME" && detectIncomeVerb(item.rawContent)) {
+      result.extraction.type = "INCOME";
+      // valor de receita é sempre positivo
+      if (typeof result.extraction.amount === "number") {
+        result.extraction.amount = Math.abs(result.extraction.amount);
+      }
+    }
 
     const classifier = new InboxClassificationService(prisma);
     const suggestion = await classifier.classify({

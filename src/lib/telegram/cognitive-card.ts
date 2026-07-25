@@ -14,13 +14,19 @@ export function formatCognitiveCardText(
   categoryName?: string | null,
 ): string {
   const valueStr = Math.abs(extraction.amount || 0).toFixed(2).replace(".", ",");
-  const typeStr = extraction.type === "INCOME" ? "Receita" : "Despesa";
+  const isIncome = extraction.type === "INCOME";
+  const typeStr = isIncome ? "Receita" : "Despesa";
   const local = extraction.description || "—";
   const date = extraction.date || "—";
   const categoryLine = categoryName ? `🔹 <b>Categoria:</b> ${categoryName}\n` : "";
+  // Título e rótulo do "local" mudam conforme entrada/saída (mais claro e humano).
+  const header = isIncome
+    ? `💚 <b>Entrada detectada:</b>`
+    : `📝 <b>Lançamento Inteligente Detectado:</b>`;
+  const localLabel = isIncome ? "Origem" : "Estabelecimento";
   return (
-    `📝 <b>Lançamento Inteligente Detectado:</b>\n` +
-    `🔹 <b>Estabelecimento:</b> ${local}\n` +
+    `${header}\n` +
+    `🔹 <b>${localLabel}:</b> ${local}\n` +
     `🔹 <b>Valor:</b> R$ ${valueStr}\n` +
     categoryLine +
     `🔹 <b>Data:</b> ${date}\n` +

@@ -16,10 +16,20 @@ describe("formatCognitiveCardText (16.1.2)", () => {
     expect(text).toContain("Confirma os dados?");
   });
 
-  it("rotula receita corretamente", () => {
+  it("rotula receita corretamente com header e origem (16.2)", () => {
     const text = formatCognitiveCardText({ description: "Cliente X", amount: 500, type: "INCOME" });
     expect(text).toContain("Receita");
     expect(text).toContain("R$ 500,00");
+    expect(text).toContain("Entrada detectada");
+    expect(text).toContain("<b>Origem:</b> Cliente X");
+    expect(text).not.toContain("Estabelecimento");
+  });
+
+  it("despesa mantém header e rótulo de estabelecimento", () => {
+    const text = formatCognitiveCardText({ description: "Posto BR", amount: 100, type: "EXPENSE" });
+    expect(text).toContain("Lançamento Inteligente Detectado");
+    expect(text).toContain("<b>Estabelecimento:</b> Posto BR");
+    expect(text).not.toContain("Origem:");
   });
 
   it("usa placeholders quando faltam campos", () => {
