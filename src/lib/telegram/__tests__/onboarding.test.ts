@@ -3,10 +3,12 @@ import {
   buildWelcomeKeyboard,
   buildPaymentStepKeyboard,
   inferAccountType,
+  inferPaymentType,
   needsAccount,
   needsOnboarding,
   parseOnboardingCallback,
   validateAccountName,
+  validatePaymentName,
 } from "@/lib/telegram/onboarding";
 
 describe("needsOnboarding / needsAccount (17.1)", () => {
@@ -58,6 +60,43 @@ describe("inferAccountType (17.1)", () => {
   it("default CHECKING para bancos/contas comuns", () => {
     expect(inferAccountType("Nubank")).toBe("CHECKING");
     expect(inferAccountType("Conta Corrente")).toBe("CHECKING");
+  });
+});
+
+describe("validatePaymentName (17.2)", () => {
+  it("aceita nome válido e apara p/ 60 chars", () => {
+    expect(validatePaymentName("Pix")).toEqual({ ok: true, name: "Pix" });
+    expect(validatePaymentName("  Cartão de crédito  ")).toEqual({ ok: true, name: "Cartão de crédito" });
+    const res = validatePaymentName("y".repeat(80));
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.name.length).toBe(60);
+  });
+
+  it("rejeita vazio, curto, cancelar e comando", () => {
+    expect(validatePaymentName("")).toEqual({ ok: false, reason: "empty" });
+    expect(validatePaymentName("x")).toEqual({ ok: false, reason: "too_short" });
+    expect(validatePaymentName("cancelar")).toEqual({ ok: false, reason: "cancel" });
+    expect(validatePaymentName("/start")).toEqual({ ok: false, reason: "command" });
+  });
+});
+
+describe("inferPaymentType (17.2)", () => {
+  it("infere PIX, crédito, débito", () => {
+    expect(inferPaymentType("Pix")).toBe("PIX");
+    expect(inferPaymentType("Cartão de crédito")).toBe("CREDIT_CARD");
+    expect(inferPaymentType("Cartão de débito")).toBe("DEBIT_CARD");
+  });
+
+  it("'cartão' sem qualificador → crédito; dinheiro → CASH", () => {
+    expect(inferPaymentType("Cartão")).toBe("CREDIT_CARD");
+    expect(inferPaymentType("Dinheiro")).toBe("CASH");
+    expect(inferPaymentType("espécie")).toBe("CASH");
+  });
+
+  it("infere boleto, transferência e default OTHER", () => {
+    expect(inferPaymentType("Boleto")).toBe("BOLETO");
+    expect(inferPaymentType("Transferência TED")).toBe("BANK_TRANSFER");
+    expect(inferPaymentType("Cheque")).toBe("OTHER");
   });
 });
 

@@ -1,4 +1,4 @@
-import type { AccountType } from "@prisma/client";
+import type { AccountType, PaymentMethodType } from "@prisma/client";
 import type { TelegramInlineKeyboardButton } from "./telegram-inline-actions";
 
 /** Onboarding é necessário enquanto o usuário não tiver conta E forma de pagamento. */
@@ -37,6 +37,36 @@ export function inferAccountType(name: string): AccountType {
   return "CHECKING";
 }
 
+export type PaymentNameValidation =
+  | { ok: true; name: string }
+  | { ok: false; reason: "empty" | "too_short" | "cancel" | "command" };
+
+/** Valida o nome da forma de pagamento digitada no chat. */
+export function validatePaymentName(text: string | null | undefined): PaymentNameValidation {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return { ok: false, reason: "empty" };
+  if (trimmed.toLowerCase() === "cancelar") return { ok: false, reason: "cancel" };
+  if (trimmed.startsWith("/")) return { ok: false, reason: "command" };
+  if (trimmed.length < 2) return { ok: false, reason: "too_short" };
+  return { ok: true, name: trimmed.slice(0, 60) };
+}
+
+/** Infere o tipo da forma de pagamento pelo nome. */
+export function inferPaymentType(name: string): PaymentMethodType {
+  const n = name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+  if (/\bpix\b/.test(n)) return "PIX";
+  if (/\b(cr[eé]dito|credito|credit)\b/.test(n)) return "CREDIT_CARD";
+  if (/\b(d[eé]bito|debito|debit)\b/.test(n)) return "DEBIT_CARD";
+  if (/\bcart[aã]o\b/.test(n)) return "CREDIT_CARD"; // "cartão" sem qualificador → crédito
+  if (/\b(dinheiro|especie|esp[eé]cie|cash)\b/.test(n)) return "CASH";
+  if (/\b(boleto)\b/.test(n)) return "BOLETO";
+  if (/\b(transfer[eê]ncia|ted|doc)\b/.test(n)) return "BANK_TRANSFER";
+  return "OTHER";
+}
+
 // ─── Mensagens e teclados ─────────────────────────────────────────────────────
 
 export const ONBOARDING_WELCOME =
@@ -52,6 +82,9 @@ export function buildPaymentStepKeyboard(): TelegramInlineKeyboardButton[][] {
 
 export const ONBOARDING_ACCOUNT_PROMPT =
   "🏦 Qual o nome da conta? (ex.: <b>Conta Corrente</b>, <b>Carteira</b>)";
+
+export const ONBOARDING_PAYMENT_PROMPT =
+  "💳 Qual forma de pagamento você mais usa? (ex.: <b>Pix</b>, <b>Cartão de crédito</b>, <b>Dinheiro</b>)";
 
 /** callback_data simples do onboarding. */
 export function parseOnboardingCallback(data: string): "account" | "payment" | null {

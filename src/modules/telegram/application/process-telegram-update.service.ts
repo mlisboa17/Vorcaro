@@ -50,16 +50,25 @@ import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cog
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import {
   ONBOARDING_ACCOUNT_PROMPT,
+  ONBOARDING_PAYMENT_PROMPT,
   ONBOARDING_WELCOME,
   buildPaymentStepKeyboard,
   buildWelcomeKeyboard,
   inferAccountType,
+  inferPaymentType,
   needsAccount,
   parseOnboardingCallback,
   validateAccountName,
+  validatePaymentName,
 } from "@/lib/telegram/onboarding";
-import { CreateFinancialAccountUseCase } from "@/modules/financial-instruments/application/use-cases/financial-instrument.use-cases";
-import { PrismaFinancialAccountRepository } from "@/modules/financial-instruments/infrastructure/repositories/prisma-financial-instrument.repositories";
+import {
+  CreateFinancialAccountUseCase,
+  CreatePaymentMethodUseCase,
+} from "@/modules/financial-instruments/application/use-cases/financial-instrument.use-cases";
+import {
+  PrismaFinancialAccountRepository,
+  PrismaPaymentMethodRepository,
+} from "@/modules/financial-instruments/infrastructure/repositories/prisma-financial-instrument.repositories";
 import { PrismaExtractionResultRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-extraction-result.repository";
 import type { FinancialExtraction } from "@/modules/financial-inbox/domain/ports/ai-service.port";
 import { buildVorcaroActionProposalService } from "@/lib/api/vorcaro-actions";
@@ -679,9 +688,11 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "onboarding_account_prompt" };
     }
     if (onboard === "payment") {
-      // 17.2 implementa o cadastro de forma de pagamento.
-      await answerTelegramCallbackQuery(callback.id, "Chega já já 🚧");
-      return { ok: true, handled: "onboarding_payment_placeholder" };
+      const redis = getRedisConnection();
+      await redis.setex(`telegram:onboard:${chatId}`, 300, JSON.stringify({ step: "payment_name" }));
+      await answerTelegramCallbackQuery(callback.id, "Vamos lá!");
+      await this.safeReply(chatId, ONBOARDING_PAYMENT_PROMPT);
+      return { ok: true, handled: "onboarding_payment_prompt" };
     }
 
     // Sprint 16.1.4 — usuário escolheu uma categoria no seletor.
@@ -833,33 +844,69 @@ export class ProcessTelegramUpdateService {
     if (!pendingStr) return null;
 
     const pending = JSON.parse(pendingStr) as { step: string };
-    if (pending.step !== "account_name") return null;
 
-    const validation = validateAccountName(text);
-    if (!validation.ok) {
-      if (validation.reason === "cancel") {
-        await redis.del(key);
-        await this.safeReply(chatId, "Ok, cancelei o cadastro. Quando quiser, é só mandar /start. 🙂");
-        return { ok: true, handled: "onboarding_account_cancelled", channel: "TELEGRAM" };
+    // Passo 1 — nome da conta (17.1)
+    if (pending.step === "account_name") {
+      const validation = validateAccountName(text);
+      if (!validation.ok) {
+        if (validation.reason === "cancel") {
+          await redis.del(key);
+          await this.safeReply(chatId, "Ok, cancelei o cadastro. Quando quiser, é só mandar /start. 🙂");
+          return { ok: true, handled: "onboarding_account_cancelled", channel: "TELEGRAM" };
+        }
+        await this.safeReply(
+          chatId,
+          "Hmm, não peguei o nome 🤔 Envie algo como <b>Nubank</b> ou <b>Carteira</b> (ou <i>cancelar</i>).",
+        );
+        return { ok: true, handled: "onboarding_account_invalid", channel: "TELEGRAM" };
       }
-      await this.safeReply(
+
+      const useCase = new CreateFinancialAccountUseCase(new PrismaFinancialAccountRepository(this.prisma));
+      await useCase.execute({ userId, name: validation.name, type: inferAccountType(validation.name) });
+      await redis.del(key);
+
+      await sendTelegramMessageWithMode(
         chatId,
-        "Hmm, não peguei o nome 🤔 Envie algo como <b>Nubank</b> ou <b>Carteira</b> (ou <i>cancelar</i>).",
+        `✅ Conta <b>${validation.name}</b> criada! 🎉 Agora só falta a forma de pagamento.`,
+        "HTML",
+        { inline_keyboard: buildPaymentStepKeyboard() },
       );
-      return { ok: true, handled: "onboarding_account_invalid", channel: "TELEGRAM" };
+      return { ok: true, handled: "onboarding_account_created", channel: "TELEGRAM" };
     }
 
-    const useCase = new CreateFinancialAccountUseCase(new PrismaFinancialAccountRepository(this.prisma));
-    await useCase.execute({ userId, name: validation.name, type: inferAccountType(validation.name) });
-    await redis.del(key);
+    // Passo 2 — forma de pagamento (17.2)
+    if (pending.step === "payment_name") {
+      const validation = validatePaymentName(text);
+      if (!validation.ok) {
+        if (validation.reason === "cancel") {
+          await redis.del(key);
+          await this.safeReply(chatId, "Ok, cancelei! A conta já está criada — quando quiser, mande /start. 🙂");
+          return { ok: true, handled: "onboarding_payment_cancelled", channel: "TELEGRAM" };
+        }
+        await this.safeReply(
+          chatId,
+          "Hmm, não entendi 🤔 Envie algo como <b>Pix</b>, <b>Cartão de crédito</b> ou <b>Dinheiro</b> (ou <i>cancelar</i>).",
+        );
+        return { ok: true, handled: "onboarding_payment_invalid", channel: "TELEGRAM" };
+      }
 
-    await sendTelegramMessageWithMode(
-      chatId,
-      `✅ Conta <b>${validation.name}</b> criada! 🎉 Agora só falta a forma de pagamento.`,
-      "HTML",
-      { inline_keyboard: buildPaymentStepKeyboard() },
-    );
-    return { ok: true, handled: "onboarding_account_created", channel: "TELEGRAM" };
+      const useCase = new CreatePaymentMethodUseCase(new PrismaPaymentMethodRepository(this.prisma));
+      await useCase.execute({
+        userId,
+        name: validation.name,
+        type: inferPaymentType(validation.name),
+        isDefault: true,
+      });
+      await redis.del(key);
+
+      await this.safeReply(
+        chatId,
+        `✅ Forma de pagamento <b>${validation.name}</b> cadastrada! 🎉\n\nAgora é só mandar seus gastos e receitas por aqui — texto, foto ou áudio. Bora! 🚀`,
+      );
+      return { ok: true, handled: "onboarding_payment_created", channel: "TELEGRAM" };
+    }
+
+    return null;
   }
 
   private async handlePendingCognitiveEdit(
