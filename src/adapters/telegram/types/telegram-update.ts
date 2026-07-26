@@ -71,6 +71,10 @@ export function isHelpCommand(text: string): boolean {
   return text.trim().startsWith("/help");
 }
 
+export function isHomeCommand(text: string): boolean {
+  return text.trim().toLowerCase().startsWith("/home");
+}
+
 export function hasPhoto(message: TelegramMessage): boolean {
   return Boolean(message.photo?.length);
 }
