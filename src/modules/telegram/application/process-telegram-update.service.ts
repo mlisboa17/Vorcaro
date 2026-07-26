@@ -9,6 +9,7 @@ import {
   hasPhoto,
   hasVoice,
   isHelpCommand,
+  isHomeCommand,
   isStartCommand,
   type TelegramMessage,
 } from "@/adapters/telegram/types/telegram-update";
@@ -48,6 +49,8 @@ import {
 } from "@/lib/telegram/telegram-bot.client";
 import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
+import { buildHomeView, parseHomeCallback } from "@/lib/telegram/home";
+import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
 import {
   ONBOARDING_ACCOUNT_PROMPT,
   ONBOARDING_PAYMENT_PROMPT,
@@ -180,6 +183,12 @@ export class ProcessTelegramUpdateService {
     if (text) {
       const onboardResult = await this.handleOnboardingText(chatId, userId, text, redis);
       if (onboardResult) return onboardResult;
+    }
+
+    // Sprint 18.1 — home acionável: /home mostra pendências + botões.
+    if (text && isHomeCommand(text)) {
+      await this.sendHome(chatId, userId);
+      return { ok: true, handled: "home", channel: "TELEGRAM" };
     }
 
     if (text) {
@@ -695,6 +704,43 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "onboarding_payment_prompt" };
     }
 
+    // Sprint 18.1 — botões da home acionável.
+    const homeAction = parseHomeCallback(data);
+    if (homeAction) {
+      if (homeAction === "confirm") {
+        const pending = await this.prisma.financialInbox.count({
+          where: { userId: connection.userId, status: "NEEDS_CONFIRMATION" },
+        });
+        await answerTelegramCallbackQuery(callback.id, "Abrindo pendências");
+        await this.safeReply(
+          chatId,
+          pending > 0
+            ? `📥 Você tem ${pending} lançamento${pending > 1 ? "s" : ""} a confirmar. Revise em /dashboard/inbox 👉`
+            : "✅ Nada a confirmar agora!",
+        );
+        return { ok: true, handled: "home_confirm" };
+      }
+      if (homeAction === "alerts") {
+        await answerTelegramCallbackQuery(callback.id, "Seus alertas");
+        await this.safeReply(chatId, "🔔 Veja seus alertas em /dashboard/alerts ou use /alertas.");
+        return { ok: true, handled: "home_alerts" };
+      }
+      // summary → reusa o assistente (/status)
+      await answerTelegramCallbackQuery(callback.id, "Gerando resumo");
+      try {
+        const chatService = new VorcaroConversationService(this.prisma);
+        const result = await chatService.sendMessage({
+          userId: connection.userId,
+          message: "Como estou financeiramente?",
+          channel: "TELEGRAM",
+        });
+        await this.safeReply(chatId, result.answer.slice(0, 3900));
+      } catch {
+        await this.safeReply(chatId, "Não consegui gerar o resumo agora. Tente /status em instantes.");
+      }
+      return { ok: true, handled: "home_summary" };
+    }
+
     // Sprint 16.1.4 — usuário escolheu uma categoria no seletor.
     const catPick = parseCategoryPickCallback(data);
     if (catPick) {
@@ -976,6 +1022,19 @@ export class ProcessTelegramUpdateService {
     await this.safeReply(chatId, pickHumanReply(pending.field === "valor" ? "valueEdited" : "localEdited"));
 
     return { ok: true, handled: "cognitive_edit_applied", channel: "TELEGRAM" };
+  }
+
+  /** Sprint 18.1 — agrega pendências e envia a home acionável. */
+  private async sendHome(chatId: number, userId: string): Promise<void> {
+    const [pendingConfirmations, alertSummary] = await Promise.all([
+      this.prisma.financialInbox.count({ where: { userId, status: "NEEDS_CONFIRMATION" } }),
+      new FinancialAlertQueryService(this.prisma).summary(userId).catch(() => ({ totalOpen: 0 })),
+    ]);
+    const view = buildHomeView({
+      pendingConfirmations,
+      activeAlerts: (alertSummary as { totalOpen?: number }).totalOpen ?? 0,
+    });
+    await sendTelegramMessageWithMode(chatId, view.text, "HTML", { inline_keyboard: view.keyboard });
   }
 
   private async safeReply(chatId: number, text: string): Promise<void> {

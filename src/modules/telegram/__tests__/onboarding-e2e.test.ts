@@ -69,7 +69,7 @@ const USER_ID = "user-1";
 const CHAT_ID = 555;
 
 function buildPrismaStub() {
-  const state = { accounts: 0, payments: 0, inboxCreated: 0 };
+  const state = { accounts: 0, payments: 0, inboxCreated: 0, pendingConfirmations: 0 };
   const decimal = (n: number) => ({ toNumber: () => n });
   const accountCreate = vi.fn(async ({ data }: any) => {
     state.accounts += 1;
@@ -99,7 +99,10 @@ function buildPrismaStub() {
       create: accountCreate,
     },
     paymentMethod: { create: paymentCreate },
-    financialInbox: { create: inboxCreate },
+    financialInbox: {
+      create: inboxCreate,
+      count: vi.fn(async () => state.pendingConfirmations),
+    },
   } as any;
   return { prisma, state, accountCreate, paymentCreate, inboxCreate };
 }
@@ -231,5 +234,53 @@ describe("Onboarding E2E (17.3) — conta → forma de pagamento → 1º lançam
     await svc.executeCallback(callback("onb_account"));
     await svc.execute(textMsg("Carteira"));
     expect(accountCreate.mock.calls[0][0].data.type).toBe("CASH");
+  });
+});
+
+describe("Home acionável E2E (18.1) — /home", () => {
+  beforeEach(() => {
+    fakeRedis.clear();
+    sentMessages.length = 0;
+    processInboxMock.mockClear();
+  });
+
+  it("/home com pendências lista e oferece botões", async () => {
+    const { prisma, state } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1); // já onboardado
+    state.pendingConfirmations = 2;
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/home"));
+    expect(handledOf(r)).toBe("home");
+    expect(sentMessages.join(" ")).toContain("2 lançamentos a confirmar");
+  });
+
+  it("/home limpo quando não há pendências", async () => {
+    const { prisma } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/home"));
+    expect(handledOf(r)).toBe("home");
+    expect(sentMessages.join(" ")).toContain("Tudo em dia");
+  });
+
+  it("botão home_confirm responde com contagem", async () => {
+    const { prisma, state } = buildPrismaStub();
+    state.pendingConfirmations = 3;
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.executeCallback(callback("home_confirm"));
+    expect(handledOf(r)).toBe("home_confirm");
+    expect(sentMessages.join(" ")).toContain("3 lançamentos a confirmar");
+  });
+
+  it("/home não entra em loop: não reaparece como onboarding_welcome quando já há conta", async () => {
+    const { prisma } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+    const r = await svc.execute(textMsg("/home"));
+    expect(handledOf(r)).toBe("home");
+    expect(sentMessages.join(" ")).not.toContain("Bem-vindo");
   });
 });
