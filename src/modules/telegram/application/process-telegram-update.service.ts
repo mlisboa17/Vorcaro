@@ -51,6 +51,7 @@ import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cog
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import { buildHomeView, parseHomeCallback } from "@/lib/telegram/home";
 import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
+import { TelegramAlertFormatter } from "@/modules/telegram/application/formatters/telegram-alert.formatter";
 import {
   ONBOARDING_ACCOUNT_PROMPT,
   ONBOARDING_PAYMENT_PROMPT,
@@ -189,6 +190,12 @@ export class ProcessTelegramUpdateService {
     if (text && isHomeCommand(text)) {
       await this.sendHome(chatId, userId);
       return { ok: true, handled: "home", channel: "TELEGRAM" };
+    }
+
+    // Sprint 18.2 — /alertas mostra os alertas reais do engine (não roteia pro chat).
+    if (text && text.trim().toLowerCase().startsWith("/alertas")) {
+      await this.renderAlerts(chatId, userId);
+      return { ok: true, handled: "alerts", channel: "TELEGRAM" };
     }
 
     if (text) {
@@ -704,6 +711,23 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "onboarding_payment_prompt" };
     }
 
+    // Sprint 18.2 — dispensar todos os alertas abertos.
+    if (data === "alerts_dismiss") {
+      try {
+        const query = new FinancialAlertQueryService(this.prisma);
+        const page = await query.list(connection.userId, 1, 50, { status: "OPEN" });
+        const ids = page.items.map((a) => a.id);
+        if (ids.length > 0) {
+          await query.bulkPatch(connection.userId, ids, "DISMISSED");
+        }
+        await answerTelegramCallbackQuery(callback.id, "Alertas marcados como lidos");
+        await this.safeReply(chatId, "✅ Feito, alertas marcados como lidos! 👍");
+      } catch {
+        await answerTelegramCallbackQuery(callback.id, "Não consegui agora");
+      }
+      return { ok: true, handled: "alerts_dismiss" };
+    }
+
     // Sprint 18.1 — botões da home acionável.
     const homeAction = parseHomeCallback(data);
     if (homeAction) {
@@ -722,7 +746,7 @@ export class ProcessTelegramUpdateService {
       }
       if (homeAction === "alerts") {
         await answerTelegramCallbackQuery(callback.id, "Seus alertas");
-        await this.safeReply(chatId, "🔔 Veja seus alertas em /dashboard/alerts ou use /alertas.");
+        await this.renderAlerts(chatId, connection.userId);
         return { ok: true, handled: "home_alerts" };
       }
       // summary → reusa o assistente (/status)
@@ -1035,6 +1059,28 @@ export class ProcessTelegramUpdateService {
       activeAlerts: (alertSummary as { totalOpen?: number }).totalOpen ?? 0,
     });
     await sendTelegramMessageWithMode(chatId, view.text, "HTML", { inline_keyboard: view.keyboard });
+  }
+
+  /** Sprint 18.2 — envia os alertas financeiros abertos (digest + botão de dispensar). */
+  private async renderAlerts(chatId: number, userId: string): Promise<void> {
+    const query = new FinancialAlertQueryService(this.prisma);
+    let items: import("@/modules/financial-alerts/domain/types/financial-alert").FinancialAlertRecord[] = [];
+    try {
+      const page = await query.list(userId, 1, 10, { status: "OPEN" });
+      items = page.items;
+    } catch {
+      items = [];
+    }
+
+    if (items.length === 0) {
+      await this.safeReply(chatId, "🔔 Nenhum alerta no momento. Tudo tranquilo! ✅");
+      return;
+    }
+
+    const digest = new TelegramAlertFormatter().formatDigest(items);
+    await sendTelegramMessageWithMode(chatId, digest.text, "MarkdownV2", {
+      inline_keyboard: [[{ text: "✅ Marcar como lidos", callback_data: "alerts_dismiss" }]],
+    });
   }
 
   private async safeReply(chatId: number, text: string): Promise<void> {

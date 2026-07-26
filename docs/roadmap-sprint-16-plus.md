@@ -51,7 +51,12 @@ cancelamento/timeout/regressão-zero). Ver `sprint-17.1-*`, `sprint-17.2-*`.
 
 ---
 
-## Sprint 18 — Home acionável ("o que resolver agora")
+## Sprint 18 — Home acionável ("o que resolver agora") ✅ CONCLUÍDO
+
+**Status: fechado.** 18.1 (`/home` com pendências: lançamentos a confirmar +
+alertas, botões Confirmar/Alertas/Resumo). 18.2 reenquadrado (saldo não é
+mantido) para surfaçar o engine `financial-alerts`: `/alertas` mostra digest real
++ botão "marcar como lidos". E2E: 13 casos. Ver `sprint-18-home-acionavel.md`.
 
 - 🟡 A tela `/dashboard` hoje é mais informativa.
 - 🔴 **Novo**: bloco de ações no topo puxando dos módulos que já existem:

@@ -59,3 +59,14 @@ Dois caminhos (decisão do dono):
   faz sentido.
 
 Até a decisão, 18.2 fica pausado; 18.1 segue independente.
+
+## Decisão e entrega (18.2 = opção A)
+
+Escolhida a opção A. Implementado:
+- `/alertas` e o botão `home_alerts` chamam `renderAlerts` → `FinancialAlertQueryService.list(status OPEN)`
+  → `TelegramAlertFormatter.formatDigest` (MarkdownV2) + botão "✅ Marcar como lidos".
+- Callback `alerts_dismiss` → `bulkPatch(ids, "DISMISSED")`.
+- Sem alertas → mensagem curta "Nenhum alerta". Sem migração; saldo real fica
+  para um projeto futuro dedicado, se desejado.
+
+**Sprint 18 fechado.** 13 casos E2E (onboarding + home + alertas).

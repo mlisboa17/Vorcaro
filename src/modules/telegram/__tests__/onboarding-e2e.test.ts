@@ -69,7 +69,13 @@ const USER_ID = "user-1";
 const CHAT_ID = 555;
 
 function buildPrismaStub() {
-  const state = { accounts: 0, payments: 0, inboxCreated: 0, pendingConfirmations: 0 };
+  const state = {
+    accounts: 0,
+    payments: 0,
+    inboxCreated: 0,
+    pendingConfirmations: 0,
+    alerts: [] as any[],
+  };
   const decimal = (n: number) => ({ toNumber: () => n });
   const accountCreate = vi.fn(async ({ data }: any) => {
     state.accounts += 1;
@@ -102,6 +108,15 @@ function buildPrismaStub() {
     financialInbox: {
       create: inboxCreate,
       count: vi.fn(async () => state.pendingConfirmations),
+    },
+    financialAlert: {
+      count: vi.fn(async () => state.alerts.length),
+      findMany: vi.fn(async () => state.alerts),
+      updateMany: vi.fn(async () => {
+        const n = state.alerts.length;
+        state.alerts = [];
+        return { count: n };
+      }),
     },
   } as any;
   return { prisma, state, accountCreate, paymentCreate, inboxCreate };
@@ -282,5 +297,64 @@ describe("Home acionável E2E (18.1) — /home", () => {
     const r = await svc.execute(textMsg("/home"));
     expect(handledOf(r)).toBe("home");
     expect(sentMessages.join(" ")).not.toContain("Bem-vindo");
+  });
+});
+
+function alertRow(over: Partial<Record<string, unknown>> = {}): any {
+  return {
+    id: `al-${Math.random()}`,
+    userId: USER_ID,
+    type: "CASHFLOW_WARNING",
+    severity: "WARNING",
+    title: "Fluxo de caixa apertado",
+    description: "Suas saídas superam as entradas neste mês.",
+    status: "OPEN",
+    fingerprint: "fp",
+    metadata: {},
+    actionUrl: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    resolvedAt: null,
+    ...over,
+  };
+}
+
+describe("Alertas E2E (18.2) — /alertas + dispensar", () => {
+  beforeEach(() => {
+    fakeRedis.clear();
+    sentMessages.length = 0;
+  });
+
+  it("/alertas mostra digest quando há alertas abertos", async () => {
+    const { prisma, state } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    state.alerts = [alertRow({ severity: "CRITICAL", title: "Conta vencendo" }), alertRow()];
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/alertas"));
+    expect(handledOf(r)).toBe("alerts");
+    // formatDigest escapa MarkdownV2, mas o título aparece
+    expect(sentMessages.join(" ")).toContain("Conta vencendo");
+  });
+
+  it("/alertas informa quando não há alertas", async () => {
+    const { prisma } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/alertas"));
+    expect(handledOf(r)).toBe("alerts");
+    expect(sentMessages.join(" ")).toContain("Nenhum alerta");
+  });
+
+  it("botão alerts_dismiss marca todos como lidos", async () => {
+    const { prisma, state } = buildPrismaStub();
+    state.alerts = [alertRow(), alertRow()];
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.executeCallback(callback("alerts_dismiss"));
+    expect(handledOf(r)).toBe("alerts_dismiss");
+    expect(state.alerts).toHaveLength(0); // updateMany zerou
+    expect(sentMessages.join(" ")).toContain("marcados como lidos");
   });
 });
