@@ -76,7 +76,12 @@ mantido) para surfaçar o engine `financial-alerts`: `/alertas` mostra digest re
 
 ---
 
-## Sprint 20 — Qualidade da classificação de IA (aprendizado)
+## Sprint 20 — Qualidade da classificação de IA (aprendizado) ✅ CONCLUÍDO
+
+**Status: fechado.** A correção manual de categoria via botão do Telegram agora
+alimenta `InboxLearningService.recordCategoryFeedback` (preferência sempre +
+`classification_correction` quando diverge da IA). Fecha o loop reusando a infra
+existente; sem migração. Ver `sprint-20-qualidade-ia-aprendizado.md`.
 
 - 🟡 Já existe: `InboxClassificationService` com camadas (regra do usuário → histórico → similaridade → keyword → IA); `UserLearningPattern` grava correções.
 - 🔴 **Melhorar**: fechar o loop de aprendizado — toda vez que o usuário corrige uma categoria (no dashboard ou via botão do Telegram), reforçar o `UserLearningPattern` para que a próxima ocorrência do mesmo estabelecimento já venha certa e com confiança alta.

@@ -86,6 +86,7 @@ import { enqueueStatementImport, getRedisConnection } from "@/lib/queue";
 import { processFinancialInboxItem } from "@/lib/queue/process-financial-inbox-item";
 import { randomUUID } from "crypto";
 import { handleInboxSmartBatchExecute } from "@/lib/inbox/handle-inbox-smart-batch-execute";
+import { InboxLearningService } from "@/modules/inbox-intelligence/application/services/inbox-learning.service";
 import { IngestInboxItemUseCase } from "@/modules/financial-inbox/application/use-cases/ingest-inbox-item.use-case";
 import { GeminiAiService } from "@/modules/financial-inbox/infrastructure/services/gemini-ai.service";
 import { PrismaInboxRepository } from "@/modules/financial-inbox/infrastructure/repositories/prisma-inbox.repository";
@@ -789,8 +790,25 @@ export class ProcessTelegramUpdateService {
       const row = await extractionRepo.findLatestByInboxItemId(inboxItemId);
       if (row) {
         const extraction = row.extractedData as FinancialExtraction;
+        const suggestedCategoryId = extraction.categoryId ?? null;
         extraction.categoryId = category.id;
         await extractionRepo.updateExtractedData(row.id, extraction);
+
+        // Sprint 20 — a correção manual de categoria é o sinal de aprendizado mais
+        // forte: registra preferência e (se divergiu da IA) correção de classificação.
+        const description = extraction.description ?? "";
+        if (description) {
+          await new InboxLearningService(this.prisma)
+            .recordCategoryFeedback({
+              userId: connection.userId,
+              description,
+              suggestedCategoryId,
+              chosenCategoryId: category.id,
+              chosenCategoryName: category.name,
+            })
+            .catch((err) => console.error("[telegram] recordCategoryFeedback failed:", err));
+        }
+
         if (messageId) {
           await editTelegramMessageText(
             chatId,
