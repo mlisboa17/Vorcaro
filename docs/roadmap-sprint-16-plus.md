@@ -34,7 +34,11 @@ humanizadas variadas). Ver `sprint-16.1-*`, `sprint-16.3-*`.
 
 ---
 
-## Sprint 17 — Onboarding guiado (redução de abandono)
+## Sprint 17 — Onboarding guiado (redução de abandono) ✅ CONCLUÍDO
+
+**Status: fechado.** 17.1 (cadastro de conta), 17.2 (forma de pagamento), 17.3
+(teste E2E ponta-a-ponta: conta → pagamento → 1º lançamento, com cobertura de
+cancelamento/timeout/regressão-zero). Ver `sprint-17.1-*`, `sprint-17.2-*`.
 
 - 🔴 **Novo**: novo usuário hoje cai num dashboard vazio e só descobre pelo erro que precisa cadastrar Conta e Forma de Pagamento antes de lançar.
 - Fluxo de 3–4 passos no primeiro acesso:
