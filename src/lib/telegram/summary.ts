@@ -47,9 +47,11 @@ export function buildSummaryView(summary: PeriodSummary): SummaryView {
     lines.push(`🔔 ${summary.activeAlerts} alerta${summary.activeAlerts > 1 ? "s" : ""} ativo${summary.activeAlerts > 1 ? "s" : ""}`);
   }
 
+  const insightsLink = `/dashboard/insights?period=${summary.sinceDays}d`;
+
   const keyboard: TelegramInlineKeyboardButton[][] = [
     [
-      { text: "📈 Ver detalhes", callback_data: "sum_details" },
+      { text: "📈 Ver detalhes", callback_data: `sum_details:${summary.sinceDays}` },
       { text: "📄 Exportar CSV", callback_data: "sum_export" },
     ],
   ];
@@ -60,10 +62,16 @@ export function buildSummaryView(summary: PeriodSummary): SummaryView {
   return { text: lines.join("\n"), keyboard };
 }
 
-export type SummaryCallback = "details" | "export";
+export interface SummaryCallback {
+  action: "details" | "export";
+  period?: number;
+}
 
 export function parseSummaryCallback(data: string): SummaryCallback | null {
-  if (data === "sum_details") return "details";
-  if (data === "sum_export") return "export";
+  if (data === "sum_details" || data.startsWith("sum_details:")) {
+    const period = data.includes(":") ? Number(data.split(":")[1]) : undefined;
+    return { action: "details", period };
+  }
+  if (data === "sum_export") return { action: "export" };
   return null;
 }

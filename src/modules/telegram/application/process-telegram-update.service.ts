@@ -742,10 +742,16 @@ export class ProcessTelegramUpdateService {
     // Sprint 19.2 — botões do resumo.
     const sumAction = parseSummaryCallback(data);
     if (sumAction) {
-      if (sumAction === "details") {
+      if (sumAction.action === "details") {
+        // Sprint 21.2 — deep-link com período parametrizado.
         await answerTelegramCallbackQuery(callback.id, "Abrindo detalhes");
-        await this.safeReply(chatId, "📈 Veja gráficos e evolução em /dashboard/insights 👉");
-      } else if (sumAction === "export") {
+        const period = sumAction.period ? `${sumAction.period}d` : "7d";
+        const insightsUrl = `https://localhost:3000/dashboard/insights?period=${period}`;
+        await this.safeReply(
+          chatId,
+          `📈 Acesse seus gráficos e evolução aqui 👉\n${insightsUrl}`,
+        );
+      } else if (sumAction.action === "export") {
         // Sprint 21.1 — gera e envia o CSV do resumo.
         try {
           await answerTelegramCallbackQuery(callback.id, "Gerando CSV...");
@@ -762,7 +768,7 @@ export class ProcessTelegramUpdateService {
           console.error("[telegram] Summary export failed:", error);
         }
       }
-      return { ok: true, handled: `summary_${sumAction}` };
+      return { ok: true, handled: `summary_${sumAction.action}` };
     }
 
     // Sprint 18.1 — botões da home acionável.

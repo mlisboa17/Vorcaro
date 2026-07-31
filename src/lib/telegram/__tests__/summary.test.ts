@@ -46,6 +46,7 @@ describe("buildSummaryView (19.1)", () => {
   it("com dados mostra totais, saldo e top categorias", () => {
     const view = buildSummaryView(
       summary({
+        sinceDays: 7,
         totalIncome: 1000,
         totalExpenses: 600,
         netBalance: 400,
@@ -59,7 +60,9 @@ describe("buildSummaryView (19.1)", () => {
     expect(view.text).toContain("Receitas");
     expect(view.text).toContain("🟢"); // saldo positivo
     expect(view.text).toContain("Alimentação");
-    expect(view.keyboard[0].map((b) => b.callback_data)).toEqual(["sum_details", "sum_export"]);
+    const callbackData = view.keyboard[0].map((b) => b.callback_data);
+    expect(callbackData[0]).toMatch(/^sum_details:\d+$/);
+    expect(callbackData[1]).toBe("sum_export");
   });
 
   it("saldo negativo usa 🔴 e alerta adiciona botão", () => {
@@ -71,9 +74,18 @@ describe("buildSummaryView (19.1)", () => {
     expect(view.keyboard.some((row) => row.some((b) => b.callback_data === "home_alerts"))).toBe(true);
   });
 
-  it("parseSummaryCallback reconhece botões", () => {
-    expect(parseSummaryCallback("sum_details")).toBe("details");
-    expect(parseSummaryCallback("sum_export")).toBe("export");
+  it("parseSummaryCallback reconhece botões (21.2)", () => {
+    const details = parseSummaryCallback("sum_details");
+    expect(details?.action).toBe("details");
+    expect(details?.period).toBeUndefined();
+
+    const detailsWithPeriod = parseSummaryCallback("sum_details:30");
+    expect(detailsWithPeriod?.action).toBe("details");
+    expect(detailsWithPeriod?.period).toBe(30);
+
+    const exportAction = parseSummaryCallback("sum_export");
+    expect(exportAction?.action).toBe("export");
+
     expect(parseSummaryCallback("home_open")).toBeNull();
   });
 });
@@ -128,5 +140,46 @@ describe("generateWeeklySummaryCsv (21.1)", () => {
   it("período de 30 dias aparece corretamente", () => {
     const csv = generateWeeklySummaryCsv(summary({ sinceDays: 30 }));
     expect(csv).toContain("30 dias");
+  });
+
+  it("CSV formatado com quebras de linha CRLF e espaçamento", () => {
+    const csv = generateWeeklySummaryCsv(summary({ totalIncome: 1000 }));
+    expect(csv).toContain("\r\n");
+    const lines = csv.split("\r\n");
+    expect(lines.length).toBeGreaterThan(5);
+  });
+
+  it("CSV com múltiplas categorias mantém ordem decrescente", () => {
+    const csv = generateWeeklySummaryCsv(
+      summary({
+        topCategories: [
+          { categoryId: "c1", name: "Despesa A", total: 500 },
+          { categoryId: "c2", name: "Despesa B", total: 300 },
+          { categoryId: "c3", name: "Despesa C", total: 200 },
+        ],
+      }),
+    );
+    const despesaAPos = csv.indexOf("Despesa A");
+    const despesaBPos = csv.indexOf("Despesa B");
+    const despesaCPos = csv.indexOf("Despesa C");
+    expect(despesaAPos).toBeLessThan(despesaBPos);
+    expect(despesaBPos).toBeLessThan(despesaCPos);
+  });
+
+  it("CSV vazio (sem movimentações) só mostra cabeçalho e totais zeros", () => {
+    const csv = generateWeeklySummaryCsv(summary({ transactionCount: 0 }));
+    expect(csv).toContain("Total de Transações");
+    expect(csv).toContain("0");
+    expect(csv).not.toContain("TOP CATEGORIAS");
+  });
+
+  it("CSV com valores negativos (saldo negativo) formata corretamente", () => {
+    const csv = generateWeeklySummaryCsv(
+      summary({ totalExpenses: 1000, totalIncome: 500, netBalance: -500 }),
+    );
+    expect(csv).toContain("Total de Receitas");
+    expect(csv).toContain("Total de Despesas");
+    expect(csv).toContain("Saldo Líquido");
+    expect(csv).toContain("-R$");
   });
 });
