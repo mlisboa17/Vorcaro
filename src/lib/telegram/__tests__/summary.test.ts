@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSummaryView, parseSummaryCallback, parseSummaryDays } from "@/lib/telegram/summary";
+import { generateWeeklySummaryCsv } from "@/lib/telegram/weekly-summary-export";
 import { normalizeSinceDays, type PeriodSummary } from "@/modules/reports/application/services/weekly-summary.service";
 
 function summary(over: Partial<PeriodSummary> = {}): PeriodSummary {
@@ -74,5 +75,58 @@ describe("buildSummaryView (19.1)", () => {
     expect(parseSummaryCallback("sum_details")).toBe("details");
     expect(parseSummaryCallback("sum_export")).toBe("export");
     expect(parseSummaryCallback("home_open")).toBeNull();
+  });
+});
+
+describe("generateWeeklySummaryCsv (21.1)", () => {
+  it("gera CSV com cabeçalho e resumo geral", () => {
+    const csv = generateWeeklySummaryCsv(
+      summary({
+        sinceDays: 7,
+        totalIncome: 1000,
+        totalExpenses: 600,
+        netBalance: 400,
+        transactionCount: 5,
+      }),
+    );
+    expect(csv).toContain("Resumo Financeiro");
+    expect(csv).toContain("Total de Transações");
+    expect(csv).toContain("Total de Receitas");
+    expect(csv).toContain("Total de Despesas");
+    expect(csv).toContain("Saldo Líquido");
+  });
+
+  it("inclui top categorias quando presentes", () => {
+    const csv = generateWeeklySummaryCsv(
+      summary({
+        topCategories: [
+          { categoryId: "c1", name: "Alimentação", total: 300 },
+          { categoryId: "c2", name: "Transporte", total: 200 },
+        ],
+      }),
+    );
+    expect(csv).toContain("TOP CATEGORIAS");
+    expect(csv).toContain("Alimentação");
+    expect(csv).toContain("Transporte");
+  });
+
+  it("inclui alertas quando presentes", () => {
+    const csv = generateWeeklySummaryCsv(summary({ activeAlerts: 3 }));
+    expect(csv).toContain("ALERTAS");
+    expect(csv).toContain("3");
+  });
+
+  it("escapa aspas em nomes de categorias", () => {
+    const csv = generateWeeklySummaryCsv(
+      summary({
+        topCategories: [{ categoryId: "c1", name: 'Categoria com "aspas"', total: 100 }],
+      }),
+    );
+    expect(csv).toContain('Categoria com ""aspas""');
+  });
+
+  it("período de 30 dias aparece corretamente", () => {
+    const csv = generateWeeklySummaryCsv(summary({ sinceDays: 30 }));
+    expect(csv).toContain("30 dias");
   });
 });

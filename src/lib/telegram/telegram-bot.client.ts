@@ -21,6 +21,37 @@ export async function sendTelegramMessage(chatId: number, text: string): Promise
   await sendTelegramMessageWithMode(chatId, text, "HTML");
 }
 
+export async function sendTelegramDocument(
+  chatId: number,
+  fileName: string,
+  fileContent: string | Buffer,
+  caption?: string,
+): Promise<void> {
+  const token = getBotToken();
+
+  const formData = new FormData();
+  formData.append("chat_id", String(chatId));
+
+  const bytes = typeof fileContent === "string"
+    ? new Uint8Array(Buffer.from(fileContent, "utf-8"))
+    : new Uint8Array(fileContent);
+
+  formData.append("document", new Blob([bytes], { type: "text/csv" }), fileName);
+
+  if (caption) {
+    formData.append("caption", caption);
+  }
+
+  const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendDocument`, {
+    method: "POST",
+    body: formData as any,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram sendDocument failed: HTTP ${response.status}`);
+  }
+}
+
 export type TelegramInlineKeyboard = {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
 };

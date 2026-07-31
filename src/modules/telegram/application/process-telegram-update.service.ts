@@ -46,11 +46,13 @@ import {
   answerTelegramCallbackQuery,
   editTelegramMessageText,
   sendTelegramMessageWithMode,
+  sendTelegramDocument,
 } from "@/lib/telegram/telegram-bot.client";
 import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import { buildHomeView, parseHomeCallback } from "@/lib/telegram/home";
 import { buildSummaryView, parseSummaryCallback, parseSummaryDays } from "@/lib/telegram/summary";
+import { generateWeeklySummaryCsv } from "@/lib/telegram/weekly-summary-export";
 import { WeeklySummaryService } from "@/modules/reports/application/services/weekly-summary.service";
 import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
 import { TelegramAlertFormatter } from "@/modules/telegram/application/formatters/telegram-alert.formatter";
@@ -743,10 +745,22 @@ export class ProcessTelegramUpdateService {
       if (sumAction === "details") {
         await answerTelegramCallbackQuery(callback.id, "Abrindo detalhes");
         await this.safeReply(chatId, "📈 Veja gráficos e evolução em /dashboard/insights 👉");
-      } else {
-        // export → CSV (Sprint 21). Por ora, orienta o caminho.
-        await answerTelegramCallbackQuery(callback.id, "Exportar");
-        await this.safeReply(chatId, "📄 Exporte seu relatório em /dashboard/insights (CSV em breve pelo chat).");
+      } else if (sumAction === "export") {
+        // Sprint 21.1 — gera e envia o CSV do resumo.
+        try {
+          await answerTelegramCallbackQuery(callback.id, "Gerando CSV...");
+          const summary = await new WeeklySummaryService(this.prisma).build(connection.userId);
+          const csvContent = generateWeeklySummaryCsv(summary);
+          const fileName = `resumo_financeiro_${new Date().getTime()}.csv`;
+          await sendTelegramDocument(chatId, fileName, csvContent, "📊 Resumo Semanal em CSV");
+          await this.safeReply(chatId, "✅ CSV exportado com sucesso!");
+        } catch (error) {
+          await this.safeReply(
+            chatId,
+            "⚠️ Não consegui gerar o CSV agora. Tente novamente em instantes.",
+          );
+          console.error("[telegram] Summary export failed:", error);
+        }
       }
       return { ok: true, handled: `summary_${sumAction}` };
     }
