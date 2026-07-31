@@ -41,6 +41,7 @@ model User {
   lancamentosRecorrentes            LancamentoRecorrente[]
   notifications                     Notification[]
   notificationPreferences           NotificationPreference[]
+  extractSchedulePreference         ExtractSchedulePreference?
   passwordResetTokens               PasswordResetToken[]
   patrimonyAssets                   PatrimonyAsset[]
   patrimonyLiabilities              PatrimonyLiability[]
@@ -707,6 +708,21 @@ model NotificationPreference {
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, notificationType])
+  @@index([userId])
+}
+
+model ExtractSchedulePreference {
+  id        String   @id @default(cuid())
+  userId    String
+  frequency String   @default("WEEKLY") // WEEKLY | MONTHLY
+  dayOfWeek Int?     // 0-6 para semanal (0=domingo, 1=segunda...)
+  dayOfMonth Int?    // 1-31 para mensal
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
   @@index([userId])
 }
 

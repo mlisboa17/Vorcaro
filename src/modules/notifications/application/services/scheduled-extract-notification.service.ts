@@ -50,37 +50,26 @@ export class ScheduledExtractNotificationService {
     dayOfWeek: number,
     dayOfMonth: number,
   ): Promise<ExtractScheduleConfig[]> {
-    // Como ainda não temos tabela de agendamentos, busca usuários com Telegram ativo
-    // e simula: segunda-feira semanal, 1º do mês mensal
-    const schedules: ExtractScheduleConfig[] = [];
-
-    const users = await this.prisma.user.findMany({
-      where: {
-        telegramConnections: {
-          some: { isActive: true },
-        },
-      },
-      select: { id: true },
+    // Sprint 22.2 — busca agendamentos configurados pelo usuário
+    const prefs = await this.prisma.extractSchedulePreference.findMany({
+      where: { isActive: true },
     });
 
-    for (const user of users) {
-      // TODO: quando tabela de agendamentos existir, buscar de lá
-      // Por ora, simula segunda-feira semanal
-      if (dayOfWeek === 1) {
+    const schedules: ExtractScheduleConfig[] = [];
+
+    for (const pref of prefs) {
+      if (pref.frequency === "WEEKLY" && pref.dayOfWeek === dayOfWeek) {
         schedules.push({
-          userId: user.id,
+          userId: pref.userId,
           frequency: "WEEKLY",
-          dayOfWeek: 1,
+          dayOfWeek: pref.dayOfWeek ?? 1,
           isActive: true,
         });
-      }
-
-      // E 1º do mês para mensal
-      if (dayOfMonth === 1) {
+      } else if (pref.frequency === "MONTHLY" && pref.dayOfMonth === dayOfMonth) {
         schedules.push({
-          userId: user.id,
+          userId: pref.userId,
           frequency: "MONTHLY",
-          dayOfMonth: 1,
+          dayOfMonth: pref.dayOfMonth ?? 1,
           isActive: true,
         });
       }
@@ -121,17 +110,41 @@ export class ScheduledExtractNotificationService {
   }
 
   async saveSchedule(config: ExtractScheduleConfig): Promise<void> {
-    // TODO: implementar quando tabela de agendamentos existir
-    console.log(`[ScheduledExtract] Configuração de agendamento salva: ${JSON.stringify(config)}`);
+    await this.prisma.extractSchedulePreference.upsert({
+      where: { userId: config.userId },
+      update: {
+        frequency: config.frequency,
+        dayOfWeek: config.dayOfWeek,
+        dayOfMonth: config.dayOfMonth,
+        isActive: config.isActive,
+      },
+      create: {
+        userId: config.userId,
+        frequency: config.frequency,
+        dayOfWeek: config.dayOfWeek,
+        dayOfMonth: config.dayOfMonth,
+        isActive: config.isActive,
+      },
+    });
   }
 
   async getSchedule(userId: string): Promise<ExtractScheduleConfig | null> {
-    // TODO: implementar quando tabela de agendamentos existir
-    return null;
+    const pref = await this.prisma.extractSchedulePreference.findUnique({
+      where: { userId },
+    });
+    if (!pref) return null;
+    return {
+      userId: pref.userId,
+      frequency: pref.frequency as ExtractScheduleFrequency,
+      dayOfWeek: pref.dayOfWeek ?? undefined,
+      dayOfMonth: pref.dayOfMonth ?? undefined,
+      isActive: pref.isActive,
+    };
   }
 
   async deleteSchedule(userId: string): Promise<void> {
-    // TODO: implementar quando tabela de agendamentos existir
-    console.log(`[ScheduledExtract] Agendamento removido para ${userId}`);
+    await this.prisma.extractSchedulePreference.deleteMany({
+      where: { userId },
+    });
   }
 }

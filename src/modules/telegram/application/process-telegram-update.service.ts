@@ -52,6 +52,11 @@ import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cog
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import { buildHomeView, parseHomeCallback } from "@/lib/telegram/home";
 import { buildSummaryView, parseSummaryCallback, parseSummaryDays } from "@/lib/telegram/summary";
+import {
+  buildExtractScheduleView,
+  buildExtractScheduleConfirmView,
+  parseExtractScheduleCallback,
+} from "@/lib/telegram/extract-schedule-config";
 import { generateWeeklySummaryCsv } from "@/lib/telegram/weekly-summary-export";
 import { WeeklySummaryService } from "@/modules/reports/application/services/weekly-summary.service";
 import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
@@ -207,6 +212,18 @@ export class ProcessTelegramUpdateService {
     if (text && text.trim().toLowerCase().startsWith("/resumo")) {
       await this.sendSummary(chatId, userId, parseSummaryDays(text));
       return { ok: true, handled: "summary", channel: "TELEGRAM" };
+    }
+
+    // Sprint 22.2 — /extratos configura agendamento automático.
+    if (text && text.trim().toLowerCase() === "/extratos") {
+      const current = await this.prisma.extractSchedulePreference.findFirst({
+        where: { userId },
+      });
+      const view = buildExtractScheduleView(current?.frequency ?? null);
+      await sendTelegramMessageWithMode(chatId, view.text, "HTML", {
+        inline_keyboard: view.keyboard,
+      });
+      return { ok: true, handled: "extract_schedule", channel: "TELEGRAM" };
     }
 
     if (text) {
@@ -769,6 +786,41 @@ export class ProcessTelegramUpdateService {
         }
       }
       return { ok: true, handled: `summary_${sumAction.action}` };
+    }
+
+    // Sprint 22.2 — configuração de agendamento de extratos.
+    const extractAction = parseExtractScheduleCallback(data);
+    if (extractAction) {
+      if (extractAction === "disable") {
+        await this.prisma.extractSchedulePreference.deleteMany({
+          where: { userId: connection.userId },
+        });
+        await answerTelegramCallbackQuery(callback.id, "Desativado");
+        await this.safeReply(chatId, "❌ Agendamento de extratos desativado.");
+      } else if (extractAction === "weekly" || extractAction === "monthly") {
+        const frequency = extractAction === "weekly" ? "WEEKLY" : "MONTHLY";
+        const dayOfWeek = extractAction === "weekly" ? 1 : undefined; // segunda-feira
+        const dayOfMonth = extractAction === "monthly" ? 1 : undefined; // 1º dia
+
+        await this.prisma.extractSchedulePreference.upsert({
+          where: { userId: connection.userId },
+          update: { frequency, dayOfWeek, dayOfMonth, isActive: true },
+          create: {
+            userId: connection.userId,
+            frequency,
+            dayOfWeek,
+            dayOfMonth,
+            isActive: true,
+          },
+        });
+
+        await answerTelegramCallbackQuery(callback.id, "Agendamento salvo!");
+        const view = buildExtractScheduleConfirmView(frequency);
+        await sendTelegramMessageWithMode(chatId, view.text, "HTML", {
+          inline_keyboard: view.keyboard,
+        });
+      }
+      return { ok: true, handled: `extract_${extractAction}` };
     }
 
     // Sprint 18.1 — botões da home acionável.
