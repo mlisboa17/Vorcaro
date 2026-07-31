@@ -50,6 +50,8 @@ import {
 import { formatCognitiveCardText, resolveCategoryName } from "@/lib/telegram/cognitive-card";
 import { pickHumanReply } from "@/lib/telegram/humanized-replies";
 import { buildHomeView, parseHomeCallback } from "@/lib/telegram/home";
+import { buildSummaryView, parseSummaryCallback, parseSummaryDays } from "@/lib/telegram/summary";
+import { WeeklySummaryService } from "@/modules/reports/application/services/weekly-summary.service";
 import { FinancialAlertQueryService } from "@/modules/financial-alerts/application/services/financial-alert-query.service";
 import { TelegramAlertFormatter } from "@/modules/telegram/application/formatters/telegram-alert.formatter";
 import {
@@ -197,6 +199,12 @@ export class ProcessTelegramUpdateService {
     if (text && text.trim().toLowerCase().startsWith("/alertas")) {
       await this.renderAlerts(chatId, userId);
       return { ok: true, handled: "alerts", channel: "TELEGRAM" };
+    }
+
+    // Sprint 19.2 — /resumo [dias] gera o resumo do período sob demanda.
+    if (text && text.trim().toLowerCase().startsWith("/resumo")) {
+      await this.sendSummary(chatId, userId, parseSummaryDays(text));
+      return { ok: true, handled: "summary", channel: "TELEGRAM" };
     }
 
     if (text) {
@@ -729,6 +737,20 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "alerts_dismiss" };
     }
 
+    // Sprint 19.2 — botões do resumo.
+    const sumAction = parseSummaryCallback(data);
+    if (sumAction) {
+      if (sumAction === "details") {
+        await answerTelegramCallbackQuery(callback.id, "Abrindo detalhes");
+        await this.safeReply(chatId, "📈 Veja gráficos e evolução em /dashboard/insights 👉");
+      } else {
+        // export → CSV (Sprint 21). Por ora, orienta o caminho.
+        await answerTelegramCallbackQuery(callback.id, "Exportar");
+        await this.safeReply(chatId, "📄 Exporte seu relatório em /dashboard/insights (CSV em breve pelo chat).");
+      }
+      return { ok: true, handled: `summary_${sumAction}` };
+    }
+
     // Sprint 18.1 — botões da home acionável.
     const homeAction = parseHomeCallback(data);
     if (homeAction) {
@@ -1076,6 +1098,13 @@ export class ProcessTelegramUpdateService {
       pendingConfirmations,
       activeAlerts: (alertSummary as { totalOpen?: number }).totalOpen ?? 0,
     });
+    await sendTelegramMessageWithMode(chatId, view.text, "HTML", { inline_keyboard: view.keyboard });
+  }
+
+  /** Sprint 19.2 — monta e envia o resumo do período. */
+  private async sendSummary(chatId: number, userId: string, sinceDays: number): Promise<void> {
+    const summary = await new WeeklySummaryService(this.prisma).build(userId, sinceDays);
+    const view = buildSummaryView(summary);
     await sendTelegramMessageWithMode(chatId, view.text, "HTML", { inline_keyboard: view.keyboard });
   }
 

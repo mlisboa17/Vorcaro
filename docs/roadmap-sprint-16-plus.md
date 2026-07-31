@@ -68,7 +68,13 @@ mantido) para surfaçar o engine `financial-alerts`: `/alertas` mostra digest re
 
 ---
 
-## Sprint 19 — Resumo semanal automático via Telegram
+## Sprint 19 — Resumo semanal automático via Telegram ✅ CONCLUÍDO
+
+**Status: fechado.** 19.1 `WeeklySummaryService` (totais, saldo líquido, top-3
+categorias, alertas) + formatter. 19.2 comando `/resumo [dias]` sob demanda +
+botões. 19.3 cron `/api/cron/weekly-summary` agendado via `vercel.json`
+(seg 00:00 UTC ≈ dom 21h BRT) com idempotência semanal por ISO-week no Redis.
+E2E cobrindo com/sem movimentações e botões. Ver `sprint-19-resumo-semanal.md`.
 
 - 🟡 Já existe: motor de alertas + entrega Telegram (`notification-telegram-delivery.service.ts`), digests (`/api/cron/notification-digest-*`).
 - 🔴 **Falta**: cron semanal (domingo) que monta e envia resumo — "essa semana você gastou R$ X, Y% acima da média em Z categoria" — com opção de corrigir registros direto pela mensagem (reaproveita edição inline do Sprint 16).

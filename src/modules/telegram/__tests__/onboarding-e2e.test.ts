@@ -75,6 +75,7 @@ function buildPrismaStub() {
     inboxCreated: 0,
     pendingConfirmations: 0,
     alerts: [] as any[],
+    transactions: [] as any[],
   };
   const decimal = (n: number) => ({ toNumber: () => n });
   const accountCreate = vi.fn(async ({ data }: any) => {
@@ -117,6 +118,9 @@ function buildPrismaStub() {
         state.alerts = [];
         return { count: n };
       }),
+    },
+    transaction: {
+      findMany: vi.fn(async () => state.transactions),
     },
   } as any;
   return { prisma, state, accountCreate, paymentCreate, inboxCreate };
@@ -356,5 +360,58 @@ describe("Alertas E2E (18.2) — /alertas + dispensar", () => {
     expect(handledOf(r)).toBe("alerts_dismiss");
     expect(state.alerts).toHaveLength(0); // updateMany zerou
     expect(sentMessages.join(" ")).toContain("marcados como lidos");
+  });
+});
+
+function txRow(type: "INCOME" | "EXPENSE", amount: number, categoryName?: string): any {
+  return {
+    type,
+    amount,
+    categoryId: categoryName ? `cat-${categoryName}` : null,
+    category: categoryName ? { name: categoryName } : null,
+    dataCaixa: new Date(),
+    date: new Date(),
+  };
+}
+
+describe("Resumo E2E (19.2) — /resumo", () => {
+  beforeEach(() => {
+    fakeRedis.clear();
+    sentMessages.length = 0;
+  });
+
+  it("/resumo com movimentações mostra totais e top categorias", async () => {
+    const { prisma, state } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    state.transactions = [
+      txRow("INCOME", 1000),
+      txRow("EXPENSE", 300, "Alimentação"),
+      txRow("EXPENSE", 200, "Transporte"),
+    ];
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/resumo"));
+    expect(handledOf(r)).toBe("summary");
+    const out = sentMessages.join(" ");
+    expect(out).toContain("Resumo");
+    expect(out).toContain("Alimentação");
+  });
+
+  it("/resumo sem movimentações → 'sem movimentações'", async () => {
+    const { prisma } = buildPrismaStub();
+    prisma.financialAccount.count = vi.fn(async () => 1);
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+
+    const r = await svc.execute(textMsg("/resumo 30"));
+    expect(handledOf(r)).toBe("summary");
+    expect(sentMessages.join(" ")).toContain("Sem movimentações");
+  });
+
+  it("botão sum_details aponta para o dashboard", async () => {
+    const { prisma } = buildPrismaStub();
+    const svc = new ProcessTelegramUpdateService(prisma, telegramIntegration);
+    const r = await svc.executeCallback(callback("sum_details"));
+    expect(handledOf(r)).toBe("summary_details");
+    expect(sentMessages.join(" ")).toContain("/dashboard/insights");
   });
 });
