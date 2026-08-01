@@ -1,23 +1,24 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Inbox,
+  Bell,
+  BellRing,
   CalendarClock,
-  Landmark,
+  Cpu,
   Handshake,
-  PiggyBank,
-  FileUp,
-  MessageCircle,
-  Zap,
-  ListTodo,
+  HandCoins,
   History,
-  Sparkles,
-  Settings,
-  RefreshCw,
-  TrendingUp,
-  CreditCard,
-  ArrowLeftRight,
-  Receipt,
+  Inbox,
+  Landmark,
+  LayoutDashboard,
   LineChart,
+  ListTodo,
+  MessageCircle,
+  Settings,
+  Sparkles,
+  Target,
+  WalletCards,
+  Zap,
+  FileUp,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -25,6 +26,7 @@ export type DashboardNavItem = {
   label: string;
   icon: LucideIcon;
   badgeKey?: "notifications";
+  /** Ativo apenas na rota exata (ex.: hub Vorcaro sem marcar subrotas). */
   exactMatch?: boolean;
 };
 
@@ -40,29 +42,53 @@ export type VorcaroHubCard = {
   icon: LucideIcon;
 };
 
+/** Menu lateral refatorado (Sprint 15) - 5 Macro-Categorias com Abas. */
 export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
   {
-    title: "Menu Principal",
+    title: "Visão Geral",
     items: [
-      { href: "/dashboard/transactions", label: "Lançamentos", icon: ArrowLeftRight },
-      { href: "/dashboard/inbox", label: "Caixa Financeiro", icon: Inbox },
-      { href: "/dashboard/cashflow", label: "Fluxo de Caixa", icon: CalendarClock },
-      { href: "/dashboard/insights", label: "Análises", icon: LineChart },
-      { href: "/dashboard/recurring", label: "Recorrências", icon: RefreshCw },
-      { href: "/dashboard/installments", label: "Parcelas", icon: CreditCard },
-      { href: "/dashboard/investments", label: "Investimentos", icon: TrendingUp },
-      { href: "/dashboard/statements", label: "Importar Extrato/Fatura", icon: FileUp },
-      { href: "/dashboard/receipts", label: "Comprovantes", icon: Receipt },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exactMatch: true },
+    ],
+  },
+  {
+    title: "Financeiro",
+    items: [
+      { href: "/dashboard/transactions", label: "Transações", icon: History },
+      { href: "/dashboard/receivables", label: "Recebíveis", icon: HandCoins },
+      { href: "/dashboard/patrimony", label: "Patrimônio", icon: Landmark },
+    ],
+  },
+  {
+    title: "Bancos & Extratos",
+    items: [
+      { href: "/dashboard/accounts", label: "Contas Bancárias", icon: WalletCards },
+      { href: "/dashboard/statements", label: "Extratos & Importação", icon: FileUp },
+    ],
+  },
+  {
+    title: "Inteligência & Inbox",
+    items: [
+      { href: "/dashboard/inbox", label: "Caixa de Entrada", icon: Inbox },
+      { href: "/dashboard/vorcaro", label: "Assistente Vorcaro", icon: Sparkles },
+      { href: "/dashboard/rules", label: "Regras de Automação", icon: Cpu },
+      { href: "/dashboard/planning", label: "Planejamento & Metas", icon: Target },
+      {
+        href: "/dashboard/notifications",
+        label: "Notificações",
+        icon: BellRing,
+        badgeKey: "notifications",
+      },
     ],
   },
   {
     title: "Configurações",
     items: [
-      { href: "/dashboard/settings", label: "Cadastros", icon: Settings },
+      { href: "/dashboard/settings", label: "Ajustes Gerais", icon: Settings },
     ],
   },
 ];
 
+/** Cards do hub central Vorcaro — submódulos acessíveis sem poluir o menu. */
 export const VORCARO_HUB_CARDS: VorcaroHubCard[] = [
   {
     href: "/dashboard/vorcaro/chat",
@@ -96,4 +122,5 @@ export const VORCARO_HUB_CARDS: VorcaroHubCard[] = [
   },
 ];
 
+/** Rota preservada fora do menu principal (gestão de recorrências). */
 export const DASHBOARD_RECURRING_ROUTE = "/dashboard/recurring";

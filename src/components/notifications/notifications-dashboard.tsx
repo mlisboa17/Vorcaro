@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { BellRing, Loader2, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   NOTIFICATION_CHANNEL_LABELS,
   NOTIFICATION_SEVERITY_LABELS,
@@ -33,11 +34,15 @@ function tabToStatus(tab: TabFilter): NotificationStatus | NotificationStatus[] 
 }
 
 export function NotificationsDashboard() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<NotificationListResponse["items"]>([]);
   const [total, setTotal] = useState(0);
   const [tab, setTab] = useState<TabFilter>("unread");
-  const [typeFilter, setTypeFilter] = useState<NotificationType | "ALL">("ALL");
+  const [typeFilter, setTypeFilter] = useState<NotificationType | "ALL">(() => {
+    const typeParam = searchParams.get("type");
+    return (typeParam as NotificationType) || "ALL";
+  });
   const [channelFilter, setChannelFilter] = useState<NotificationChannel | "ALL">("ALL");
   const [severityFilter, setSeverityFilter] = useState<NotificationSeverity | "ALL">("ALL");
   const [search, setSearch] = useState("");
