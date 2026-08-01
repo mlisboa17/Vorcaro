@@ -103,6 +103,8 @@ import type { PrismaClient } from "@prisma/client";
 import type { TelegramIntegrationPort } from "../domain/ports/telegram-integration.port";
 import { CategoryRuleEngine } from "@/modules/automation/services/CategoryRuleEngine";
 import { uploadReceipt, deleteReceipt } from "@/lib/supabase-storage";
+import { buildPersistentMenu, formatTransactionConfirmation, buildDuplicateConfirmKeyboard } from "@/lib/telegram/persistent-menu";
+import { deduplicationService } from "@/lib/telegram/deduplication.service";
 
 export type TelegramWebhookResult =
   | { ok: true; handled: string; inboxItemId?: string; channel?: string }
@@ -196,22 +198,29 @@ export class ProcessTelegramUpdateService {
       if (onboardResult) return onboardResult;
     }
 
-    // Sprint 18.1 — home acionável: /home mostra pendências + botões.
-    if (text && isHomeCommand(text)) {
+    // Sprint 0 — Menu Persistente: Botões do menu permanente
+    const normalizedText = text?.trim().toLowerCase();
+    if (normalizedText === "🏠 home" || (text && isHomeCommand(text))) {
       await this.sendHome(chatId, userId);
       return { ok: true, handled: "home", channel: "TELEGRAM" };
     }
 
-    // Sprint 18.2 — /alertas mostra os alertas reais do engine (não roteia pro chat).
-    if (text && text.trim().toLowerCase().startsWith("/alertas")) {
+    if (normalizedText === "📊 resumo" || (text && text.trim().toLowerCase().startsWith("/resumo"))) {
+      await this.sendSummary(chatId, userId, parseSummaryDays(text ?? ""));
+      return { ok: true, handled: "summary", channel: "TELEGRAM" };
+    }
+
+    if (normalizedText === "🚨 alertas" || (text && text.trim().toLowerCase().startsWith("/alertas"))) {
       await this.renderAlerts(chatId, userId);
       return { ok: true, handled: "alerts", channel: "TELEGRAM" };
     }
 
-    // Sprint 19.2 — /resumo [dias] gera o resumo do período sob demanda.
-    if (text && text.trim().toLowerCase().startsWith("/resumo")) {
-      await this.sendSummary(chatId, userId, parseSummaryDays(text));
-      return { ok: true, handled: "summary", channel: "TELEGRAM" };
+    if (normalizedText === "⚙️ config") {
+      const view = buildExtractScheduleView(null);
+      await sendTelegramMessageWithMode(chatId, "⚙️ <b>Configurações</b>\n\n📧 Agendamento de Extratos:\n" + view.text, "HTML", {
+        inline_keyboard: view.keyboard,
+      });
+      return { ok: true, handled: "config", channel: "TELEGRAM" };
     }
 
     // Sprint 22.2 — /extratos configura agendamento automático.
@@ -298,7 +307,7 @@ export class ProcessTelegramUpdateService {
         },
       });
 
-      await this.safeReply(chatId, "⏳ Áudio recebido. Processando com Inteligência Artificial...");
+      await this.safeReply(chatId, "🎤 Áudio recebido. Transcrevendo com Inteligência Artificial...", false);
       await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
         console.error("[telegram] processFinancialInboxItem (voice) failed:", error);
       });
@@ -325,7 +334,7 @@ export class ProcessTelegramUpdateService {
         },
       });
 
-      await this.safeReply(chatId, "⏳ Imagem recebida. Extraindo dados do comprovante...");
+      await this.safeReply(chatId, "📷 Foto recebida. Extraindo dados do comprovante...", false);
       await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
         console.error("[telegram] processFinancialInboxItem (image) failed:", error);
       });
@@ -489,6 +498,47 @@ export class ProcessTelegramUpdateService {
       }
     }
 
+    // Sprint 0 — Melhoria 3: Deduplicação Local
+    // Extrai valor e categoria para verificar se é duplicata
+    const extractedAmount = parseTelegramAmount(text);
+    let duplicateWarning: string | undefined;
+    if (extractedAmount) {
+      // Tenta inferir categoria do texto
+      const categories = await this.prisma.category.findMany({
+        where: { userId, isActive: true },
+        select: { id: true, name: true },
+      });
+
+      // Procura por menção de categoria no texto
+      const lowerText = text.toLowerCase();
+      let inferredCategory = "Gasto Geral";
+      for (const cat of categories) {
+        if (lowerText.includes(cat.name.toLowerCase())) {
+          inferredCategory = cat.name;
+          break;
+        }
+      }
+
+      const dupCheck = await deduplicationService.checkDuplicate(userId, extractedAmount, inferredCategory);
+      if (dupCheck.isDuplicate && dupCheck.message) {
+        duplicateWarning = dupCheck.message;
+        // Armazena a tentativa para override
+        await redis.setex(
+          `telegram:dedup_override:${chatId}`,
+          60,
+          JSON.stringify({ amount: extractedAmount, category: inferredCategory }),
+        );
+        // Envia alerta com botões para confirmar ou cancelar
+        await sendTelegramMessageWithMode(
+          chatId,
+          duplicateWarning + "\n\n⚠️ Deseja mesmo enviar?",
+          "HTML",
+          buildDuplicateConfirmKeyboard(),
+        );
+        return { ok: true, handled: "duplicate_detected", channel: "TELEGRAM" };
+      }
+    }
+
     const inboxItem = await this.prisma.financialInbox.create({
       data: {
         userId,
@@ -501,7 +551,7 @@ export class ProcessTelegramUpdateService {
       },
     });
 
-    await this.safeReply(chatId, "⏳ Processando lançamento...");
+    await this.safeReply(chatId, "💬 Entendi! Deixa eu confirmar os dados...", false);
     await processFinancialInboxItem(inboxItem.id, userId).catch((error) => {
       console.error("[telegram] processFinancialInboxItem (text) failed:", error);
     });
@@ -524,6 +574,39 @@ export class ProcessTelegramUpdateService {
     if (!connection) {
       await answerTelegramCallbackQuery(callback.id, "Chat não vinculado.");
       return { ok: true, skipped: "not_connected" };
+    }
+
+    // Sprint 0 — Deduplicação: Override "Enviar mesmo assim"
+    if (data === "dedup_override") {
+      const redis = getRedisConnection();
+      const overrideStr = await redis.get(`telegram:dedup_override:${chatId}`);
+      if (overrideStr) {
+        const { amount, category } = JSON.parse(overrideStr);
+        await deduplicationService.allowDuplicate(connection.userId, amount, category);
+        await redis.del(`telegram:dedup_override:${chatId}`);
+        await answerTelegramCallbackQuery(callback.id, "Registrando...");
+        const formattedDate = new Date().toLocaleDateString("pt-BR");
+        const summary = formatTransactionConfirmation({
+          amount,
+          category,
+          paymentMethod: "Não especificado",
+          account: "Padrão",
+          date: formattedDate,
+        });
+        await this.safeReply(chatId, summary);
+        return { ok: true, handled: "dedup_override_allowed" };
+      }
+      await answerTelegramCallbackQuery(callback.id, "Sessão expirada.");
+      return { ok: true, handled: "dedup_override_expired" };
+    }
+
+    // Sprint 0 — Deduplicação: Cancelar duplicata
+    if (data === "dedup_cancel") {
+      const redis = getRedisConnection();
+      await redis.del(`telegram:dedup_override:${chatId}`);
+      await answerTelegramCallbackQuery(callback.id, "Cancelado.");
+      await this.safeReply(chatId, "❌ Lançamento cancelado.", false);
+      return { ok: true, handled: "dedup_cancelled" };
     }
 
     if (data.startsWith("stmt_acc:")) {
@@ -616,10 +699,7 @@ export class ProcessTelegramUpdateService {
           try {
             const result = await suggestion.approve(connection.userId, docAction.suggestionId);
             await answerTelegramCallbackQuery(callback.id, `Categoria: ${chosen.label}`);
-            await this.safeReply(
-              chatId,
-              `✅ Lançamento criado em <b>${chosen.label}</b>. ID: ${result.transactionId}`,
-            );
+            await this.sendTransactionConfirmation(chatId, result.transactionId);
           } catch (approveError) {
             if (
               approveError instanceof FinancialDocumentSuggestionError &&
@@ -641,10 +721,7 @@ export class ProcessTelegramUpdateService {
           try {
             const result = await suggestion.approve(connection.userId, docAction.suggestionId);
             await answerTelegramCallbackQuery(callback.id, "Lançamento criado!");
-            await this.safeReply(
-              chatId,
-              `Lançamento confirmado após sua revisão. ID: ${result.transactionId}`,
-            );
+            await this.sendTransactionConfirmation(chatId, result.transactionId);
           } catch (approveError) {
             if (
               approveError instanceof FinancialDocumentSuggestionError &&
@@ -926,7 +1003,7 @@ export class ProcessTelegramUpdateService {
            // CRIA a Transaction de fato (handleInboxSmartBatchExecute), não só marca SAVED.
            const inbox = await this.prisma.financialInbox.findFirst({
              where: { id: cognitiveAction.inboxItemId, userId: connection.userId },
-             select: { status: true },
+             select: { status: true, metadata: true },
            });
            if (!inbox) {
              await answerTelegramCallbackQuery(callback.id, "Lançamento não encontrado.");
@@ -941,7 +1018,43 @@ export class ProcessTelegramUpdateService {
              );
              if (batch.confirmed > 0) {
                await answerTelegramCallbackQuery(callback.id, "Lançamento criado!");
-               await this.safeReply(chatId, pickHumanReply("saved"));
+
+               // Sprint 0 — Melhoria 4: Confirmação Clara com dados da transação criada
+               // Busca a transação criada para este inbox item
+               const transaction = await this.prisma.transaction.findFirst({
+                 where: {
+                   inboxItemId: cognitiveAction.inboxItemId,
+                 },
+                 include: {
+                   category: { select: { name: true } },
+                   account: { select: { name: true } },
+                   paymentMethod: { select: { name: true } },
+                 },
+               });
+
+               if (transaction) {
+                 const formattedDate = transaction.date
+                   ? new Date(transaction.date).toLocaleDateString("pt-BR")
+                   : new Date().toLocaleDateString("pt-BR");
+
+                 const summary = formatTransactionConfirmation({
+                   amount: Number(transaction.amount),
+                   category: transaction.category?.name ?? "Categoria",
+                   paymentMethod: transaction.paymentMethod?.name ?? transaction.type ?? "Método",
+                   account: transaction.account?.name ?? "Conta",
+                   date: formattedDate,
+                 });
+                 await this.safeReply(chatId, summary);
+
+                 // Registra para deduplicação
+                 await deduplicationService.recordTransaction(
+                   connection.userId,
+                   Number(transaction.amount),
+                   transaction.category?.name ?? "Gasto Geral",
+                 );
+               } else {
+                 await this.safeReply(chatId, pickHumanReply("saved"));
+               }
              } else {
                await answerTelegramCallbackQuery(callback.id, "Não consegui confirmar.");
                await this.safeReply(
@@ -1202,9 +1315,13 @@ export class ProcessTelegramUpdateService {
     });
   }
 
-  private async safeReply(chatId: number, text: string): Promise<void> {
+  private async safeReply(chatId: number, text: string, withPersistentMenu = true): Promise<void> {
     try {
-      await sendTelegramMessage(chatId, text);
+      if (withPersistentMenu) {
+        await sendTelegramMessageWithMode(chatId, text, "HTML", buildPersistentMenu());
+      } else {
+        await sendTelegramMessage(chatId, text);
+      }
     } catch (error) {
       console.error("[telegram] Falha ao enviar resposta:", error instanceof Error ? error.message : error);
     }
@@ -1222,9 +1339,51 @@ export class ProcessTelegramUpdateService {
         });
         return;
       }
-      await sendTelegramMessage(chatId, text);
+      await sendTelegramMessageWithMode(chatId, text, "HTML", buildPersistentMenu());
     } catch (error) {
       console.error("[telegram] Falha ao enviar resposta:", error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Sprint 0 — Confirmação Clara: Busca dados da transação e exibe resumo formatado
+   */
+  private async sendTransactionConfirmation(chatId: number, transactionId: string): Promise<void> {
+    try {
+      const transaction = await this.prisma.transaction.findUnique({
+        where: { id: transactionId },
+        include: {
+          category: { select: { name: true } },
+          account: { select: { name: true } },
+          paymentMethod: { select: { name: true } },
+        },
+      });
+
+      if (!transaction) {
+        await this.safeReply(chatId, `✅ Lançamento criado! ID: ${transactionId}`);
+        return;
+      }
+
+      const formattedDate = transaction.date
+        ? new Date(transaction.date).toLocaleDateString("pt-BR")
+        : "Data indefinida";
+
+      const paymentMethodName = transaction.paymentMethod?.name ?? transaction.type ?? "Método não especificado";
+      const categoryName = transaction.category?.name ?? "Categoria não especificada";
+      const accountName = transaction.account?.name ?? "Conta não especificada";
+
+      const summary = formatTransactionConfirmation({
+        amount: Number(transaction.amount),
+        category: categoryName,
+        paymentMethod: paymentMethodName,
+        account: accountName,
+        date: formattedDate,
+      });
+
+      await this.safeReply(chatId, summary);
+    } catch (error) {
+      console.error("[telegram] Erro ao enviar confirmação da transação:", error);
+      await this.safeReply(chatId, `✅ Lançamento criado! ID: ${transactionId}`);
     }
   }
 }

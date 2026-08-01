@@ -56,13 +56,43 @@ export type TelegramInlineKeyboard = {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
 };
 
+export type TelegramReplyKeyboard = {
+  reply_keyboard: Array<Array<{ text: string }>>;
+  one_time_keyboard?: boolean;
+  resize_keyboard?: boolean;
+  selective?: boolean;
+};
+
+export type TelegramMarkup = TelegramInlineKeyboard | TelegramReplyKeyboard;
+
+function isTelegramReplyKeyboard(markup: TelegramMarkup): markup is TelegramReplyKeyboard {
+  return 'reply_keyboard' in markup;
+}
+
 export async function sendTelegramMessageWithMode(
   chatId: number,
   text: string,
   parseMode: "HTML" | "MarkdownV2" = "HTML",
-  replyMarkup?: TelegramInlineKeyboard,
+  replyMarkup?: TelegramMarkup,
 ): Promise<void> {
   const token = getBotToken();
+
+  let markup: Record<string, any> | undefined;
+  if (replyMarkup) {
+    if (isTelegramReplyKeyboard(replyMarkup)) {
+      markup = {
+        reply_markup: {
+          keyboard: replyMarkup.reply_keyboard,
+          resize_keyboard: replyMarkup.resize_keyboard ?? true,
+          one_time_keyboard: replyMarkup.one_time_keyboard ?? false,
+          selective: replyMarkup.selective ?? false,
+        },
+      };
+    } else {
+      markup = { reply_markup: replyMarkup };
+    }
+  }
+
   const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,7 +100,7 @@ export async function sendTelegramMessageWithMode(
       chat_id: chatId,
       text,
       parse_mode: parseMode,
-      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      ...markup,
     }),
   });
 
