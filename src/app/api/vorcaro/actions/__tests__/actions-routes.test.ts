@@ -39,7 +39,7 @@ const baseProposal = {
 
 const executionResult = {
   status: "EXECUTED" as const,
-  targetUrl: "/dashboard/alerts?id=alert-1",
+  targetUrl: "/dashboard/notifications?type=alert&id=alert-1",
   navigationPayload: { alertId: "alert-1" },
   title: "Abrir alerta",
   message: "Abrindo a central de alertas.",
@@ -115,7 +115,7 @@ describe("POST /api/vorcaro/actions/:id/execute", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.execution.status).toBe("EXECUTED");
-    expect(body.execution.targetUrl).toBe("/dashboard/alerts?id=alert-1");
+    expect(body.execution.targetUrl).toBe("/dashboard/notifications?type=alert&id=alert-1");
     expect(body.execution.navigationPayload).toEqual({ alertId: "alert-1" });
     expect(executeProposalMock).toHaveBeenCalledWith("user-1", "prop-1");
   });

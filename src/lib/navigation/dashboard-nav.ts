@@ -70,7 +70,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     items: [
       { href: "/dashboard/inbox", label: "Caixa de Entrada", icon: Inbox },
       { href: "/dashboard/vorcaro", label: "Assistente Vorcaro", icon: Sparkles },
-      { href: "/dashboard/automation/rules", label: "Regras de Automação", icon: Cpu },
+      { href: "/dashboard/rules", label: "Regras de Automação", icon: Cpu },
       { href: "/dashboard/planning", label: "Planejamento & Metas", icon: Target },
       {
         href: "/dashboard/notifications",

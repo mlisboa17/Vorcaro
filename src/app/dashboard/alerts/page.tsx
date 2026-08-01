@@ -1,9 +1,5 @@
-import { AlertsDashboard } from "@/components/alerts/alerts-dashboard";
+import { redirect } from 'next/navigation';
 
 export default function AlertsPage() {
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <AlertsDashboard />
-    </div>
-  );
+  redirect('/dashboard/notifications?type=alert');
 }

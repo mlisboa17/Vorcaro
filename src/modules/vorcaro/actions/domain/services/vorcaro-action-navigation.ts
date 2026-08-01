@@ -23,7 +23,7 @@ export function buildNavigationTarget(
     }
     case "OPEN_ALERT": {
       const id = requireId(payload, "alertId");
-      const url = id ? `/dashboard/alerts?id=${encodeURIComponent(id)}` : "/dashboard/alerts";
+      const url = id ? `/dashboard/notifications?type=alert&id=${encodeURIComponent(id)}` : "/dashboard/notifications?type=alert";
       return {
         targetUrl: url,
         navigationPayload: { alertId: id },

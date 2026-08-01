@@ -148,7 +148,7 @@ describe("VorcaroActionProposalService", () => {
 
     const { result, proposal } = await service.executeProposal("user-1", p.id);
     expect(result.status).toBe("EXECUTED");
-    expect(result.targetUrl).toContain("/dashboard/alerts");
+    expect(result.targetUrl).toContain("/dashboard/notifications?type=alert");
     expect(proposal.status).toBe("EXECUTED");
   });
 
