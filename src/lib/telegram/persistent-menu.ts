@@ -1,5 +1,3 @@
-import { TelegramClient } from 'gramjs';
-
 export const PERSISTENT_MENU = {
   buttons: [
     [{ text: '🏠 Home', callback_data: 'cmd_home' }],
@@ -15,15 +13,30 @@ export function buildPersistentMenu() {
   };
 }
 
+export function buildDuplicateConfirmKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Enviar mesmo assim', callback_data: 'dedup_override' },
+        { text: '❌ Cancelar', callback_data: 'dedup_cancel' },
+      ],
+    ],
+  };
+}
+
 export function formatTransactionConfirmation(data: {
   amount: number;
   category: string;
   paymentMethod?: string;
   account?: string;
-  date?: Date;
+  date?: string | Date;
 }): string {
+  const dateStr = typeof data.date === 'string'
+    ? data.date
+    : data.date?.toLocaleDateString('pt-BR') ?? 'Hoje';
+
   return `✅ Registrei!
-💰 R$ ${data.amount.toFixed(2)}
+💰 R$ ${data.amount.toFixed(2).replace('.', ',')}
 🏷️ ${data.category}
-${data.paymentMethod ? `🏦 ${data.paymentMethod}\n` : ''}${data.account ? `🔐 Conta: ${data.account}\n` : ''}📅 ${data.date ? data.date.toLocaleDateString('pt-BR') : 'Hoje'}`;
+${data.paymentMethod ? `🏦 ${data.paymentMethod}\n` : ''}${data.account ? `🔐 Conta: ${data.account}\n` : ''}📅 ${dateStr}`;
 }

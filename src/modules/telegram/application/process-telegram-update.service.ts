@@ -609,6 +609,34 @@ export class ProcessTelegramUpdateService {
       return { ok: true, handled: "dedup_cancelled" };
     }
 
+    // Sprint 0 — Menu Persistente: Handlers dos botões
+    if (data === "cmd_home") {
+      await answerTelegramCallbackQuery(callback.id, "Abrindo home");
+      await this.sendHome(chatId, connection.userId);
+      return { ok: true, handled: "menu_home" };
+    }
+
+    if (data === "cmd_resumo") {
+      await answerTelegramCallbackQuery(callback.id, "Gerando resumo");
+      await this.sendSummary(chatId, connection.userId, 7);
+      return { ok: true, handled: "menu_resumo" };
+    }
+
+    if (data === "cmd_alertas") {
+      await answerTelegramCallbackQuery(callback.id, "Seus alertas");
+      await this.renderAlerts(chatId, connection.userId);
+      return { ok: true, handled: "menu_alertas" };
+    }
+
+    if (data === "cmd_config") {
+      const view = buildExtractScheduleView(null);
+      await answerTelegramCallbackQuery(callback.id, "Configurações");
+      await sendTelegramMessageWithMode(chatId, "⚙️ <b>Configurações</b>\n\n📧 Agendamento de Extratos:\n" + view.text, "HTML", {
+        inline_keyboard: view.keyboard,
+      });
+      return { ok: true, handled: "menu_config" };
+    }
+
     if (data.startsWith("stmt_acc:")) {
       const parts = data.split(":");
       if (parts.length === 3) {

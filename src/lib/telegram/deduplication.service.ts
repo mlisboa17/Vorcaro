@@ -1,24 +1,25 @@
-import Redis from 'ioredis';
+import { getRedisConnection } from '@/lib/queue';
 
 export class TelegramDeduplicationService {
-  private redis: Redis;
+  private redis: ReturnType<typeof getRedisConnection>;
 
-  constructor(redisUrl?: string) {
-    this.redis = new Redis(redisUrl || process.env.REDIS_URL || 'redis://localhost:6379');
+  constructor() {
+    this.redis = getRedisConnection();
   }
 
   async checkDuplicate(
     userId: string,
     amount: number,
     category: string,
-  ): Promise<{ isDuplicate: boolean; minutesAgo?: number }> {
+  ): Promise<{ isDuplicate: boolean; minutesAgo?: number; message?: string }> {
     const key = `dedup:${userId}:${amount}:${category}`;
     const exists = await this.redis.exists(key);
 
     if (exists) {
       const ttl = await this.redis.ttl(key);
       const minutesAgo = Math.ceil((600 - ttl) / 60);
-      return { isDuplicate: true, minutesAgo };
+      const message = this.formatDuplicateWarning(amount, category, minutesAgo);
+      return { isDuplicate: true, minutesAgo, message };
     }
 
     // Set with 10 minute TTL
@@ -26,8 +27,18 @@ export class TelegramDeduplicationService {
     return { isDuplicate: false };
   }
 
+  async allowDuplicate(userId: string, amount: number, category: string): Promise<void> {
+    const key = `dedup:${userId}:${amount}:${category}`;
+    await this.redis.del(key);
+  }
+
+  async recordTransaction(userId: string, amount: number, category: string): Promise<void> {
+    const key = `dedup:${userId}:${amount}:${category}`;
+    await this.redis.setex(key, 600, Date.now().toString());
+  }
+
   formatDuplicateWarning(amount: number, category: string, minutesAgo: number): string {
-    return `⚠️ Já lançaste R$${amount.toFixed(2)} em ${category} há ${minutesAgo} min`;
+    return `⚠️ Já lançaste R$${amount.toFixed(2).replace('.', ',')} em ${category} há ${minutesAgo} min`;
   }
 
   getDuplicateButtons() {
@@ -41,3 +52,6 @@ export class TelegramDeduplicationService {
     };
   }
 }
+
+// Singleton instance
+export const deduplicationService = new TelegramDeduplicationService();
